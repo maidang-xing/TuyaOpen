@@ -76,3 +76,6 @@ html_context = {
     # 页面路径配置（自动生成编辑链接）
     "conf_py_path": "/docs/en/",  # 配置文件的仓库相对路径
 }
+
+highlight_language = 'c'  # 默认高亮C语言代码
+primary_domain = 'c'      # 主文档域为C语言

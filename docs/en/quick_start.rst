@@ -13,14 +13,14 @@ Ubuntu and Debian
 
 macOS
 ^^^^^
-Run::
+Please run::
 
     tos check
 
-Check system dependencies and install missing components as prompted.
+to check system dependencies and install them as prompted.
 
 .. note::
-    Since version v1.1.0, we have adopted ninja as the build tool to accelerate compilation speed. If you encounter compilation errors, please install ninja.
+    Since version v1.1.0, we use ninja as the build tool to accelerate compilation. Please install ninja if you encounter compilation errors.
 
 Clone Repository
 ----------------
@@ -29,7 +29,7 @@ Clone Repository
 
     git clone https://github.com/tuya/TuyaOpen.git
 
-The tuyeopen repository contains multiple submodules. The tos tool will automatically check and download submodules before compilation. Alternatively, you can manually download them using::
+The TuyaOpen repository contains multiple submodules. The tos tool will **automatically check and download submodules before compilation**, or you can manually download them using::
 
     git submodule update --init
 
@@ -43,33 +43,42 @@ step1. Set Environment Variables
     cd TuyaOpen
     export PATH=$PATH:$PWD
 
-Or add the TuyaOpen path to your system environment variables.
+Or add the TuyaOpen path to system environment variables:
 
-TuyaOpen uses the tos command for compilation and debugging operations. The tos command locates the TuyaOpen repository through the path set in environment variables.
+.. code-block:: bash
 
-For detailed usage of tos command, please refer to :ref:`tos command <tos_guide>`.
+    vim ~/.bashrc
+    # Add the following content
+    export PATH=$PATH:$PWD
+
+After adding the environment variable with vim, enter ``:wq`` to save, and use ``source ~/.bashrc`` to activate the environment variables.
+For detailed usage of tos command, please refer to :doc:`tos command <tos_guide>`.
+
+.. note:: 
+    TuyaOpen uses the tos command for compilation, debugging and other operations. The tos command will search for the TuyaOpen repository based on the path set in environment variables.
 
 step2. Select Project to Compile
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- **Method 1**: Compile Example
+- **Method 1**: Compile example
 
-To select an example for compilation, use the command::
+Select an example to compile using::
 
+    cd TuyaOpen
     tos set_example
 
-This will modify the ``examples`` directory according to the selected platform.
+After platform selection, the ``examples`` directory will be updated with platform-specific examples.
 
-For more example information, see :ref:`Example Projects <examples>`.
+More example information: :doc:`Example Projects <examples/examples>`.
 
-- **Method 2**: Compile App
+- **Method 2**: Compile app
 
-Select an app to compile, such as `apps/tuya_cloud/switch_demo <https://github.com/tuya/TuyaOpen/tree/master/apps/tuya_cloud/switch_demo>`, and navigate to its directory.
+Select an app to compile (e.g. `apps/tuya_cloud/switch_demo <https://github.com/tuya/TuyaOpen/tree/master/apps/tuya_cloud/switch_demo>`_) and navigate to its directory.
 
 Use::
 
     tos config_choice
 
-to select target platform or development board.
+to select target platform or board.
 
 .. code-block:: bash
 
@@ -89,114 +98,59 @@ to select target platform or development board.
     ------------------------
     Please select: 
 
-The ``tos config_choice`` command reads configuration files from the project's ``config`` directory and generates the current project's configuration file ``app_default.config``.
+The ``tos config_choice`` command reads configuration files in the project's ``config`` directory and generates ``app_default.config`` for the current project.
 
 .. important::
-    After switching config with ``tos config_choice``, the tos command will automatically clear compiled intermediate files in the current project.
+    After switching config with ``tos config_choice``, tos will automatically clean previously generated intermediate files.
 
 step3. Compile
 ^^^^^^^^^^^^^^
-Navigate to the target example or app directory and run:
+Navigate to the target project directory (examples or apps) and run:
 
 .. code-block:: bash
 
     cd apps/tuya_cloud/switch_demo
     tos build
 
-Compiled binaries will be located in ``.build/<project>/bin`` directory, e.g. ``apps/tuya_cloud/switch_demo/.build/bin``.
+Compiled binaries will be located in ``.build/<project>/bin`` directory of the current project, e.g. ``apps/tuya_cloud/switch_demo/.build/bin``.
 
-The compiled files include:
+Output files include:
 
-- switch_demo_QIO_1.0.0.bin: Complete firmware including bootloader for flashing
-- switch_demo_UA_1.0.0.bin: Application firmware without bootloader (requires platform/chip-specific address flashing)
+- switch_demo_QIO_1.0.0.bin: Complete firmware with bootloader for flashing
+- switch_demo_UA_1.0.0.bin: Application firmware without bootloader (must be flashed to correct address based on platform/chip)
 - switch_demo_UG_1.0.0.bin: OTA upgrade file (cannot run directly after flashing)
 
-Project name defaults to directory name, and version defaults to ``1.0.0``. These can be modified via ``tos menuconfig``.
+Default project name matches directory name, version defaults to ``1.0.0``. Modify via ``tos menuconfig``.
 
 step4. menuconfig Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-To modify project configuration, navigate to the target directory and run:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To modify project configuration, navigate to target project directory and run:
 
 .. code-block:: bash
 
     cd apps/tuya_cloud/switch_demo
     tos menuconfig
 
-Configure the project, save changes, and recompile.
+Configure the project and recompile after saving changes.
 
 .. important::
-    Switching chips or development boards via ``tos menuconfig`` will automatically clear compiled intermediate files.
+    Changing chip/board via ``tos menuconfig`` will automatically clean previous build artifacts.
 
-Flashing
---------
+Flashing and Authorization
+-------------------------
+
+Command Line Flashing
+^^^^^^^^^^^^^^^^^^^^^
+Use ``tos flash`` for one-click flashing: :doc:`CLI Flashing <flashing/CLI-flash>`
 
 GUI Tool Flashing
 ^^^^^^^^^^^^^^^^^
-tyutool gui supports serial flashing for multiple chips (T2/T3/T5AI/BK7231N/LN882H/ESP32) and works on Windows/Linux/macOS:
+``tyutool gui`` provides complete graphical flashing solution with serial debugging, firmware flashing and authorization management.
+Currently supports T2/T3/T5AI/BK7231N/LN882H/ESP32 chips via serial flashing, available for Windows/Linux/macOS:
 
 - Windows：`tyutool_win <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/win_tyutool_gui.zip>`_
 - Linux：`tyutool_linux.tar <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/tyutool_gui.tar.gz>`_
 - macOS_x86：`tyutool_mac_x86 <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/darwin_x86_tyutool_gui.tar.gz>`_
 - macOS_arm64：`tyutool_mac_arm64.zip <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/darwin_arm64_tyutool_gui.tar.gz>`_
 
-Command Line Flashing
-^^^^^^^^^^^^^^^^^^^^^
-Use ``tos flash`` for one-step flashing:
-
-1. On Linux, set serial port permissions first:
-
-.. code-block:: bash
-
-    sudo usermod -aG dialout $USER
-
-System reboot required after configuration.
-
-2. Run flashing command in compiled project directory:
-
-.. code-block:: bash
-
-    cd apps/tuya_cloud/switch_demo
-    tos flash
-    tyutool params:
-    [INFO]: tyut_logger init done.
-    [INFO]: Run Tuya Uart Tool.
-    [INFO]: Use default baudrate: [921600]
-    [INFO]: Use default start address: [0x00]
-    --------------------
-    1. /dev/ttyS0
-    2. /dev/ttyACM0
-    3. /dev/ttyACM1
-    ^^^^^^^^^^^^^^^^^^^^
-    Select serial port: 3
-    [INFO]: Waiting Reset ...
-    [INFO]: unprotect flash OK.
-    [INFO]: sync baudrate 921600 success
-    Erasing: ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 4 bytes/s   0:00:04 / 0:00:00
-    [INFO]: Erase flash success
-    Writing: ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 16 bytes/s   0:00:18 / 0:00:00
-    [INFO]: Write flash success
-    [INFO]: CRC check success
-    [INFO]: Reboot done
-    [INFO]: Flash write success.
-
-.. attention::
-    The chip needs to enter boot mode before flashing via serial port.
-    If serial port is unresponsive, check port selection or port occupancy.
-
-3. For versions prior to v1.8.0 (no auto-update), manually upgrade with:
-
-.. code-block:: bash
-
-    tos flash upgrade
-
-Check version with:
-
-.. code-block:: bash
-
-    tos flash --version
-
-Output example:
-
-.. code-block:: bash
-
-    tyuTool, version 1.8.3
+For GUI flashing tutorial: :doc:`GUI Flashing <flashing/GUI-flash>`
