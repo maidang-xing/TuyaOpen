@@ -51,12 +51,15 @@ step1. 设置环境变量
 
     vim ~/.bashrc
     # 添加以下内容
-    export PATH=$PATH:$PWD
+    export PATH=$PATH:/path/to/your/TuyaOpen
+
+.. attention::
+    请将 ``/path/to/your/TuyaOpen`` 替换为实际的 TuyaOpen 目录路径。
 
 使用 vim 添加环境变量后，输入 ``:wq`` 保存，使用 ``source ~/.bashrc`` 命令使环境变量生效。
 tos 命令的详细使用方法，请参考 :doc:`tos 命令 <tos_guide>`。
 
-.. noote:: 
+.. note:: 
     TuyaOpen 通过 tos 命令进行编译、调试等操作，tos 命令会根据环境变量中设置的路径查找 TuyaOpen 仓库，并执行对应操作。
 
 step2. 选择待编译项目

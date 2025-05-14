@@ -64,6 +64,13 @@ v1.8.0 之前版本需要手工运行以下升级命令升级：
 
 授权码烧录
 ==========
+使用 ``tos monitor`` 命令，选择日志串口，在终端查看设备日志信息。
+使用 ``tos monitor -b 115200`` ,选择烧录串口，使用串口命令行进行授权码烧录。
+
+.. code-block:: bash
+    cd apps/tuya_cloud/switch_demo
+    tos monitor -b 115200
+    tyutool params:
 
 .. list-table::
    :header-rows: 1
@@ -71,7 +78,7 @@ v1.8.0 之前版本需要手工运行以下升级命令升级：
    * - 命令
      - 说明
    * - ``hello``
-     - 测试命令行功能
+     - 测试命令行功能，返回 ``hello world``
    * - ``auth``
      - 提示烧录授权码操作
    * - ``auth-read``

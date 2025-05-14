@@ -49,7 +49,9 @@ Or add the TuyaOpen path to system environment variables:
 
     vim ~/.bashrc
     # Add the following content
-    export PATH=$PATH:$PWD
+    export PATH=$PATH:/path/to/your/TuyaOpen
+.. attention::
+    Replace ``/path/to/your/TuyaOpen`` with the actual path to your TuyaOpen directory.
 
 After adding the environment variable with vim, enter ``:wq`` to save, and use ``source ~/.bashrc`` to activate the environment variables.
 For detailed usage of tos command, please refer to :doc:`tos command <tos_guide>`.

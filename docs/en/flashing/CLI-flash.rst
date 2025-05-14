@@ -65,6 +65,13 @@ For versions prior to v1.8.0, manually upgrade with:
 
 Authorization Code Flashing
 ===========================
+Use ``tos monitor`` command to select the log serial port and view device logs in the terminal.
+Use ``tos monitor -b 115200`` to select the flashing serial port and perform authorization code burning via serial command line.
+
+.. code-block:: bash
+    cd apps/tuya_cloud/switch_demo
+    tos monitor -b 115200
+    tyutool params:
 
 .. list-table::
    :header-rows: 1
@@ -72,7 +79,7 @@ Authorization Code Flashing
    * - Command
      - Description
    * - ``hello``
-     - Test command line functionality
+     - Test command line functionality, return ``hello world``
    * - ``auth``
      - Initiate authorization code flashing
    * - ``auth-read``
