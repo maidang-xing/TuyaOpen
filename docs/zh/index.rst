@@ -67,17 +67,19 @@ gitee 镜像
 - Arduino 版 TuyaOpen: `https://gitee.com/tuya-open/arduino-TuyaOpen <https://gitee.com/tuya-open/arduino-TuyaOpen>`_
 - Luanode 版 TuyaOpen: `https://gitee.com/tuya-open/luanode-TuyaOpen <https://gitee.com/tuya-open/luanode-TuyaOpen>`_
 
+目录
+
 .. toctree::
    :maxdepth: 1
    :glob:
 
-   quick_start.rst
-   tos_guide.rst
-   examples/examples.rst
-   applications/application.rst
-   peripherals/peripherals.rst
-   new_platform.rst
-   new_board.rst
-   contribute_guide.rst
-   code_style_guide.rst
-   faq/faq.rst
+   quick_start/index
+   tos_guide/index
+   examples/index
+   applications/index
+   peripherals/index
+   new_platform/index
+   new_board/index
+   contribute_guide/index
+   code_style_guide/index
+   faq/index

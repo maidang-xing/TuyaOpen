@@ -27,7 +27,7 @@ platform 新增与适配
 
 TuyaOpen 通过 tos 命令进行编译、调试等操作，tos 命令会根据环境变量中设置的路径查找 TuyaOpen 仓库，并执行对应操作。
 
-tos 命令的详细使用方法，请参考 :doc:`tos 命令 <tos_guide>`。
+tos 命令的详细使用方法，请参考 :doc:`tos 命令 </tos_guide/index>`。
 
 2. 通过以下命令，生成一个新的 ``platform`` 子目录：
 
@@ -224,7 +224,7 @@ toolchain_file.cmake
 编译
 --------
 
-按照 :ref:`README_zh <../README_zh.md>` 文档的指引，在待编译测试的项目中 project_build.ini 修改/新增当前 platform 的名称，并进行一次编译。
+按照 :doc:`README_zh <../README_zh.md>` 文档的指引，在待编译测试的项目中 project_build.ini 修改/新增当前 platform 的名称，并进行一次编译。
 
 .. code-block:: bash
 
@@ -324,5 +324,5 @@ default.config 和 Kconfig 一起配合组成 TuyaOpen 菜单化配置功能，�
 
 完成适配并通过测试后，欢迎提交 Push Requests 提交代码，将新适配的 platform 对应的 ``platform_config.yaml`` 提交至 `TuyaOpen仓库 <https://github.com/tuya/TuyaOpen>`_：
 
-- Push Requests 流程可参考 :doc:`贡献指南 <contribute_guide>`
-- 编程规范可参考 :doc:`编码风格指南 <code_style_guide>`
+- Push Requests 流程可参考 :doc:`贡献指南 </contribute_guide/index>`
+- 编程规范可参考 :doc:`编码风格指南 </code_style_guide/index>`

@@ -63,7 +63,7 @@ Tuyaopen Framework 包括：
 - 运行 `tos build` 命令，编译工程。
 - 使用 tos flash 命令进行一键烧录。
 
-更多 tos 具体请参考 `tos 使用指南 <../tos_guide.md>`_。
+更多 tos 具体请参考 :doc:`tos 使用指南 </tos_guide/index>`。
 
 ========================
 配网激活

@@ -14,6 +14,10 @@ release = '1.2.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
+# 新增站点地图基础URL配置
+html_baseurl = 'https://github.com/tuya/TuyaOpen'  # 请替换为实际部署域名
+
+
 extensions = [
 	'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
@@ -47,7 +51,7 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 html_theme_options = {
-    'display_version': True,
+    # 'display_version': True,
     'prev_next_buttons_location': 'both',           # 在文档页面的顶部和底部同时显示 "上一页 / 下一页" 导航按钮。
     'style_external_links': False,                  # 允许外部链接的样式。
     'sticky_navigation': True,                      # 使侧边栏导航菜单在页面滚动时保持固定位置。

@@ -97,17 +97,18 @@ Create Project
     └── src
         └── hello_world.c
 
-+---------------------+-------------------------------------------------+
-| File                | Description                                     |
-+=====================+=================================================+
-| CMakeLists.txt      | Project compilation configuration file         |
-+---------------------+-------------------------------------------------+
-| app_default.config  | Project configuration (save differences via ``tos savedef``)|
-+---------------------+-------------------------------------------------+
-| src/                | Project source code directory                   |
-+---------------------+-------------------------------------------------+
-| src/hello_world.c   | Project source code file for storing project source. |
-+---------------------+-------------------------------------------------+
++---------------------+---------------------------------------------------+
+| File                | Description                                              |
++=====================+===================================================+
+| CMakeLists.txt      | Project compilation configuration file                                 |
++---------------------+---------------------------------------------------+
+| app_default.config  | Project configuration (save differences via ``tos savedef``)   |
++---------------------+---------------------------------------------------+
+| src/                | Project source code directory                                       |
++---------------------+---------------------------------------------------+
+| src/hello_world.c   | Project source code file for storing project source.                |
++---------------------+---------------------------------------------------+
+
 
 Project Compilation
 --------

@@ -5,7 +5,7 @@
 --------
 
 Ubuntu and Debian
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -57,7 +57,7 @@ step1. 设置环境变量
     请将 ``/path/to/your/TuyaOpen`` 替换为实际的 TuyaOpen 目录路径。
 
 使用 vim 添加环境变量后，输入 ``:wq`` 保存，使用 ``source ~/.bashrc`` 命令使环境变量生效。
-tos 命令的详细使用方法，请参考 :doc:`tos 命令 <tos_guide>`。
+tos 命令的详细使用方法，请参考 :doc:`tos 命令 </tos_guide/index>`。
 
 .. note:: 
     TuyaOpen 通过 tos 命令进行编译、调试等操作，tos 命令会根据环境变量中设置的路径查找 TuyaOpen 仓库，并执行对应操作。
@@ -73,7 +73,7 @@ step2. 选择待编译项目
 
 根据平台完成选择，目录 ``examples`` 会修改为对应平台的示例。
 
-更多 example 信息点击 :doc:`示例工程章节 <examples/examples>` 。
+更多 example 信息点击 :doc:`示例工程章节 </examples/index>` 。
 
 - **方式2**：编译 app
 
@@ -146,7 +146,7 @@ step4. menuconfig 配置
 
 命令行烧录
 ^^^^^^^^^^
-支持 ``tos flash`` 命令一键烧录：:doc:`CLI 烧录 <flashing/CLI-flash>`
+支持 ``tos flash`` 命令一键烧录：:doc:`CLI 烧录 <cli-flash>`
 
 GUI 工具烧录
 ^^^^^^^^^^^^
@@ -158,4 +158,12 @@ GUI 工具烧录
 - macOS_x86：`tyutool_mac_x86 <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/darwin_x86_tyutool_gui.tar.gz>`_
 - macOS_arm64：`tyutool_mac_arm64.zip <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/darwin_arm64_tyutool_gui.tar.gz>`_
 
-GUI 烧录教程点击 :doc:`GUI 烧录 <flashing/GUI-flash>` 
+GUI 烧录教程点击 :doc:`GUI 烧录 <gui-flash>` 
+
+.. toctree::
+    :maxdepth: 0
+    :glob:
+
+    cli-flash
+    gui-flash
+
