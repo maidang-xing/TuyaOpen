@@ -25,7 +25,7 @@ set(BOARD_SRC "")
 set(BOARD_INC "${COMMON_PATH}")
 
 if (CONFIG_ENABLE_DISPLAY)
-    file(append BOARD_SRC
+    list(APPEND BOARD_SRC
         "${FONT_SRCS}"
         "${IMAGE_SRCS}"
         "${UI_SRCS}"
@@ -34,7 +34,7 @@ if (CONFIG_ENABLE_DISPLAY)
         "${IO_EXPANDER_SRCS}"
     )
     
-    file(append BOARD_INC
+    list(APPEND BOARD_INC
         "${COMMON_PATH}/display"
         "${COMMON_PATH}/display/font"
         "${COMMON_PATH}/display/ui"
@@ -44,11 +44,11 @@ if (CONFIG_ENABLE_DISPLAY)
 endif()
 
 if (CONFIG_ENABLE_AUDIO)
-    file(append BOARD_SRC
+    list(APPEND BOARD_SRC
         "${AUDIO_SRCS}"
     )
 
-    file(append BOARD_INC
+    list(APPEND BOARD_INC
         "${COMMON_PATH}/audio"
     )
 endif()
