@@ -1,7 +1,7 @@
 
-########################
+##############################
 Adding and Adapting Platforms
-########################
+##############################
 
 Introduction
 ============
@@ -27,7 +27,7 @@ Or add the TuyaOpen path to your system environment variables.
 
 TuyaOpen uses the tos command for compilation and debugging operations. The tos command locates the TuyaOpen repository through the path set in environment variables.
 
-For detailed usage of the tos command, refer to :doc:`tos Guide <tos_guide>`.
+For detailed usage of the tos command, refer to :doc:`tos Guide </tos_guide/index>`.
 
 2. Generate a new platform subdirectory:
 
@@ -267,5 +267,5 @@ Refer to test documentation for comprehensive validation:
 Submission
 ==========
 Submit adapted platforms via Pull Requests:
-- Process reference: :doc:`Contribution Guide <contribute_guide>`
-- Coding standards: :doc:`Code Style Guide <code_style_guide>`
+- Process reference: :doc:`Contribution Guide </contribute_guide/index>`
+- Coding standards: :doc:`Code Style Guide </code_style_guide/index>`

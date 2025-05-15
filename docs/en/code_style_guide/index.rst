@@ -130,6 +130,7 @@ Function Declaration
 - API interfaces provided for external use must be declared in the corresponding header file;
 
 - Function declarations can be obtained through header file references, rather than using the extern way; it is advisable to avoid using extern for functions.
+
 Comments
 ~~~~~~~~~
 
@@ -197,6 +198,7 @@ Do-While
 ~~~~~~~~
 
 The left brace should immediately follow the do keyword and be indented by one space; the right brace and the while keyword should be on the same line and be indented by one space.
+
 .. code-block:: c
 
     do {
@@ -217,7 +219,7 @@ Conditionals Statements
     }
 
 if-else if-else statements
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: c
 

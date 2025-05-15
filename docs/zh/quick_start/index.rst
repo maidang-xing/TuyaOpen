@@ -161,7 +161,7 @@ GUI 工具烧录
 GUI 烧录教程点击 :doc:`GUI 烧录 <gui-flash>` 
 
 .. toctree::
-    :maxdepth: 0
+    :maxdepth: 1
     :glob:
 
     cli-flash

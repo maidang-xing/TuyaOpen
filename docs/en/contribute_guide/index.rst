@@ -19,7 +19,7 @@ Preparation
 -----------
 
 1. Verify contributions comply with Apache License 2.0 requirements
-2. Ensure code follows :doc:`TuyaOpen Coding Standards <code_style_guide>`
+2. Ensure code follows :doc:`TuyaOpen Coding Standards </code_style_guide/index>`
 3. Provide documentation/examples for new features
 4. Confirm documentation meets `Writing Standards <>`_
 5. Group related changes in separate Pull Requests

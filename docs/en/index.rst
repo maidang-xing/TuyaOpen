@@ -49,7 +49,7 @@ Supported Platform List
 Contribute Code
 ========================
 
-If you are interested in the TuyaOpen and wish to contribute to its development and become a code contributor, please first read the `Contribution Guide <https://github.com/tuya/TuyaOpen/blob/master/docs/en/contribute_guide.md>`_.
+If you are interested in the TuyaOpen and wish to contribute to its development and become a code contributor, please first read the :doc:`Contribution Guide </contribute_guide/index>` .
 
 
 ====================================
@@ -71,13 +71,13 @@ gitee Mirrors
    :maxdepth: 1
    :glob:
 
-   quick_start.rst
-   tos_guide.rst
-   examples/examples.rst
-   applications/application.rst
-   peripherals/peripherals.rst
-   new_platform.rst
-   new_board.rst
-   contribute_guide.rst
-   code_style_guide.rst
-   faq/faq.rst
+   quick_start/index
+   tos_guide/index
+   examples/index
+   applications/index
+   peripherals/index
+   new_platform/index
+   new_board/index
+   contribute_guide/index
+   code_style_guide/index
+   faq/index

@@ -58,7 +58,7 @@ Build and Flash
 - Run the `tos build` command to compile the project.
 - Use the tos flash command to flash the project in one click.
 
-For more details about tos, please refer to `tos Guide <../tos_guide.md>`_.
+For more details about tos, please refer to `tos Guide </tos_guide/index>`_.
 
 ========================================================================
 Network Configuration and Device Activation

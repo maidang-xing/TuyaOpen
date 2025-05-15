@@ -15,8 +15,7 @@ release = '1.2.0'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 # 新增站点地图基础URL配置
-html_baseurl = 'https://github.com/tuya/TuyaOpen'  # 请替换为实际部署域名
-
+html_baseurl = 'https://github.com/tuya/TuyaOpen' 
 
 extensions = [
 	'sphinx.ext.autodoc',

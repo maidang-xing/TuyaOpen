@@ -54,7 +54,7 @@ Or add the TuyaOpen path to system environment variables:
     Replace ``/path/to/your/TuyaOpen`` with the actual path to your TuyaOpen directory.
 
 After adding the environment variable with vim, enter ``:wq`` to save, and use ``source ~/.bashrc`` to activate the environment variables.
-For detailed usage of tos command, please refer to :doc:`tos command <tos_guide>`.
+For detailed usage of tos command, please refer to :doc:`tos command </tos_guide/index>`.
 
 .. note:: 
     TuyaOpen uses the tos command for compilation, debugging and other operations. The tos command will search for the TuyaOpen repository based on the path set in environment variables.
@@ -70,7 +70,7 @@ Select an example to compile using::
 
 After platform selection, the ``examples`` directory will be updated with platform-specific examples.
 
-More example information: :doc:`Example Projects <examples/examples>`.
+More example information: :doc:`Example Projects </examples/index>`.
 
 - **Method 2**: Compile app
 
@@ -125,7 +125,7 @@ Output files include:
 Default project name matches directory name, version defaults to ``1.0.0``. Modify via ``tos menuconfig``.
 
 step4. menuconfig Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 To modify project configuration, navigate to target project directory and run:
 
 .. code-block:: bash
@@ -139,20 +139,27 @@ Configure the project and recompile after saving changes.
     Changing chip/board via ``tos menuconfig`` will automatically clean previous build artifacts.
 
 Flashing and Authorization
--------------------------
+---------------------------
 
 Command Line Flashing
-^^^^^^^^^^^^^^^^^^^^^
-Use ``tos flash`` for one-click flashing: :doc:`CLI Flashing <flashing/CLI-flash>`
+^^^^^^^^^^^^^^^^^^^^^^
+Use ``tos flash`` for one-click flashing: :doc:`CLI Flashing <cli-flash>`
 
 GUI Tool Flashing
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 ``tyutool gui`` provides complete graphical flashing solution with serial debugging, firmware flashing and authorization management.
 Currently supports T2/T3/T5AI/BK7231N/LN882H/ESP32 chips via serial flashing, available for Windows/Linux/macOS:
 
-- Windows：`tyutool_win <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/win_tyutool_gui.zip>`_
-- Linux：`tyutool_linux.tar <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/tyutool_gui.tar.gz>`_
-- macOS_x86：`tyutool_mac_x86 <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/darwin_x86_tyutool_gui.tar.gz>`_
-- macOS_arm64：`tyutool_mac_arm64.zip <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/darwin_arm64_tyutool_gui.tar.gz>`_
+- Windows:`tyutool_win <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/win_tyutool_gui.zip>`_
+- Linux:`tyutool_linux.tar <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/tyutool_gui.tar.gz>`_
+- macOS_x86:`tyutool_mac_x86 <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/darwin_x86_tyutool_gui.tar.gz>`_
+- macOS_arm64:`tyutool_mac_arm64.zip <https://images.tuyacn.com/smart/embed/package/vscode/data/ide_serial/darwin_arm64_tyutool_gui.tar.gz>`_
 
-For GUI flashing tutorial: :doc:`GUI Flashing <flashing/GUI-flash>`
+For GUI flashing tutorial: :doc:`GUI Flashing <gui-flash>`
+
+.. toctree::
+    :maxdepth: 1
+    :glob:
+
+    cli-flash
+    gui-flash

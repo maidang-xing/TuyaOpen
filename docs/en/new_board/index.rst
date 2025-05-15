@@ -12,7 +12,7 @@ Board Naming
 ------------
 
 Mandatory Fields
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 - Manufacturer name: Represents the board manufacturer (e.g. "TUYA" for Tuya's boards)
 - Chip name: Platform name (e.g. "T2", "T5AI")
 
@@ -33,7 +33,7 @@ Example: ``TUYA_T5AI_BOARD``
 Adding New Board
 ----------------
 
-Prerequisite: Follow the :doc:`README <./README_zh>` to ensure proper environment setup.
+Prerequisite: Follow the `README <https://github.com/tuya/TuyaOpen/blob/master/README_zh.md>`_ to ensure proper environment setup.
 
 Create Directory
 ~~~~~~~~~~~~~~~~

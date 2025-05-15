@@ -36,7 +36,7 @@ board 命名
 新增 board
 ------------
 
-请先阅读 TuyaOpen 根目录下的 : `README <./README_zh>`_ ，先了解基础操作并保证所需的环境已被正确安装。
+请先阅读 TuyaOpen 根目录下的 : `README <https://github.com/tuya/TuyaOpen/blob/master/README_zh.md>`_ ，先了解基础操作并保证所需的环境已被正确安装。
 
 新建文件夹
 ~~~~~~~~~~~

@@ -51,7 +51,7 @@ TuyaOpen 集成了端侧 AI 推理引擎，支持涂鸦云智能体中枢，支�
 贡献代码
 ========================
 
-如果您对 TuyaOpen 感兴趣，并希望参与 TuyaOpen 的开发并成为代码贡献者，请先参阅 `贡献指南 <https://github.com/tuya/TuyaOpen/blob/master/docs/zh/contribute_guide.md>`_。
+如果您对 TuyaOpen 感兴趣，并希望参与 TuyaOpen 的开发并成为代码贡献者，请先参阅 :doc:`贡献指南 </contribute_guide/index>`。
 
 ========================
 TuyaOpen 相关链接
