@@ -1,6 +1,6 @@
-####################
+############################
 Command Line Flashing Guide
-####################
+############################
 
 Firmware Flashing Module
 ========================
@@ -69,6 +69,7 @@ Use ``tos monitor`` command to select the log serial port and view device logs i
 Use ``tos monitor -b 115200`` to select the flashing serial port and perform authorization code burning via serial command line.
 
 .. code-block:: bash
+  
     cd apps/tuya_cloud/switch_demo
     tos monitor -b 115200
     tyutool params:

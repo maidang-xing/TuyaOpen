@@ -1,15 +1,15 @@
-#####################
+########################
 GUI Flashing Tool Guide
-#####################
+########################
 
-*********************
+************************
 Windows GUI Environment
-*********************
+************************
 
 .. image:: https://images.tuyacn.com/fe-static/docs/img/dc641b75-663b-4341-8d22-56bd9e83a718.png
 
 Firmware Flashing Module
-========================
+=========================
 
 **Operation Process:**
 
@@ -46,6 +46,7 @@ Provides serial communication debugging solution with real-time data interaction
 
 Functional Components
 ---------------------
+
 1. Communication Configuration
     - Click ``COM`` for automatic port scanning
     - Select target device's COM port identifier
