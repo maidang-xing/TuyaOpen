@@ -7,6 +7,7 @@
 #include "esp_check.h"
 
 #include "driver/gpio.h"
+#include "driver/i2s_common.h"
 #include "es8388_codec.h"
 #include "esp_codec_dev.h"
 #include "esp_codec_dev_defaults.h"
@@ -167,8 +168,18 @@ OPERATE_RET codec_es8388_init(TDD_AUDIO_ES8388_CODEC_T *cfg)
 
     PR_INFO("Input and Output channels created");
 
+    ESP_ERROR_CHECK(i2s_channel_enable(cfg->i2s_tx_handle));
+    ESP_ERROR_CHECK(i2s_channel_enable(cfg->i2s_rx_handle));
     enable_input_device(true);
     enable_output_device(true);
+
+    // set_output_volume(50);
+    uint8_t reg_val = 30; // 0dB
+    uint8_t regs[] = { 46, 47, 48, 49 }; // HP_LVOL, HP_RVOL, SPK_LVOL, SPK_RVOL
+    for (size_t i = 0; i < 4; i++)
+    {
+        ctrl_if->write_reg(ctrl_if, regs[i], 1, &reg_val, 1);
+    }
 
     return OPRT_OK;
 }

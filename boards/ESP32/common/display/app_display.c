@@ -33,7 +33,7 @@
 /***********************************************************
 ************************macro define************************
 ***********************************************************/
-
+#define BOARD_CHOICE_BOARD_DNESP32S3
 /***********************************************************
 ***********************typedef define***********************
 ***********************************************************/
@@ -125,6 +125,11 @@ static OPERATE_RET __get_ui_font(UI_FONT_T *ui_font)
 #elif defined(BOARD_CHOICE_WAVESHARE_ESP32_S3_TOUCH_AMOLED_1_8)
     ui_font->text = &font_puhui_30_4;
     ui_font->icon = &font_awesome_30_4;
+    ui_font->emoji = font_emoji_64_init();
+    ui_font->emoji_list = sg_emo_list;
+#elif defined(BOARD_CHOICE_BOARD_DNESP32S3)
+    ui_font->text = &font_puhui_18_2;
+    ui_font->icon = &font_puhui_18_2;
     ui_font->emoji = font_emoji_64_init();
     ui_font->emoji_list = sg_emo_list;
 #else

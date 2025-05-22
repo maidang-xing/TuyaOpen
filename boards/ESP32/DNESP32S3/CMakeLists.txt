@@ -31,6 +31,18 @@ target_include_directories(${MODULE_NAME}
 
     PUBLIC
         ${LIB_PUBLIC_INC}
+        # 保持原有其他路径配置...
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/esp_common/include
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/hal/include
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/esp_driver_i2c/include
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/esp_driver_i2c/include/driver
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/esp_driver_i2s/include
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/esp_driver_i2s/include/driver
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/esp_driver_gpio/include/driver
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/hal/include
+        ${MODULE_PATH}/../../../platform/ESP32/tuya_open_sdk/managed_components/espressif__esp-dsp/modules/common/include_sim
+        ${MODULE_PATH}/../../../platform/ESP32/esp-idf/components/soc/esp32s3/include/soc
     )
 
 

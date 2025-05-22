@@ -66,9 +66,12 @@ OPERATE_RET tuya_lvgl_init(void)
     }
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
 
+    ESP_LOGI(TAG, "Initialize LVGL library");
+    lv_init();
+
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
     port_cfg.task_priority = 1;
-    port_cfg.timer_period_ms = 50;
+    port_cfg.timer_period_ms = 5;
     lvgl_port_init(&port_cfg);
 
     const lvgl_port_display_cfg_t disp_cfg = {
@@ -91,7 +94,7 @@ OPERATE_RET tuya_lvgl_init(void)
         .flags =
             {
                 .buff_dma = DISPLAY_BUFF_DMA,
-                .buff_spiram = 1,
+                .buff_spiram = 0,
                 .sw_rotate = 0,
                 .swap_bytes = DISPLAY_SWAP_BYTES,
                 .full_refresh = 0,
