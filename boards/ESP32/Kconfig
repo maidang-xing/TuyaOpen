@@ -62,6 +62,12 @@ choice
             rsource "./bread-compact-wifi/Kconfig"
         endif
 
+    config BOARD_CHOICE_XINGZHI_CUBE_0_96_OLED_WIFI
+        bool "Xingzhi-Cube-0.96-OLED-WiFi"
+        if (BOARD_CHOICE_XINGZHI_CUBE_0_96_OLED_WIFI)
+            rsource "./xingzhi-cube-0.96oled-wifi/Kconfig"
+        endif
+
     config BOARD_CHOICE_WAVESHARE_ESP32_S3_TOUCH_AMOLED_1_8
         bool "Waveshare-ESP32-S3-Touch-AMOLED-1.8"
         if (BOARD_CHOICE_WAVESHARE_ESP32_S3_TOUCH_AMOLED_1_8)

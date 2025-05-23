@@ -4,10 +4,13 @@
  * @version 0.1
  * @date 2025-05-13
  */
+#include "board_config.h"
+
+#if defined(BOARD_DISPLAY_TYPE) && (BOARD_DISPLAY_TYPE == DISPLAY_TYPE_LCD_ST7789)
 
 #include "lcd_st7789.h"
 
-#include "board_config.h"
+#include <driver/gpio.h>
 
 #include "esp_err.h"
 #include "esp_log.h"

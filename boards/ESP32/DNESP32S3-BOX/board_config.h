@@ -44,6 +44,50 @@ extern "C" {
 #define AUDIO_CODEC_DMA_FRAME_NUM (240)
 #define AUDIO_CODEC_ES8311_ADDR (0x30)
 
+
+/* lcd */
+#define LCD_I80_CS    (1)
+#define LCD_I80_DC    (2)
+#define LCD_I80_RD    (41)
+#define LCD_I80_WR    (42)
+#define LCD_I80_RST   (-1)
+
+#define LCD_I80_D0    (40) 
+#define LCD_I80_D1    (39) 
+#define LCD_I80_D2    (38) 
+#define LCD_I80_D3    (12) 
+#define LCD_I80_D4    (11) 
+#define LCD_I80_D5    (10) 
+#define LCD_I80_D6    (9)  
+#define LCD_I80_D7    (46) 
+
+#define DISPLAY_WIDTH  320
+#define DISPLAY_HEIGHT 240
+
+/* display */
+#define DISPLAY_TYPE_UNKNOWN      0
+#define DISPLAY_TYPE_OLED_SSD1306 1
+#define DISPLAY_TYPE_LCD_SH8601   2
+#define DISPLAY_TYPE_LCD_ST7789   3
+
+#define BOARD_DISPLAY_TYPE DISPLAY_TYPE_LCD_ST7789
+
+
+/* lvgl config */
+#define DISPLAY_BUFFER_SIZE (DISPLAY_WIDTH * 10)
+
+#define DISPLAY_MONOCHROME false
+
+/* rotation */
+#define DISPLAY_SWAP_XY  true
+#define DISPLAY_MIRROR_X true
+#define DISPLAY_MIRROR_Y false
+
+#define DISPLAY_COLOR_FORMAT LV_COLOR_FORMAT_RGB565
+
+#define DISPLAY_BUFF_DMA   1
+#define DISPLAY_SWAP_BYTES 1
+
 /***********************************************************
 ***********************typedef define***********************
 ***********************************************************/
@@ -51,6 +95,12 @@ extern "C" {
 /***********************************************************
 ********************function declaration********************
 ***********************************************************/
+
+int board_display_init(void);
+
+void *board_display_get_panel_io_handle(void);
+
+void *board_display_get_panel_handle(void);
 
 #ifdef __cplusplus
 }

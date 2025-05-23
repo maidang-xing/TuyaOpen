@@ -93,19 +93,9 @@ static OPERATE_RET __get_ui_font(UI_FONT_T *ui_font)
         return OPRT_INVALID_PARM;
     }
 
-#if defined(BOARD_CHOICE_TUYA_T5AI_BOARD)
-#if defined(ENABLE_GUI_WECHAT)
-    ui_font->text = &font_puhui_18_2;
-    ui_font->icon = &font_awesome_16_4;
-    ui_font->emoji = font_emoji_32_init();
-    ui_font->emoji_list = sg_emo_list;
-#elif defined(ENABLE_GUI_CHATBOT)
-    ui_font->text = &font_puhui_18_2;
-    ui_font->icon = &font_awesome_16_4;
-    ui_font->emoji = font_emoji_64_init();
-    ui_font->emoji_list = sg_emo_list;
-#endif
-#elif defined(BOARD_CHOICE_TUYA_T5AI_EVB)
+#if (defined(BOARD_CHOICE_TUYA_T5AI_BOARD) || defined(BOARD_CHOICE_TUYA_T5AI_EVB) ||                                   \
+     defined(MODULE_CHOICE_DNESP32S3_BOX))
+
 #if defined(ENABLE_GUI_WECHAT)
     ui_font->text = &font_puhui_18_2;
     ui_font->icon = &font_awesome_16_4;
@@ -118,6 +108,11 @@ static OPERATE_RET __get_ui_font(UI_FONT_T *ui_font)
     ui_font->emoji_list = sg_emo_list;
 #endif
 #elif defined(BOARD_CHOICE_BREAD_COMPACT_WIFI)
+    ui_font->text = &font_puhui_14_1;
+    ui_font->icon = &font_awesome_14_1;
+    ui_font->emoji = &font_awesome_30_1;
+    ui_font->emoji_list = sg_awesome_emo_list;
+#elif defined(BOARD_CHOICE_XINGZHI_CUBE_0_96_OLED_WIFI)
     ui_font->text = &font_puhui_14_1;
     ui_font->icon = &font_awesome_14_1;
     ui_font->emoji = &font_awesome_30_1;
@@ -206,6 +201,9 @@ static void __app_display_msg_handle(DISPLAY_MSG_T *msg_data)
         UI_WIFI_STATUS_E status = ((UI_WIFI_STATUS_E *)msg_data->data)[0];
         char *wifi_icon = __ui_wifi_icon_get(status);
         ui_set_network(wifi_icon);
+    } break;
+    case TY_DISPLAY_TP_CHAT_MODE: {
+        ui_set_chat_mode(msg_data->data);
     } break;
     default: {
         PR_ERR("Invalid display type: %d", msg_data->type);

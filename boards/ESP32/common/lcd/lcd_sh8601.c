@@ -5,11 +5,12 @@
  * @date 2025-05-12
  */
 
-#include "lcd_sh8601.h"
 
 #include "board_config.h"
 
 #if defined(BOARD_DISPLAY_TYPE) && (BOARD_DISPLAY_TYPE == DISPLAY_TYPE_LCD_SH8601)
+
+#include "lcd_sh8601.h"
 
 #include "esp_err.h"
 #include "esp_log.h"

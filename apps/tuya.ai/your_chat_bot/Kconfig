@@ -12,7 +12,7 @@ config ENABLE_CHAT_BOT
 
 choice 
     prompt "choose chat mode"
-    default ENABLE_CHAT_MODE_KEY_TRIG_VAD_FREE
+    default ENABLE_CHAT_MODE_ASR_WAKEUP_FREE
 
     config ENABLE_CHAT_MODE_KEY_PRESS_HOLD_SINGEL
     bool "press and hold button to start a single conversation."   
@@ -22,6 +22,9 @@ choice
 
     config ENABLE_CHAT_MODE_ASR_WAKEUP_SINGEL
     bool "say the wake-up word to initiate a single conversation, similar to a smart speaker."  
+
+    config ENABLE_CHAT_MODE_ASR_WAKEUP_FREE
+    bool "saying the wake-up word, you can have a free conversation."  
 endchoice
 
 if(ENABLE_CHAT_MODE_ASR_WAKEUP_SINGEL || ENABLE_CHAT_MODE_ASR_WAKEUP_FREE)
@@ -35,14 +38,13 @@ if(ENABLE_CHAT_MODE_ASR_WAKEUP_SINGEL || ENABLE_CHAT_MODE_ASR_WAKEUP_FREE)
         config ENABLE_WAKEUP_KEYWORD_NIHAO_XIAOZHI
         bool "the wake-up word is configured as NI HAO XIAO ZHI."   
 
-        config TKL_ASR_WAKEUP_XIAOZHI_TONGXUE
+        config ENABLE_WAKEUP_KEYWORD_XIAOZHI_TONGXUE
         bool "the wake-up word is configured as XIAO ZHI TONG XUE."  
     
-        config TKL_ASR_WAKEUP_XIAOZHI_GUANJIA
+        config ENABLE_WAKEUP_KEYWORD_XIAOZHI_GUANJIA
         bool "the wake-up word is configured as XIAO ZHI GUAN JIA."  
     endchoice
 endif
-
 
 config ENABLE_AEC
     bool "support AEC"

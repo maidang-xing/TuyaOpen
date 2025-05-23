@@ -95,7 +95,7 @@ OPERATE_RET tuya_lvgl_init(void)
         .flags =
             {
                 .buff_dma = DISPLAY_BUFF_DMA,
-                .buff_spiram = 1,
+                .buff_spiram = 0,
                 .sw_rotate = 0,
                 .swap_bytes = DISPLAY_SWAP_BYTES,
                 .full_refresh = 0,
