@@ -1,3 +1,9 @@
+/**
+ * @file tdd_xl9555_io.c
+ * @brief tdd_xl9555_io module is used to
+ * @version 0.1
+ * @date 2025-04-08
+ */
 #include "esp_check.h"
 #include "driver/i2c_master.h"
 
@@ -5,11 +11,31 @@
 #include "tal_memory.h"
 
 #include "tdd_xl9555_io.h"
-
-#define IIC_SPEED_CLK 100000 /* Speed 100K */
+/***********************************************************
+************************macro define************************
+***********************************************************/
+#define IIC_SPEED_CLK 100000                                        /* Speed 100K */
+#define XL9555_INPUT_PORT0_REG      0                               /* Input register 0 address */
+#define XL9555_INPUT_PORT1_REG      1                               /* Input register 1 address */
+#define XL9555_OUTPUT_PORT0_REG     2                               /* Output register 0 address */
+#define XL9555_OUTPUT_PORT1_REG     3                               /* Output register 1 address */
+#define XL9555_INVERSION_PORT0_REG  4                               /* Polarity inversion register 0 address */
+#define XL9555_INVERSION_PORT1_REG  5                               /* Polarity inversion register 1 address */
+#define XL9555_CONFIG_PORT0_REG     6                               /* Direction configuration register 0 address */
+#define XL9555_CONFIG_PORT1_REG     7                               /* Direction configuration register 1 address */
 
 static i2c_master_dev_handle_t xl9555_handle = NULL;
+/***********************************************************
+********************function declaration********************
+***********************************************************/
 
+/***********************************************************
+***********************variable define**********************
+***********************************************************/
+
+/***********************************************************
+***********************function define**********************
+***********************************************************/
 /**
  * @brief Read data from XL9555 registers
  * 

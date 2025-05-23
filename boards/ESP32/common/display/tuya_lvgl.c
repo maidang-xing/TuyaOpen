@@ -71,6 +71,7 @@ OPERATE_RET tuya_lvgl_init(void)
 
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
     port_cfg.task_priority = 1;
+    port_cfg.task_stack = 1024 * 8;
     port_cfg.timer_period_ms = 5;
     lvgl_port_init(&port_cfg);
 
@@ -94,7 +95,7 @@ OPERATE_RET tuya_lvgl_init(void)
         .flags =
             {
                 .buff_dma = DISPLAY_BUFF_DMA,
-                .buff_spiram = 0,
+                .buff_spiram = 1,
                 .sw_rotate = 0,
                 .swap_bytes = DISPLAY_SWAP_BYTES,
                 .full_refresh = 0,

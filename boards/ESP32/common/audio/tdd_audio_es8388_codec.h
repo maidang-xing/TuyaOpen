@@ -11,7 +11,6 @@
 #include "tuya_cloud_types.h"
 
 #include "tdl_audio_driver.h"
-#include "tdd_audio_codec_bus.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,14 +18,20 @@ extern "C" {
 
 typedef struct {
     uint8_t i2c_id;
-    TDD_AUDIO_I2C_HANDLE i2c_handle;
+    uint8_t es8388_addr;
+    TUYA_GPIO_NUM_E i2c_sda_io;                
+    TUYA_GPIO_NUM_E i2c_scl_io;                
     uint8_t i2s_id;
-    TDD_AUDIO_I2S_TX_HANDLE i2s_tx_handle;
-    TDD_AUDIO_I2S_RX_HANDLE i2s_rx_handle;
+    TUYA_GPIO_NUM_E i2s_mck_io;
+    TUYA_GPIO_NUM_E i2s_bck_io;
+    TUYA_GPIO_NUM_E i2s_ws_io;
+    TUYA_GPIO_NUM_E i2s_do_io;
+    TUYA_GPIO_NUM_E i2s_di_io;
+    TUYA_GPIO_NUM_E gpio_output_pa;
+    uint32_t dma_desc_num;
+    uint32_t dma_frame_num;
     uint32_t mic_sample_rate;
     uint32_t spk_sample_rate;
-    uint8_t es8388_addr;
-    int pa_pin;
     int defaule_volume;
 } TDD_AUDIO_ES8388_CODEC_T;
 

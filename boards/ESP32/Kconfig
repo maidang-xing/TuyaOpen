@@ -79,4 +79,11 @@ choice
         if (MODULE_CHOICE_DNESP32S3)
             rsource "./DNESP32S3/Kconfig"
         endif
+
+    config MODULE_CHOICE_ATK_DNESP32S3
+        bool "ATK-DNESP32S3"
+        if (MODULE_CHOICE_ATK_DNESP32S3)
+            rsource "./ATK-DNESP32S3/Kconfig"
+        endif
+        
 endchoice

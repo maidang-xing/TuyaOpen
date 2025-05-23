@@ -51,7 +51,7 @@ extern "C" {
 #define LCD_NUM_CS 21
 
 /* LVGL */
-#define DISPLAY_BUFFER_SIZE (4 * 1024)
+#define DISPLAY_BUFFER_SIZE (DISPLAY_WIDTH * 10)
 #define DISPLAY_MONOCHROME false
 
 /* rotation */
@@ -61,7 +61,7 @@ extern "C" {
 #define DISPLAY_INVERT   true
 
 #define DISPLAY_COLOR_FORMAT LV_COLOR_FORMAT_RGB565
-#define DISPLAY_BUFF_DMA   0
+#define DISPLAY_BUFF_DMA   1
 #define DISPLAY_SWAP_BYTES 1
 
 // io expander
@@ -109,7 +109,6 @@ extern "C" {
 #define KEY2_IO     0x2000  /* Button 2 pin P15                */
 #define KEY1_IO     0x4000  /* Button 1 pin P16                */
 #define KEY0_IO     0x8000  /* Button 0 pin P17                */
-
 /***********************************************************
 ***********************typedef define***********************
 ***********************************************************/

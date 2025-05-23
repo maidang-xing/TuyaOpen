@@ -40,11 +40,6 @@ if (CONFIG_ENABLE_DISPLAY)
         "${COMMON_PATH}/display/ui"
         "${COMMON_PATH}/lcd"
         "${COMMON_PATH}/io_expander"
-        # 添加 ESP32 平台驱动头文件路径
-        "${COMMON_PATH}/../../../platform/ESP32/esp-idf/components/esp_driver_i2c/include"
-        "${COMMON_PATH}/../../../platform/ESP32/esp-idf/components/esp_driver_i2c/include/driver"
-        "${COMMON_PATH}/../../../platform/ESP32/esp-idf/components/esp_driver_gpio/include/driver"
-        "${COMMON_PATH}/../../../platform/ESP32/esp-idf/components/hal/include/hal"
     )
 endif()
 

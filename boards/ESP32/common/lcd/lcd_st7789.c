@@ -12,14 +12,16 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+#if defined(BOARD_DISPLAY_TYPE) && (BOARD_DISPLAY_TYPE == DISPLAY_TYPE_LCD_ST7789)
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lvgl_port.h"
-
-#include "gpio.h"
-#include "gpio_types.h"
-
+#include "driver/gpio.h"
+#include <driver/spi_master.h>
+#include "driver/i2c_master.h"
+#include "driver/i2s_std.h"
+#include "tdd_xl9555_io.h"
 /***********************************************************
 ************************macro define************************
 ***********************************************************/
@@ -42,6 +44,43 @@ typedef struct {
 ***********************************************************/
 static LCD_CONFIG_T lcd_config = {0};
 
+
+static i2c_master_bus_handle_t __i2c_init(void)
+{
+    i2c_master_bus_handle_t i2c_bus = NULL;
+    esp_err_t esp_rt = ESP_OK;
+
+    // retrieve i2c bus handle
+    esp_rt = i2c_master_get_bus_handle(XL9555_I2C_PORT, &i2c_bus);
+    if (esp_rt == ESP_OK && i2c_bus) {
+        ESP_LOGI(TAG, "I2C bus handle retrieved successfully");
+        return i2c_bus;
+    }
+
+    // initialize i2c bus
+    i2c_master_bus_config_t i2c_bus_cfg = {
+        .i2c_port = XL9555_I2C_PORT,
+        .sda_io_num = XL9555_I2C_SDA,
+        .scl_io_num = XL9555_I2C_SCL,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .intr_priority = 0,
+        .trans_queue_depth = 0,
+        .flags =
+            {
+                .enable_internal_pullup = 1,
+            },
+    };
+    esp_rt = i2c_new_master_bus(&i2c_bus_cfg, &i2c_bus);
+    if (esp_rt != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create I2C bus: %s", esp_err_to_name(esp_rt));
+        return NULL;
+    }
+
+    ESP_LOGI(TAG, "I2C bus initialized successfully");
+
+    return i2c_bus;
+}
 static int __lcd_spi_init(void)
 {
     esp_err_t esp_rt = ESP_OK;
@@ -52,7 +91,7 @@ static int __lcd_spi_init(void)
     bus_cfg.miso_io_num = -1;
     bus_cfg.quadwp_io_num = -1;
     bus_cfg.quadhd_io_num = -1;
-    bus_cfg.max_transfer_sz = DISPLAY_WIDTH * DISPLAY_HEIGHT * sizeof(uint16_t);
+    bus_cfg.max_transfer_sz = 4 * 1024;
 
     esp_rt = spi_bus_initialize(SPI_NUM, &bus_cfg, SPI_DMA_CH_AUTO);
     if (esp_rt != ESP_OK) {
@@ -65,10 +104,22 @@ static int __lcd_spi_init(void)
 
 int lcd_st7789_init(void)
 {
-    int rt = 0;
+    i2c_master_bus_handle_t i2c_handle = __i2c_init();
+    if (i2c_handle == NULL) {
+        ESP_LOGE(TAG, "I2C init failed");
+        return -1;
+    }
 
-    rt = __lcd_spi_init();
+    /* P10, P11, P12, P13, and P14 are inputs, other pins are outputs --> 1111 0000 0000 0011 Note: 0 is output, 1 is input */
+    tdd_xl9555_io_init(i2c_handle, 0xF003);
+    /* Turn off buzzer */
+    tdd_xl9555_io_set(BEEP_IO, 1);
+    /* Turn on LCD backlight*/
+    tdd_xl9555_io_set(SLCD_PWR_IO, 1);
+
+    int rt = __lcd_spi_init();
     if (rt != 0) {
+        ESP_LOGE(TAG, "SPI init failed");
         return -1;
     }
 
@@ -82,9 +133,7 @@ int lcd_st7789_init(void)
         .trans_queue_depth = 7,             // Optimal for 800*480 resolution
     };
     
-
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI_NUM, &io_config, &(lcd_config.panel_io)));
-    ESP_LOGI(TAG, "esp_lcd_new_panel_io_spi");
 
     esp_lcd_panel_dev_config_t panel_config = {};
     panel_config.reset_gpio_num = -1;
@@ -114,3 +163,5 @@ void *lcd_st7789_get_panel_handle(void)
 {
     return lcd_config.panel;
 }
+
+#endif /* defined(BOARD_DISPLAY_TYPE) && (BOARD_DISPLAY_TYPE == DISPLAY_TYPE_LCD_ST7789) */

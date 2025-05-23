@@ -9,15 +9,6 @@ extern "C" {
 
 #define XL9555_ADDR                 0x20                            /* XL9555 device 7-bit address --> Refer to manual (9.1. Device Address) */
 
-#define XL9555_INPUT_PORT0_REG      0                               /* Input register 0 address */
-#define XL9555_INPUT_PORT1_REG      1                               /* Input register 1 address */
-#define XL9555_OUTPUT_PORT0_REG     2                               /* Output register 0 address */
-#define XL9555_OUTPUT_PORT1_REG     3                               /* Output register 1 address */
-#define XL9555_INVERSION_PORT0_REG  4                               /* Polarity inversion register 0 address */
-#define XL9555_INVERSION_PORT1_REG  5                               /* Polarity inversion register 1 address */
-#define XL9555_CONFIG_PORT0_REG     6                               /* Direction configuration register 0 address */
-#define XL9555_CONFIG_PORT1_REG     7                               /* Direction configuration register 1 address */
-
 /**
  * @brief Initialize XL9555 IO expander
  * 

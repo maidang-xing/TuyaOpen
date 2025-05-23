@@ -15,6 +15,7 @@
 #include "tuya_cloud_types.h"
 #include "tdl_audio_driver.h"
 #include "tdd_audio_es8388_codec.h"
+#include "tdd_audio_codec_bus.h"
 
 #include "tal_memory.h"
 #include "tal_log.h"
@@ -22,21 +23,20 @@
 #include "tal_thread.h"
 #include "tal_mutex.h"
 
+#include "driver/i2c_master.h"
 /***********************************************************
 ************************macro define************************
 ***********************************************************/
 // I2S read time default is 10ms
 #define I2S_READ_TIME_MS (10)
-
+#define TAG "TDD_AUDIO_ES8388_CODEC"
 typedef struct {
     TDD_AUDIO_ES8388_CODEC_T cfg;
     TDL_AUDIO_MIC_CB mic_cb;
 
     TUYA_I2S_NUM_E i2s_id;
-
     THREAD_HANDLE thrd_hdl;
     MUTEX_HANDLE mutex_play;
-
     uint8_t play_volume;
 
     // data buffer
@@ -57,7 +57,42 @@ static esp_codec_dev_handle_t input_dev_ = NULL;
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
+static i2c_master_bus_handle_t __i2c_init(int i2c_num, int scl_io, int sda_io)
+{
+    i2c_master_bus_handle_t i2c_bus = NULL;
+    esp_err_t esp_rt = ESP_OK;
 
+    // retrieve i2c bus handle
+    esp_rt = i2c_master_get_bus_handle(i2c_num, &i2c_bus);
+    if (esp_rt == ESP_OK && i2c_bus) {
+        ESP_LOGI(TAG, "I2C bus handle retrieved successfully");
+        return i2c_bus;
+    }
+
+    // initialize i2c bus
+    i2c_master_bus_config_t i2c_bus_cfg = {
+        .i2c_port = i2c_num,
+        .sda_io_num = sda_io,
+        .scl_io_num = scl_io,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .intr_priority = 0,
+        .trans_queue_depth = 0,
+        .flags =
+            {
+                .enable_internal_pullup = 1,
+            },
+    };
+    esp_rt = i2c_new_master_bus(&i2c_bus_cfg, &i2c_bus);
+    if (esp_rt != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create I2C bus: %s", esp_err_to_name(esp_rt));
+        return NULL;
+    }
+
+    ESP_LOGI(TAG, "I2C bus initialized successfully");
+
+    return i2c_bus;
+}
 
 static void enable_input_device(bool enable) {
     if (enable) {
@@ -92,12 +127,12 @@ static void enable_output_device(bool enable)
         };
         ESP_ERROR_CHECK(esp_codec_dev_open(output_dev_, &fs));
         ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, output_volume_));
-        if (pa_pin_ != GPIO_NUM_NC) {
+        if (pa_pin_ != -1) {
             gpio_set_level(pa_pin_, 1);
         }
     } else {
         ESP_ERROR_CHECK(esp_codec_dev_close(output_dev_));
-        if (pa_pin_ != GPIO_NUM_NC) {
+        if (pa_pin_ != -1) {
             gpio_set_level(pa_pin_, 0);
         }
     }
@@ -105,14 +140,39 @@ static void enable_output_device(bool enable)
 
 OPERATE_RET codec_es8388_init(TDD_AUDIO_ES8388_CODEC_T *cfg)
 {
-    audio_codec_if_t *codec_if = NULL;
+     TDD_AUDIO_I2S_TX_HANDLE i2s_rx_handle = NULL;
+     TDD_AUDIO_I2S_TX_HANDLE i2s_tx_handle = NULL;
+     i2c_master_bus_handle_t i2c_handle = NULL;
 
-    pa_pin_ = cfg->pa_pin;
+    if (cfg == NULL) {
+        PR_ERR("cfg is NULL");
+        return OPRT_INVALID_PARM;
+    }
+
+    TDD_AUDIO_CODEC_BUS_CFG_T bus_cfg = {
+    .i2c_id = cfg->i2c_id,
+    .i2c_sda_io = cfg->i2c_sda_io,
+    .i2c_scl_io = cfg->i2c_scl_io,
+    .i2s_id = cfg->i2s_id,
+    .i2s_mck_io = cfg->i2s_mck_io,
+    .i2s_bck_io = cfg->i2s_bck_io,
+    .i2s_ws_io = cfg->i2s_ws_io,
+    .i2s_do_io = cfg->i2s_do_io,
+    .i2s_di_io = cfg->i2s_di_io,
+    .dma_desc_num = cfg->dma_desc_num,
+    .dma_frame_num = cfg->dma_frame_num,
+    .sample_rate = cfg->mic_sample_rate,
+    };
+    tdd_audio_codec_bus_i2c_new(bus_cfg, &i2c_handle);
+    tdd_audio_codec_bus_i2s_new(bus_cfg, &i2s_tx_handle, &i2s_rx_handle);
+
+    audio_codec_if_t *codec_if = NULL;
+    pa_pin_ = cfg->gpio_output_pa;
     input_sample_rate_ = cfg->mic_sample_rate;
     output_sample_rate_ = cfg->spk_sample_rate;
     output_volume_ = cfg->defaule_volume;
 
-    if (cfg->i2c_handle == NULL || cfg->i2s_tx_handle == NULL || cfg->i2s_rx_handle == NULL) {
+    if (i2c_handle == NULL || i2s_tx_handle == NULL || i2s_rx_handle == NULL) {
         PR_ERR("i2c_handle/i2s_tx_handle/i2s_rx_handle is NULL");
         return OPRT_COM_ERROR;
     }
@@ -120,8 +180,8 @@ OPERATE_RET codec_es8388_init(TDD_AUDIO_ES8388_CODEC_T *cfg)
     // Initialize data_if and ctrl_if
     audio_codec_i2s_cfg_t i2s_cfg = {
         .port = cfg->i2s_id,
-        .rx_handle = cfg->i2s_rx_handle,
-        .tx_handle = cfg->i2s_tx_handle,
+        .rx_handle = i2s_rx_handle,
+        .tx_handle = i2s_tx_handle,
     };
     const audio_codec_data_if_t* data_if = audio_codec_new_i2s_data(&i2s_cfg);
     assert(data_if != NULL);
@@ -129,20 +189,20 @@ OPERATE_RET codec_es8388_init(TDD_AUDIO_ES8388_CODEC_T *cfg)
     audio_codec_i2c_cfg_t i2c_cfg = {
         .port = cfg->i2c_id,
         .addr = cfg->es8388_addr,
-        .bus_handle = cfg->i2c_handle,
+        .bus_handle = i2c_handle,
     };
     const audio_codec_ctrl_if_t* ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
     assert(ctrl_if != NULL);
 
     audio_codec_gpio_if_t *gpio_if = NULL;
-    if (cfg->pa_pin != GPIO_NUM_NC) {
+    if (cfg->gpio_output_pa != -1) {
         gpio_if_ = audio_codec_new_gpio();
         assert(gpio_if_ != NULL);
     }
     es8388_codec_cfg_t es8388_cfg = {};
     es8388_cfg.ctrl_if = ctrl_if;
     es8388_cfg.gpio_if = gpio_if;
-    es8388_cfg.pa_pin = cfg->pa_pin;
+    es8388_cfg.pa_pin = cfg->gpio_output_pa;
     es8388_cfg.codec_mode = ESP_CODEC_DEV_WORK_MODE_BOTH;
     es8388_cfg.hw_gain.pa_voltage = 5.0;
     es8388_cfg.hw_gain.codec_dac_voltage = 3.3;
@@ -168,12 +228,11 @@ OPERATE_RET codec_es8388_init(TDD_AUDIO_ES8388_CODEC_T *cfg)
 
     PR_INFO("Input and Output channels created");
 
-    ESP_ERROR_CHECK(i2s_channel_enable(cfg->i2s_tx_handle));
-    ESP_ERROR_CHECK(i2s_channel_enable(cfg->i2s_rx_handle));
+    ESP_ERROR_CHECK(i2s_channel_enable(i2s_tx_handle));
+    ESP_ERROR_CHECK(i2s_channel_enable(i2s_rx_handle));
     enable_input_device(true);
     enable_output_device(true);
 
-    // set_output_volume(50);
     uint8_t reg_val = 30; // 0dB
     uint8_t regs[] = { 46, 47, 48, 49 }; // HP_LVOL, HP_RVOL, SPK_LVOL, SPK_RVOL
     for (size_t i = 0; i < 4; i++)

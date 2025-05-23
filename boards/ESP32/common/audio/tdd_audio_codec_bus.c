@@ -5,9 +5,20 @@
 
 #include "tdd_audio_codec_bus.h"
 
+#define TAG "AUDIO_CODEC_BUS"
+
 OPERATE_RET tdd_audio_codec_bus_i2c_new(TDD_AUDIO_CODEC_BUS_CFG_T cfg, TDD_AUDIO_I2C_HANDLE *handle)
 {
     i2c_master_bus_handle_t i2c_bus_handle = NULL;
+    esp_err_t esp_rt = ESP_OK;
+
+    // retrieve i2c bus handle
+    esp_rt = i2c_master_get_bus_handle(cfg.i2c_id, &i2c_bus_handle);
+    if (esp_rt == ESP_OK && i2c_bus_handle) {
+        ESP_LOGI(TAG, "I2C bus handle retrieved successfully");
+        *handle = (TDD_AUDIO_I2C_HANDLE)i2c_bus_handle;
+        return OPRT_OK;
+    }
 
     // Initialize I2C bus
     i2c_master_bus_config_t i2c_bus_cfg = {
