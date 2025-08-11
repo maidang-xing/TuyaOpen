@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-typedef void* TDL_JOYSTICK_DEV_HANDLE;
+typedef void *TDL_JOYSTICK_DEV_HANDLE;
 typedef void (*TDL_JOYSTICK_CB)(void *arg);
 
 typedef enum {
@@ -24,8 +24,8 @@ typedef enum {
 } TDL_JOYSTICK_MODE_E;
 
 typedef struct {
-    TDL_JOYSTICK_DEV_HANDLE dev_handle;     /* joystick device handle */
-    TDL_JOYSTICK_CB irq_cb;                 /* joystick irq callback */
+    TDL_JOYSTICK_DEV_HANDLE dev_handle; /* joystick device handle */
+    TDL_JOYSTICK_CB irq_cb;             /* joystick irq callback */
 } TDL_JOYSTICK_OPRT_INFO;
 
 typedef struct {
@@ -35,20 +35,23 @@ typedef struct {
 } TDL_JOYSTICK_CTRL_INFO;
 
 typedef struct {
-    void *dev_handle;                        /* joystick device handle */
-    TDL_JOYSTICK_MODE_E mode;                /* joystick mode */
+    void *dev_handle;         /* joystick device handle */
+    TDL_JOYSTICK_MODE_E mode; /* joystick mode */
+    TUYA_ADC_NUM_E adc_num;   /* adc num */
+    uint8_t adc_ch_x;
+    uint8_t adc_ch_y;
 } TDL_JOYSTICK_DEVICE_INFO_T;
 
 /**
  * @brief Register joystick driver
- * 
+ *
  * @param name joystick name
  * @param joystick_ctrl_info joystick control info
  * @param joystick_cfg_info joystick config info
- * @return OPERATE_RET 
+ * @return OPERATE_RET
  */
 OPERATE_RET tdl_joystick_register(char *name, TDL_JOYSTICK_CTRL_INFO *joystick_ctrl_info,
-                                TDL_JOYSTICK_DEVICE_INFO_T *joystick_cfg_info);
+                                  TDL_JOYSTICK_DEVICE_INFO_T *joystick_cfg_info);
 
 #ifdef __cplusplus
 }

@@ -35,9 +35,9 @@
 
 /**
  * @brief Create gpio joystick
- * 
+ *
  * @param dev joystick dev
- * @return OPERATE_RET 
+ * @return OPERATE_RET
  */
 static OPERATE_RET __tdd_create_gpio_joystick(TDL_JOYSTICK_OPRT_INFO *dev)
 {
@@ -108,9 +108,9 @@ static OPERATE_RET __tdd_create_gpio_joystick(TDL_JOYSTICK_OPRT_INFO *dev)
 
 /**
  * @brief Delete gpio joystick
- * 
+ *
  * @param dev joystick dev
- * @return OPERATE_RET 
+ * @return OPERATE_RET
  */
 static OPERATE_RET __tdd_delete_gpio_joystick(TDL_JOYSTICK_OPRT_INFO *dev)
 {
@@ -129,10 +129,10 @@ static OPERATE_RET __tdd_delete_gpio_joystick(TDL_JOYSTICK_OPRT_INFO *dev)
 
 /**
  * @brief Read gpio joystick value
- * 
+ *
  * @param dev joystick dev
  * @param value pointer to store the read value
- * @return OPERATE_RET 
+ * @return OPERATE_RET
  */
 static OPERATE_RET __tdd_read_gpio_joystick_value(TDL_JOYSTICK_OPRT_INFO *dev, uint8_t *value)
 {
@@ -169,11 +169,11 @@ static OPERATE_RET __tdd_read_gpio_joystick_value(TDL_JOYSTICK_OPRT_INFO *dev, u
 
 /**
  * @brief Add a new joystick configuration
- * 
+ *
  * @param name joystick name
  * @param data joystick configuration data
  * @param handle pointer to store the joystick handle
- * @return OPERATE_RET 
+ * @return OPERATE_RET
  */
 static OPERATE_RET __add_new_joystick(char *name, JOYSTICK_GPIO_CFG_T *data, TDL_JOYSTICK_DEV_HANDLE *handle)
 {
@@ -202,10 +202,10 @@ static OPERATE_RET __add_new_joystick(char *name, JOYSTICK_GPIO_CFG_T *data, TDL
 
 /**
  * @brief Register a new gpio joystick
- * 
+ *
  * @param name joystick name
  * @param gpio_cfg joystick configuration
- * @return OPERATE_RET 
+ * @return OPERATE_RET
  */
 OPERATE_RET tdd_joystick_register(char *name, JOYSTICK_GPIO_CFG_T *gpio_cfg)
 {
@@ -230,6 +230,9 @@ OPERATE_RET tdd_joystick_register(char *name, JOYSTICK_GPIO_CFG_T *gpio_cfg)
     if (NULL != handle) {
         device_info.dev_handle = handle;
         device_info.mode = gpio_cfg->mode;
+        device_info.adc_num = gpio_cfg->adc_num;
+        device_info.adc_ch_x = gpio_cfg->adc_ch_x;
+        device_info.adc_ch_y = gpio_cfg->adc_ch_y;
     }
 
     ret = tdl_joystick_register(name, &ctrl_info, &device_info);
@@ -244,12 +247,12 @@ OPERATE_RET tdd_joystick_register(char *name, JOYSTICK_GPIO_CFG_T *gpio_cfg)
 
 /**
  * @brief Update joystick configuration level
- * 
+ *
  * @param handle joystick handle
  * @param level joystick level
- * @return OPERATE_RET 
+ * @return OPERATE_RET
  */
-OPERATE_RET tdd_joystick_update_level(TDL_JOYSTICK_DEV_HANDLE handle, TUYA_GPIO_LEVEL_E level)  
+OPERATE_RET tdd_joystick_update_level(TDL_JOYSTICK_DEV_HANDLE handle, TUYA_GPIO_LEVEL_E level)
 {
     JOYSTICK_GPIO_CFG_T *p_gpio_cfg = NULL;
 

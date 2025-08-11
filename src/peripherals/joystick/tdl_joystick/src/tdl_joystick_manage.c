@@ -38,7 +38,7 @@
 #define TDL_JOYSTICK_SCAN_TIME       10    // 10ms
 #define TDL_JOYSTICK_IRQ_SCAN_CNT    (TDL_JOYSTICK_IRQ_SCAN_TIME / TDL_JOYSTICK_SCAN_TIME)
 #define TOUCH_DELAY                  500 // Click interval for single/double click differentiation
-#define TDL_JOYSTICK_TASK_STACK_SIZE (2048)
+#define TDL_JOYSTICK_TASK_STACK_SIZE (4096)
 #define PUT_EVENT_CB(btn, name, ev, arg)                                                                               \
     do {                                                                                                               \
         if (btn.list_cb[ev])                                                                                           \
@@ -54,6 +54,9 @@ typedef struct {
 
 typedef struct {
     TDL_JOYSTICK_MODE_E stick_mode; /* button working mode */
+    TUYA_ADC_NUM_E adc_num;         /* adc num */
+    uint8_t adc_ch_x;
+    uint8_t adc_ch_y;
 } TDL_JOYSTICK_HARDWARE_CFG_T;
 
 typedef struct {
@@ -113,15 +116,15 @@ static uint8_t g_tdl_joystick_list_exist = FALSE;                           /* j
 static uint8_t g_tdl_joystick_scan_mode_exist = 0xFF;                       /* joystick scan mode init flag */
 static uint32_t sg_joystick_task_stack_size = TDL_JOYSTICK_TASK_STACK_SIZE; /* joystick task stack size */
 static uint8_t tdl_joystick_scan_time = TDL_JOYSTICK_SCAN_TIME;             /* joystick scan time */
-
+static uint32_t joystick_ticks = 0;
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
 static OPERATE_RET __tdl_get_operate_info(TDL_JOYSTICK_LIST_NODE_T *p_node, TDL_JOYSTICK_OPRT_INFO *oprt_info);
 static OPERATE_RET __tdl_joystick_scan_task(uint8_t enable);
 static OPERATE_RET __tdl_joystick_irq_task(uint8_t enable);
-void tdl_joystick_calibrated_xy(TDL_JOYSTICK_HANDLE handle, int channel_x, int channel_y, int *x, int *y);
-void tdl_joystick_raw_xy(TDL_JOYSTICK_HANDLE handle, int channel_x, int channel_y, int *x, int *y);
+OPERATE_RET tdl_joystick_calibrated_xy(TDL_JOYSTICK_HANDLE handle, int *x, int *y);
+OPERATE_RET tdl_joystick_raw_xy(TDL_JOYSTICK_HANDLE handle, int channel_x, int channel_y, int *x, int *y);
 
 /**
  * @brief Initialize joystick linked list structure
@@ -270,6 +273,9 @@ static TDL_JOYSTICK_LIST_NODE_T *__tdl_joystick_add_node(char *name, TDL_JOYSTIC
     memcpy(p_node->name, name, name_len);
     memcpy(&(p_node->device_data.ctrl_info), info, sizeof(TDL_JOYSTICK_CTRL_INFO));
     p_node->device_data.dev_cfg.stick_mode = cfg->mode;
+    p_node->device_data.dev_cfg.adc_num = cfg->adc_num;
+    p_node->device_data.dev_cfg.adc_ch_x = cfg->adc_ch_x;
+    p_node->device_data.dev_cfg.adc_ch_y = cfg->adc_ch_y;
     p_node->device_data.dev_handle = cfg->dev_handle;
 
     // Add new node
@@ -316,8 +322,6 @@ static TDL_JOYSTICK_LIST_NODE_T *__tdl_joystick_updata_userdata(char *name, TDL_
         p_node->user_data.joystick_cfg.adc_cfg.adc_min_val = joystick_cfg->adc_cfg.adc_min_val;
         p_node->user_data.joystick_cfg.adc_cfg.normalized_range = joystick_cfg->adc_cfg.normalized_range;
         p_node->user_data.joystick_cfg.adc_cfg.sensitivity = joystick_cfg->adc_cfg.sensitivity;
-        p_node->user_data.joystick_cfg.adc_cfg.channel_x = joystick_cfg->adc_cfg.channel_x;
-        p_node->user_data.joystick_cfg.adc_cfg.channel_y = joystick_cfg->adc_cfg.channel_y;
     }
 
     p_node->device_data.pre_event = TDL_JOYSTICK_TOUCH_EVENT_NONE;
@@ -327,8 +331,9 @@ static TDL_JOYSTICK_LIST_NODE_T *__tdl_joystick_updata_userdata(char *name, TDL_
     return p_node;
 }
 
-void tdl_joystick_direction_event_proc(TDL_JOYSTICK_HANDLE handle, int channel_x, int channel_y)
+void tdl_joystick_direction_event_proc(TDL_JOYSTICK_HANDLE handle)
 {
+    OPERATE_RET ret = OPRT_OK;
     TDL_JOYSTICK_LIST_NODE_T *p_node = NULL;
     int x = 0, y = 0;
     int threshold;
@@ -340,40 +345,59 @@ void tdl_joystick_direction_event_proc(TDL_JOYSTICK_HANDLE handle, int channel_x
         return;
     }
 
-    tdl_joystick_calibrated_xy(handle, channel_x, channel_y, &x, &y);
+    ret = tdl_joystick_calibrated_xy(handle, &x, &y);
+    if (ret != OPRT_OK) {
+        return;
+    }
 
     threshold = p_node->user_data.joystick_cfg.adc_cfg.sensitivity;
     if (x < -threshold) {
-        current_direction = TDL_JOYSTICK_LEFT;
-    } else if (x > threshold) {
         current_direction = TDL_JOYSTICK_RIGHT;
+    } else if (x > threshold) {
+        current_direction = TDL_JOYSTICK_LEFT;
     } else if (y < -threshold) {
-        current_direction = TDL_JOYSTICK_DOWN;
-    } else if (y > threshold) {
         current_direction = TDL_JOYSTICK_UP;
+    } else if (y > threshold) {
+        current_direction = TDL_JOYSTICK_DOWN;
     }
 
     if (current_direction != p_node->device_data.last_direction) {
-        // if (p_node->device_data.last_direction != TDL_JOYSTICK_TOUCH_EVENT_NONE) {
-        //    PUT_EVENT_CB(p_node->user_data, p_node->name, p_node->device_data.last_direction, NULL);
-        // }
-        if (current_direction != TDL_JOYSTICK_TOUCH_EVENT_NONE) {
-            PUT_EVENT_CB(p_node->user_data, p_node->name, current_direction, NULL);
+        if (p_node->device_data.last_direction != TDL_JOYSTICK_TOUCH_EVENT_NONE) {
+            if (TDL_LONG_START_VAILD_TIMER / tdl_joystick_scan_time / 30 < joystick_ticks &&
+                joystick_ticks < (TDL_LONG_START_VAILD_TIMER / tdl_joystick_scan_time)) {
+                PUT_EVENT_CB(p_node->user_data, p_node->name, p_node->device_data.last_direction, NULL);
+            }
         }
-
+        joystick_ticks = 0;
         p_node->device_data.last_direction = current_direction;
     } else {
-        current_direction = current_direction + 4;
-        switch (current_direction) {
-        case TDL_JOYSTICK_LONG_LEFT:
-        case TDL_JOYSTICK_LONG_RIGHT:
-        case TDL_JOYSTICK_LONG_UP:
-        case TDL_JOYSTICK_LONG_DOWN:
-            PUT_EVENT_CB(p_node->user_data, p_node->name, current_direction, NULL);
-            break;
-        default:
-            // Do not execute
-            break;
+        if (current_direction != TDL_JOYSTICK_TOUCH_EVENT_NONE) {
+            joystick_ticks++;
+
+            if (joystick_ticks == (TDL_LONG_START_VAILD_TIMER / tdl_joystick_scan_time)) {
+                TDL_JOYSTICK_TOUCH_EVENT_E long_event = TDL_JOYSTICK_TOUCH_EVENT_NONE;
+                switch (p_node->device_data.last_direction) {
+                case TDL_JOYSTICK_UP:
+                    long_event = TDL_JOYSTICK_LONG_UP;
+                    break;
+                case TDL_JOYSTICK_DOWN:
+                    long_event = TDL_JOYSTICK_LONG_DOWN;
+                    break;
+                case TDL_JOYSTICK_LEFT:
+                    long_event = TDL_JOYSTICK_LONG_LEFT;
+                    break;
+                case TDL_JOYSTICK_RIGHT:
+                    long_event = TDL_JOYSTICK_LONG_RIGHT;
+                    break;
+                default:
+                    break;
+                }
+                if (long_event != TDL_JOYSTICK_TOUCH_EVENT_NONE) {
+                    PUT_EVENT_CB(p_node->user_data, p_node->name, long_event, NULL);
+                }
+            }
+        } else {
+            joystick_ticks = 0;
         }
     }
 }
@@ -524,7 +548,7 @@ static void __tdl_joystick_state_handle(TDL_JOYSTICK_LIST_NODE_T *p_node)
             if (p_node->device_data.dev_cfg.stick_mode == JOYSTICK_IRQ_MODE) {
                 tdl_joystick_local.irq_scan_cnt = 0;
             }
-            hold_tick = p_node->user_data.joystick_cfg.button_cfg.long_keep_timer / tdl_joystick_scan_time;
+            hold_tick = p_node->user_data.joystick_cfg.button_cfg.long_keep_timer / TDL_JOYSTICK_SCAN_TIME;
             if (hold_tick == 0) {
                 hold_tick = 1;
             }
@@ -561,8 +585,7 @@ static void __tdl_joystick_state_handle(TDL_JOYSTICK_LIST_NODE_T *p_node)
     }
 
     // stick scan
-    tdl_joystick_direction_event_proc(p_node, p_node->user_data.joystick_cfg.adc_cfg.channel_x,
-                                      p_node->user_data.joystick_cfg.adc_cfg.channel_y);
+    tdl_joystick_direction_event_proc(p_node);
     return;
 }
 
@@ -1166,50 +1189,55 @@ OPERATE_RET tdl_joystick_register(char *name, TDL_JOYSTICK_CTRL_INFO *joystick_c
 /**
  * @brief Get the raw joystick data from ADC channels.
  * @param[in] handle Joystick handle.
- * @param[in] channel_x ADC channel for X-axis.
- * @param[in] channel_y ADC channel for Y-axis.
  * @param[out] x Pointer to store X-axis value.
  * @param[out] y Pointer to store Y-axis value.
  */
-void tdl_joystick_get_raw_xy(TDL_JOYSTICK_HANDLE handle, int channel_x, int channel_y, int *x, int *y)
+OPERATE_RET tdl_joystick_get_raw_xy(TDL_JOYSTICK_HANDLE handle, int *x, int *y)
 {
+    OPERATE_RET ret = OPRT_OK;
     TDL_JOYSTICK_LIST_NODE_T *p_node = NULL;
     int adc_value[2] = {0};
 
     p_node = __tdl_joystick_find_node(handle);
     if (NULL == p_node) {
         PR_ERR("handle not get");
-        return;
+        return OPRT_COM_ERROR;
     }
 
     // Read the ADC values for the specified channels
-    tkl_adc_read_single_channel(TUYA_ADC_NUM_0, channel_x, (int32_t *)adc_value);
-    tkl_adc_read_single_channel(TUYA_ADC_NUM_0, channel_y, (int32_t *)(adc_value + 1));
-
+    ret = tkl_adc_read_single_channel(p_node->device_data.dev_cfg.adc_num, p_node->device_data.dev_cfg.adc_ch_x,
+                                      (int32_t *)adc_value);
+    if (ret != OPRT_OK) {
+        return OPRT_COM_ERROR;
+    }
+    ret = tkl_adc_read_single_channel(p_node->device_data.dev_cfg.adc_num, p_node->device_data.dev_cfg.adc_ch_y,
+                                      (int32_t *)adc_value + 1);
+    if (ret != OPRT_OK) {
+        return OPRT_COM_ERROR;
+    }
     // Get the raw joystick values
     *x = adc_value[0];
     *y = adc_value[1];
-    return;
+    return OPRT_OK;
 }
 
 /**
  * @brief Get the calibrated joystick data from ADC channels.
  * This function normalizes the joystick values based on the configured ADC range.
  * @param[in] handle Joystick handle.
- * @param[in] channel_x ADC channel for X-axis.
- * @param[in] channel_y ADC channel for Y-axis.
  * @param[out] x Pointer to store normalized X-axis value.
  * @param[out] y Pointer to store normalized Y-axis value.
  */
-void tdl_joystick_calibrated_xy(TDL_JOYSTICK_HANDLE handle, int channel_x, int channel_y, int *x, int *y)
+OPERATE_RET tdl_joystick_calibrated_xy(TDL_JOYSTICK_HANDLE handle, int *x, int *y)
 {
+    OPERATE_RET ret = OPRT_OK;
     TDL_JOYSTICK_LIST_NODE_T *p_node = NULL;
     int mid_value = 1;
 
     p_node = __tdl_joystick_find_node(handle);
     if (NULL == p_node) {
         PR_ERR("handle not get");
-        return;
+        return OPRT_COM_ERROR;
     }
 
     // Calculate the mid value based on the ADC min and max values
@@ -1217,7 +1245,10 @@ void tdl_joystick_calibrated_xy(TDL_JOYSTICK_HANDLE handle, int channel_x, int c
     mid_value /= 2;
 
     int adc_value[2] = {0};
-    tdl_joystick_get_raw_xy(handle, channel_x, channel_y, adc_value, adc_value + 1);
+    ret = tdl_joystick_get_raw_xy(handle, adc_value, adc_value + 1);
+    if (ret != OPRT_OK) {
+        return OPRT_COM_ERROR;
+    }
 
     *y = adc_value[0];
     *x = adc_value[1];
@@ -1226,5 +1257,5 @@ void tdl_joystick_calibrated_xy(TDL_JOYSTICK_HANDLE handle, int channel_x, int c
     *x = (mid_value - *x) * p_node->user_data.joystick_cfg.adc_cfg.normalized_range / mid_value;
     *y = (mid_value - *y) * p_node->user_data.joystick_cfg.adc_cfg.normalized_range / mid_value;
 
-    return;
+    return OPRT_OK;
 }

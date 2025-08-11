@@ -41,7 +41,6 @@
 ***********************variable define**********************
 ***********************************************************/
 
-
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
@@ -61,9 +60,10 @@ void user_main(void)
 
     lv_vendor_init(DISPLAY_NAME);
 
-// lv_example_gif_1();
+    // lv_example_gif_1();
 
-    lv_demo_widgets();
+    // lv_demo_widgets();
+    lv_demo_benchmark();
 
     lv_vendor_start();
 }
@@ -97,7 +97,7 @@ static THREAD_HANDLE ty_app_thread = NULL;
  */
 static void tuya_app_thread(void *arg)
 {
-    (void) arg;
+    (void)arg;
 
     user_main();
 

@@ -11,12 +11,14 @@ get_filename_component(APP_NAME ${APP_PATH} NAME)
 
 # APP_SRCS
 aux_source_directory(${APP_PATH}/src APP_SRCS)
+aux_source_directory(${APP_PATH}/src/media media_alert)
 
-list(APPEND APP_SRCS ${ai_audio_srcs} ${media_srcs})
+list(APPEND APP_SRCS ${ai_audio_srcs} ${media_srcs} ${media_alert})
 
 set(APP_INC 
             ${APP_PATH}/assets
             ${APP_PATH}/include
+            ${APP_PATH}/src/media
 )
 
 list(APPEND APP_INC "${APP_PATH}/assets")
@@ -45,9 +47,7 @@ target_compile_options(${EXAMPLE_LIB}
 # Add subdirectory
 ########################################
 
-if (CONFIG_ENABLE_CHAT_DISPLAY STREQUAL "y")
-        add_subdirectory(${APP_PATH}/src/display)
-endif()
+add_subdirectory(${APP_PATH}/src/display)
 
 add_subdirectory(${APP_PATH}/../../tuya.ai/ai_components/ai_audio)
 target_include_directories(${EXAMPLE_LIB} PRIVATE ${APP_PATH}/../../tuya.ai/ai_components/ai_audio)

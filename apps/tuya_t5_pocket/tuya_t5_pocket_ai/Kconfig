@@ -39,12 +39,4 @@ if(ENABLE_CHAT_MODE_ASR_WAKEUP_SINGEL || ENABLE_CHAT_MODE_ASR_WAKEUP_FREE)
         bool "the wake-up word is configured as XIAO ZHI GUAN JIA."  
     endchoice
 endif
-
-config ENABLE_CHAT_DISPLAY
-    bool "enable the display module"
-    default n
-
-    if (ENABLE_CHAT_DISPLAY)
-        rsource "./src/display/Kconfig"
-    endif
 endmenu

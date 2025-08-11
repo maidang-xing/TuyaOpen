@@ -18,14 +18,12 @@
 #include "tkl_output.h"
 #include "tal_api.h"
 
-#include "tdd_button_gpio.h"
 #include "tdl_button_manage.h"
 
 #include "board_com_api.h"
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
-#define APP_BUTTON_NAME "app_button"
 
 /***********************************************************
 ***********************typedef define***********************
@@ -86,7 +84,7 @@ void user_main(void)
                                    .long_keep_timer = 1000,
                                    .button_debounce_time = 50,
                                    .button_repeat_valid_count = 2,
-                                   .button_repeat_valid_time = 50};
+                                   .button_repeat_valid_time = 500};
     TDL_BUTTON_HANDLE button_hdl = NULL;
 
     TUYA_CALL_ERR_GOTO(tdl_button_create(BUTTON_NAME, &button_cfg, &button_hdl), __EXIT);
