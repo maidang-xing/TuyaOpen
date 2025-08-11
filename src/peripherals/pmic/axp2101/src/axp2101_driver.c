@@ -2579,7 +2579,7 @@ void printIntRegister()
 {
     for (int i = 0; i < XPOWERS_AXP2101_INTSTS_CNT; i++) {
         uint8_t val = readRegister(XPOWERS_AXP2101_INTEN1 + i);
-        PR_DEBUG("INT[%d] HEX:0x%X\n", i, val);
+        PR_DEBUG("INT[%d] HEX:0x%X", i, val);
     }
 }
 
@@ -3023,24 +3023,24 @@ bool setInterruptImpl(uint32_t opts, bool enable)
 {
     int res = 0;
     uint8_t data = 0, value = 0;
-    PR_DEBUG("%s - HEX:0x %lx \n", enable ? "ENABLE" : "DISABLE", opts);
+    PR_DEBUG("%s - HEX:0x %lx ", enable ? "ENABLE" : "DISABLE", opts);
     if (opts & 0x0000FF) {
         value = opts & 0xFF;
-        // PR_DEBUG("Write INT0: %x\n", value);
+        // PR_DEBUG("Write INT0: %x", value);
         data = readRegister(XPOWERS_AXP2101_INTEN1);
         intRegister[0] = enable ? (data | value) : (data & (~value));
         res |= writeRegister(XPOWERS_AXP2101_INTEN1, intRegister[0]);
     }
     if (opts & 0x00FF00) {
         value = opts >> 8;
-        // PR_DEBUG("Write INT1: %x\n", value);
+        // PR_DEBUG("Write INT1: %x", value);
         data = readRegister(XPOWERS_AXP2101_INTEN2);
         intRegister[1] = enable ? (data | value) : (data & (~value));
         res |= writeRegister(XPOWERS_AXP2101_INTEN2, intRegister[1]);
     }
     if (opts & 0xFF0000) {
         value = opts >> 16;
-        // PR_DEBUG("Write INT2: %x\n", value);
+        // PR_DEBUG("Write INT2: %x", value);
         data = readRegister(XPOWERS_AXP2101_INTEN3);
         intRegister[2] = enable ? (data | value) : (data & (~value));
         res |= writeRegister(XPOWERS_AXP2101_INTEN3, intRegister[2]);
@@ -3216,29 +3216,36 @@ OPERATE_RET axp2101_deinit(void)
 void axp2101_print_pwr_info(void)
 {
     PR_NOTICE("======================================DCDC=================================");
-    PR_DEBUG("DC1  : %s   Voltage:%u mV \n", isEnableDC1() ? "+" : "-", getDC1Voltage());
-    PR_DEBUG("DC2  : %s   Voltage:%u mV \n", isEnableDC2() ? "+" : "-", getDC2Voltage());
-    PR_DEBUG("DC3  : %s   Voltage:%u mV \n", isEnableDC3() ? "+" : "-", getDC3Voltage());
-    PR_DEBUG("DC4  : %s   Voltage:%u mV \n", isEnableDC4() ? "+" : "-", getDC4Voltage());
-    PR_DEBUG("DC5  : %s   Voltage:%u mV \n", isEnableDC5() ? "+" : "-", getDC5Voltage());
+    PR_DEBUG("DC1  : %s   Voltage:%u mV ", isEnableDC1() ? "+" : "-", getDC1Voltage());
+    PR_DEBUG("DC2  : %s   Voltage:%u mV ", isEnableDC2() ? "+" : "-", getDC2Voltage());
+    PR_DEBUG("DC3  : %s   Voltage:%u mV ", isEnableDC3() ? "+" : "-", getDC3Voltage());
+    PR_DEBUG("DC4  : %s   Voltage:%u mV ", isEnableDC4() ? "+" : "-", getDC4Voltage());
+    PR_DEBUG("DC5  : %s   Voltage:%u mV ", isEnableDC5() ? "+" : "-", getDC5Voltage());
     PR_NOTICE("======================================ALDO=================================");
-    PR_DEBUG("ALDO1: %s   Voltage:%u mV\n", isEnableALDO1() ? "+" : "-", getALDO1Voltage());
-    PR_DEBUG("ALDO2: %s   Voltage:%u mV\n", isEnableALDO2() ? "+" : "-", getALDO2Voltage());
-    PR_DEBUG("ALDO3: %s   Voltage:%u mV\n", isEnableALDO3() ? "+" : "-", getALDO3Voltage());
-    PR_DEBUG("ALDO4: %s   Voltage:%u mV\n", isEnableALDO4() ? "+" : "-", getALDO4Voltage());
+    PR_DEBUG("ALDO1: %s   Voltage:%u mV", isEnableALDO1() ? "+" : "-", getALDO1Voltage());
+    PR_DEBUG("ALDO2: %s   Voltage:%u mV", isEnableALDO2() ? "+" : "-", getALDO2Voltage());
+    PR_DEBUG("ALDO3: %s   Voltage:%u mV", isEnableALDO3() ? "+" : "-", getALDO3Voltage());
+    PR_DEBUG("ALDO4: %s   Voltage:%u mV", isEnableALDO4() ? "+" : "-", getALDO4Voltage());
     PR_NOTICE("======================================BLDO=================================");
-    PR_DEBUG("BLDO1: %s   Voltage:%u mV\n", isEnableBLDO1() ? "+" : "-", getBLDO1Voltage());
-    PR_DEBUG("BLDO2: %s   Voltage:%u mV\n", isEnableBLDO2() ? "+" : "-", getBLDO2Voltage());
+    PR_DEBUG("BLDO1: %s   Voltage:%u mV", isEnableBLDO1() ? "+" : "-", getBLDO1Voltage());
+    PR_DEBUG("BLDO2: %s   Voltage:%u mV", isEnableBLDO2() ? "+" : "-", getBLDO2Voltage());
     PR_NOTICE("=====================================CPUSLDO===============================");
-    PR_DEBUG("CPUSLDO: %s Voltage:%u mV\n", isEnableCPUSLDO() ? "+" : "-", getCPUSLDOVoltage());
+    PR_DEBUG("CPUSLDO: %s Voltage:%u mV", isEnableCPUSLDO() ? "+" : "-", getCPUSLDOVoltage());
     PR_NOTICE("======================================DLDO=================================");
-    PR_DEBUG("DLDO1: %s   Voltage:%u mV\n", isEnableDLDO1() ? "+" : "-", getDLDO1Voltage());
-    PR_DEBUG("DLDO2: %s   Voltage:%u mV\n", isEnableDLDO2() ? "+" : "-", getDLDO2Voltage());
+    PR_DEBUG("DLDO1: %s   Voltage:%u mV", isEnableDLDO1() ? "+" : "-", getDLDO1Voltage());
+    PR_DEBUG("DLDO2: %s   Voltage:%u mV", isEnableDLDO2() ? "+" : "-", getDLDO2Voltage());
     PR_NOTICE("===========================================================================");
 }
 
 void axp2101_print_chg_info(void)
 {
+    // Enable internal ADC detection
+    axp2101_enableBattDetection();
+    axp2101_enableVbusVoltageMeasure();
+    axp2101_enableBattVoltageMeasure();
+    axp2101_enableSystemVoltageMeasure();
+    axp2101_enableTemperatureMeasure();
+
     PR_DEBUG("isCharging: %s", axp2101_isCharging() ? "YES" : "NO");
     PR_DEBUG("isDischarge: %s", axp2101_isDischarge() ? "YES" : "NO");
     PR_DEBUG("isStandby: %s", isStandby() ? "YES" : "NO");
