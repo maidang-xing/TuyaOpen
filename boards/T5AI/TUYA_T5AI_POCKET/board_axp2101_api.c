@@ -19,7 +19,8 @@
 /***********************************************************
 ***********************variable define**********************
 ***********************************************************/
-
+#define ENABLE_4G_MODULE_RST(level) tkl_gpio_write(RST_4G_MODULE_CTRL, level)        // high is valid work
+#define ENABLE_SIM_VDD(level)       tkl_gpio_write(SIM_VDD_4G_MODULE_CTRL, (!level)) // low is valid work
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
@@ -37,9 +38,9 @@ static void __board_power_detectd_enable(void)
 static void __board_charge_init(void)
 {
 
-    axp2101_setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V20);  // 4.20V limit to support 4.6V input
-    axp2101_setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_500MA); // 500mA current limit for lower voltage
-    axp2101_setSysPowerDownVoltage(3300);                            // 2.6V system shutdown voltage
+    axp2101_setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V20);   // 4.20V limit to support 4.6V input
+    axp2101_setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_1000MA); // 1000mA current limit for lower voltage
+    axp2101_setSysPowerDownVoltage(3300);                             // 2.6V system shutdown voltage
 
     axp2101_disableTSPinMeasure();        // Disable TS pin to prevent interference
     axp2101_enableBattDetection();        // Enable battery detection
@@ -84,8 +85,8 @@ static void __board_all_pwron(void)
     axp2101_setPowerChannelVoltage(XPOWERS_DCDC1, 3300);
     axp2101_setPowerChannelVoltage(XPOWERS_DCDC2, 1500);
     axp2101_setPowerChannelVoltage(XPOWERS_DCDC3, 3300);
-    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC4, 1800);
-    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC5, 3300);
+    axp2101_setPowerChannelVoltage(XPOWERS_DCDC4, 1800);
+    axp2101_setPowerChannelVoltage(XPOWERS_DCDC5, 3300);
     axp2101_setPowerChannelVoltage(RTC_VDD, 1800);
 
     axp2101_setPowerChannelVoltage(VDD_CAM_2V8, 2800);
@@ -97,8 +98,8 @@ static void __board_all_pwron(void)
     axp2101_enablePowerOutput(XPOWERS_DCDC1);
     axp2101_enablePowerOutput(XPOWERS_DCDC2);
     axp2101_enablePowerOutput(XPOWERS_DCDC3);
-    // axp2101_enablePowerOutput(XPOWERS_DCDC4);
-    // axp2101_enablePowerOutput(XPOWERS_DCDC5);
+    axp2101_enablePowerOutput(XPOWERS_DCDC4);
+    axp2101_enablePowerOutput(XPOWERS_DCDC5);
     axp2101_enablePowerOutput(RTC_VDD);
 
     axp2101_enablePowerOutput(VDD_CAM_2V8);
@@ -137,18 +138,18 @@ OPERATE_RET board_axp2101_init(void)
     axp2101_setPowerKeyPressOnTime(XPOWERS_POWERON_128MS);
     axp2101_setPowerKeyPressOffTime(XPOWERS_POWEROFF_4S);
 
-    /*4G module RST init, high is valid*/
+    /*4G module RST init*/
     TUYA_GPIO_BASE_CFG_T pin_cfg = {
         .mode = TUYA_GPIO_PUSH_PULL, .direct = TUYA_GPIO_OUTPUT, .level = TUYA_GPIO_LEVEL_HIGH};
     TUYA_CALL_ERR_LOG(tkl_gpio_init(RST_4G_MODULE_CTRL, &pin_cfg));
-    tkl_gpio_write(RST_4G_MODULE_CTRL, TUYA_GPIO_LEVEL_HIGH);
+    ENABLE_4G_MODULE_RST(1);
 
-    /*4G module pwr on/off init, low is valid*/
+    /*4G module pwr on/off init*/
     pin_cfg.mode = TUYA_GPIO_PUSH_PULL;
     pin_cfg.direct = TUYA_GPIO_OUTPUT;
     pin_cfg.level = TUYA_GPIO_LEVEL_LOW;
     TUYA_CALL_ERR_LOG(tkl_gpio_init(SIM_VDD_4G_MODULE_CTRL, &pin_cfg));
-    tkl_gpio_write(SIM_VDD_4G_MODULE_CTRL, TUYA_GPIO_LEVEL_LOW);
+    ENABLE_SIM_VDD(1);
 
     // release i2c source
     axp2101_deinit();
