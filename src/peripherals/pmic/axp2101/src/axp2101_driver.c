@@ -2158,7 +2158,7 @@ xpowers_irq_time_t getIrqLevelTime(void)
  * @param opt: See xpowers_press_on_time_t enum for details.
  * @retval
  */
-bool axp2101_setPowerKeyPressOnTime(uint8_t opt)
+bool axp2101_setPowerKeyPressOnTime(xpowers_press_on_time_t opt)
 {
     int val = readRegister(XPOWERS_AXP2101_IRQ_OFF_ON_LEVEL_CTRL);
     if (val == -1)
@@ -2184,7 +2184,7 @@ uint8_t axp2101_getPowerKeyPressOnTime(void)
  * @param opt: See xpowers_press_off_time_t enum for details.
  * @retval
  */
-bool axp2101_setPowerKeyPressOffTime(uint8_t opt)
+bool axp2101_setPowerKeyPressOffTime(xpowers_press_off_time_t opt)
 {
     int val = readRegister(XPOWERS_AXP2101_IRQ_OFF_ON_LEVEL_CTRL);
     if (val == -1)
@@ -2444,7 +2444,7 @@ uint8_t axp2101_getChargerConstantCurr(void)
 }
 
 /**
- * @brief  充电终止电流限制
+ * @brief  charge termination current limit
  * @note   Charging termination of current limit
  * @retval
  */
@@ -3239,12 +3239,6 @@ void axp2101_print_pwr_info(void)
 
 void axp2101_print_chg_info(void)
 {
-    // Enable internal ADC detection
-    axp2101_enableBattDetection();
-    axp2101_enableVbusVoltageMeasure();
-    axp2101_enableBattVoltageMeasure();
-    axp2101_enableSystemVoltageMeasure();
-    axp2101_enableTemperatureMeasure();
 
     PR_DEBUG("isCharging: %s", axp2101_isCharging() ? "YES" : "NO");
     PR_DEBUG("isDischarge: %s", axp2101_isDischarge() ? "YES" : "NO");
@@ -3270,6 +3264,7 @@ void axp2101_print_chg_info(void)
     PR_DEBUG("getBattVoltage: %d mV", axp2101_getBattVoltage());
     PR_DEBUG("getVbusVoltage: %d mV", axp2101_getVbusVoltage());
     PR_DEBUG("getSystemVoltage: %d mV", axp2101_getSystemVoltage());
+    PR_DEBUG("getTsTemperature: %.2f ℃", getTemperature());
 
     // The battery percentage may be inaccurate at first use, the PMU will automatically
     // learn the battery curve and will automatically calibrate the battery percentage

@@ -488,9 +488,9 @@ bool axp2101_disableTSPinMeasure(void);
 void axp2101_setChargingLedMode(uint8_t mode);
 
 // PEKEY setting functions
-bool axp2101_setPowerKeyPressOnTime(uint8_t opt);
+bool axp2101_setPowerKeyPressOnTime(xpowers_press_on_time_t opt);
 uint8_t axp2101_getPowerKeyPressOnTime(void);
-bool axp2101_setPowerKeyPressOffTime(uint8_t opt);
+bool axp2101_setPowerKeyPressOffTime(xpowers_press_off_time_t opt);
 uint8_t axp2101_getPowerKeyPressOffTime(void);
 
 #ifdef __cplusplus
