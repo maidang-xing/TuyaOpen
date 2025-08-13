@@ -21,6 +21,7 @@
 #include "lv_vendor.h"
 
 #include "ai_pocket_pet_app.h"
+#include "axp2101_driver.h"
 /***********************************************************
 ************************macro define************************
 ***********************************************************/
@@ -95,11 +96,13 @@ static void __app_display_msg_handle(DISPLAY_MSG_T *msg_data)
         status_bar_set_wifi_strength(5);
         break;
     case POCKET_DISP_TP_BATTERY_STATUS: {
-        uint8_t level = 1;
-        lv_demo_ai_pocket_pet_set_battery_status(level, lv_demo_ai_pocket_pet_get_battery_charging());
+        // lv_demo_ai_pocket_pet_set_battery_status((uint8_t)(axp2101_getBatteryPercent() / 100.0f * 6),
+        // lv_demo_ai_pocket_pet_get_battery_charging());
+        lv_demo_ai_pocket_pet_set_battery_status((uint8_t)(axp2101_getBatteryPercent() / 100.0f * 6),
+                                                 axp2101_isCharging());
     } break;
     case POCKET_DISP_TP_BATTERY_CHARGING: {
-        lv_demo_ai_pocket_pet_set_battery_status(lv_demo_ai_pocket_pet_get_battery_level(), true);
+        lv_demo_ai_pocket_pet_set_battery_status(lv_demo_ai_pocket_pet_get_battery_level(), axp2101_isCharging());
     } break;
 
     default:
