@@ -37,9 +37,9 @@ static void __board_axp2101_adc_enable(void)
 
 static void __board_axp2101_charge_init(void)
 {
-    axp2101_setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V20);   // 4.20V limit to support 4.6V input
-    axp2101_setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_1000MA); // 1000mA current limit for lower voltage
-    axp2101_setSysPowerDownVoltage(3000);                             // 3.30V system shutdown voltage
+    axp2101_setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V20);  // 4.20V limit to support 4.6V input
+    axp2101_setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_500MA); // 500mA current limit for lower voltage
+    axp2101_setSysPowerDownVoltage(3300);                            // 3.30V system shutdown voltage
 
     axp2101_setPrechargeCurr(XPOWERS_AXP2101_PRECHARGE_200MA);             // 200mA precharge current
     tal_axp2101_setChargerTerminationCurr(XPOWERS_AXP2101_CHG_ITERM_25MA); // 25mA termination current
@@ -78,10 +78,10 @@ static void __board_axp2101_power_on(void)
 
     // Only enable board power
     axp2101_setPowerChannelVoltage(XPOWERS_DCDC1, 3300);
-    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC2, 1500);
-    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC3, 3300);
-    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC4, 1800);
-    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC5, 3300);
+    axp2101_setPowerChannelVoltage(XPOWERS_DCDC2, 1500);
+    axp2101_setPowerChannelVoltage(XPOWERS_DCDC3, 3300);
+    axp2101_setPowerChannelVoltage(XPOWERS_DCDC4, 1800);
+    axp2101_setPowerChannelVoltage(XPOWERS_DCDC5, 3300);
     axp2101_setPowerChannelVoltage(RTC_VDD, 1800);
 
     axp2101_setPowerChannelVoltage(VDD_CAM_2V8, 2800);
@@ -91,10 +91,10 @@ static void __board_axp2101_power_on(void)
     // axp2101_setPowerChannelVoltage(VDD_JOYCON_1V1, 1100);
 
     axp2101_enablePowerOutput(XPOWERS_DCDC1);
-    // axp2101_enablePowerOutput(XPOWERS_DCDC2);
-    // axp2101_enablePowerOutput(XPOWERS_DCDC3);
-    // axp2101_enablePowerOutput(XPOWERS_DCDC4);
-    // axp2101_enablePowerOutput(XPOWERS_DCDC5);
+    axp2101_enablePowerOutput(XPOWERS_DCDC2);
+    axp2101_enablePowerOutput(XPOWERS_DCDC3);
+    axp2101_enablePowerOutput(XPOWERS_DCDC4);
+    axp2101_enablePowerOutput(XPOWERS_DCDC5);
     axp2101_enablePowerOutput(RTC_VDD);
 
     axp2101_enablePowerOutput(VDD_CAM_2V8);

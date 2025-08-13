@@ -135,7 +135,6 @@ void user_event_handler_on(tuya_iot_client_t *client, tuya_event_msg_t *event)
 {
     PR_DEBUG("Tuya Event ID:%d(%s)", event->id, EVENT_ID2STR(event->id));
     PR_INFO("Device Free heap %d", tal_system_get_free_heap_size());
-
     app_display_send_msg(POCKET_DISP_TP_BATTERY_STATUS, NULL, 0);
     switch (event->id) {
     case TUYA_EVENT_BIND_START:
