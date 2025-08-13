@@ -25,37 +25,32 @@
 ***********************function define**********************
 ***********************************************************/
 
-static void __board_power_detectd_enable(void)
+static void __board_axp2101_adc_enable(void)
 {
-    // Enable internal ADC detection
-    axp2101_enableBattDetection();
-    axp2101_enableVbusVoltageMeasure();
-    axp2101_enableBattVoltageMeasure();
-    axp2101_enableSystemVoltageMeasure();
-    axp2101_enableTemperatureMeasure();
-}
-
-static void __board_charge_init(void)
-{
-
-    axp2101_setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V20);   // 4.20V limit to support 4.6V input
-    axp2101_setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_1000MA); // 1000mA current limit for lower voltage
-    axp2101_setSysPowerDownVoltage(3300);                             // 2.6V system shutdown voltage
-
     axp2101_disableTSPinMeasure();        // Disable TS pin to prevent interference
     axp2101_enableBattDetection();        // Enable battery detection
     axp2101_enableVbusVoltageMeasure();   // Enable VBUS voltage measurement
     axp2101_enableBattVoltageMeasure();   // Enable battery voltage measurement
     axp2101_enableSystemVoltageMeasure(); // Enable system voltage measurement
+    axp2101_enableTemperatureMeasure();   // Enable temperature measurement
+}
+
+static void __board_axp2101_charge_init(void)
+{
+    axp2101_setVbusVoltageLimit(XPOWERS_AXP2101_VBUS_VOL_LIM_4V20);   // 4.20V limit to support 4.6V input
+    axp2101_setVbusCurrentLimit(XPOWERS_AXP2101_VBUS_CUR_LIM_1000MA); // 1000mA current limit for lower voltage
+    axp2101_setSysPowerDownVoltage(3000);                             // 3.30V system shutdown voltage
 
     axp2101_setPrechargeCurr(XPOWERS_AXP2101_PRECHARGE_200MA);             // 200mA precharge current
     tal_axp2101_setChargerTerminationCurr(XPOWERS_AXP2101_CHG_ITERM_25MA); // 25mA termination current
     axp2101_setChargerConstantCurr(XPOWERS_AXP2101_CHG_CUR_1000MA);        // 1000mA constant current (max)
     axp2101_setChargeTargetVoltage(XPOWERS_AXP2101_CHG_VOL_4V2);           // 4.2V target voltage
     axp2101_enableCellbatteryCharge();
+
+    // axp2101_setChargingLedMode(XPOWERS_CHG_LED_CTRL_CHG); // Charging LED controlled by charger
 }
 
-static void __board_all_pwron(void)
+static void __board_axp2101_power_on(void)
 {
     // Disable all DCDC channels
     // axp2101_disablePowerOutput(XPOWERS_DCDC1);
@@ -78,15 +73,15 @@ static void __board_all_pwron(void)
 
     axp2101_disablePowerOutput(XPOWERS_CPULDO);
 
-    // Disable button battery charge
+    // Disable button battery
     // axp2101_disablePowerOutput(XPOWERS_VBACKUP);
 
-    // Enable board power
+    // Only enable board power
     axp2101_setPowerChannelVoltage(XPOWERS_DCDC1, 3300);
-    axp2101_setPowerChannelVoltage(XPOWERS_DCDC2, 1500);
-    axp2101_setPowerChannelVoltage(XPOWERS_DCDC3, 3300);
-    axp2101_setPowerChannelVoltage(XPOWERS_DCDC4, 1800);
-    axp2101_setPowerChannelVoltage(XPOWERS_DCDC5, 3300);
+    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC2, 1500);
+    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC3, 3300);
+    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC4, 1800);
+    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC5, 3300);
     axp2101_setPowerChannelVoltage(RTC_VDD, 1800);
 
     axp2101_setPowerChannelVoltage(VDD_CAM_2V8, 2800);
@@ -96,10 +91,10 @@ static void __board_all_pwron(void)
     // axp2101_setPowerChannelVoltage(VDD_JOYCON_1V1, 1100);
 
     axp2101_enablePowerOutput(XPOWERS_DCDC1);
-    axp2101_enablePowerOutput(XPOWERS_DCDC2);
-    axp2101_enablePowerOutput(XPOWERS_DCDC3);
-    axp2101_enablePowerOutput(XPOWERS_DCDC4);
-    axp2101_enablePowerOutput(XPOWERS_DCDC5);
+    // axp2101_enablePowerOutput(XPOWERS_DCDC2);
+    // axp2101_enablePowerOutput(XPOWERS_DCDC3);
+    // axp2101_enablePowerOutput(XPOWERS_DCDC4);
+    // axp2101_enablePowerOutput(XPOWERS_DCDC5);
     axp2101_enablePowerOutput(RTC_VDD);
 
     axp2101_enablePowerOutput(VDD_CAM_2V8);
@@ -108,16 +103,16 @@ static void __board_all_pwron(void)
     axp2101_enablePowerOutput(DVDD_CAM_1V8);
     // axp2101_enablePowerOutput(VDD_JOYCON_1V1);
 
-    PR_DEBUG("Enabled DCDC and LDO out");
+    PR_DEBUG("Enabled board DCDC and LDO out");
 }
 
-void __board_vbus_check(void)
+static void __board_axp2101_vbus_check(void)
 {
     axp2101_print_chg_info();
     return;
 }
 
-void __board_pwr_info(void)
+static void __board_axp2101_power_info(void)
 {
     axp2101_print_pwr_info();
     return;
@@ -129,11 +124,11 @@ OPERATE_RET board_axp2101_init(void)
 
     TUYA_CALL_ERR_RETURN(axp2101_init());
 
-    __board_power_detectd_enable(); // Enable internal ADC detection
-    __board_vbus_check();           // check vbus info
-    __board_charge_init();          // Enable charging
-    __board_all_pwron();            // Enable all power outputs
-    __board_pwr_info();             // print pwr info
+    __board_axp2101_adc_enable();  // Enable internal ADC detection
+    __board_axp2101_vbus_check();  // check vbus info
+    __board_axp2101_charge_init(); // Enable charging
+    __board_axp2101_power_on();    // Enable all power outputs
+    __board_axp2101_power_info();  // print pwr info
 
     axp2101_setPowerKeyPressOnTime(XPOWERS_POWERON_128MS);
     axp2101_setPowerKeyPressOffTime(XPOWERS_POWEROFF_4S);
@@ -152,7 +147,7 @@ OPERATE_RET board_axp2101_init(void)
     ENABLE_SIM_VDD(1);
 
     // release i2c source
-    axp2101_deinit();
+    // axp2101_deinit();
 
     return rt;
 }

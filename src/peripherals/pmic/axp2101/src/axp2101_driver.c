@@ -2351,7 +2351,7 @@ void disableChargingLed(void)
  * @brief Set charging led mode.
  * @retval See xpowers_chg_led_mode_t enum for details.
  */
-void axp2101_setChargingLedMode(uint8_t mode)
+void axp2101_setChargingLedMode(xpowers_chg_led_mode_t mode)
 {
     int val;
     switch (mode) {
@@ -3239,18 +3239,21 @@ void axp2101_print_pwr_info(void)
 
 void axp2101_print_chg_info(void)
 {
+    // The battery percentage may be inaccurate at first use, the PMU will automatically
+    // learn the battery curve and will automatically calibrate the battery percentage
+    // after a charge and discharge cycle
+    if (axp2101_isBatteryConnect()) {
+        PR_DEBUG("get Battery Percent: %d %% ", axp2101_getBatteryPercent());
+    } else {
+        PR_ERR("Battery not connected !");
+    }
 
-    PR_DEBUG("isCharging: %s", axp2101_isCharging() ? "YES" : "NO");
-    PR_DEBUG("isDischarge: %s", axp2101_isDischarge() ? "YES" : "NO");
-    PR_DEBUG("isStandby: %s", isStandby() ? "YES" : "NO");
-    PR_DEBUG("isVbusIn: %s", axp2101_isVbusIn() ? "YES" : "NO");
-    PR_DEBUG("isVbusGood: %s", isVbusGood() ? "YES" : "NO");
-    PR_DEBUG("getChargerStatus:");
+    PR_DEBUG("get Charger Status:");
     uint8_t charge_status = getChargerStatus();
     if (charge_status == XPOWERS_AXP2101_CHG_TRI_STATE) {
-        PR_DEBUG("tri_charge");
+        PR_DEBUG("tri charge");
     } else if (charge_status == XPOWERS_AXP2101_CHG_PRE_STATE) {
-        PR_DEBUG("pre_charge");
+        PR_DEBUG("pre charge");
     } else if (charge_status == XPOWERS_AXP2101_CHG_CC_STATE) {
         PR_DEBUG("constant charge");
     } else if (charge_status == XPOWERS_AXP2101_CHG_CV_STATE) {
@@ -3261,15 +3264,14 @@ void axp2101_print_chg_info(void)
         PR_DEBUG("not charge");
     }
 
-    PR_DEBUG("getBattVoltage: %d mV", axp2101_getBattVoltage());
-    PR_DEBUG("getVbusVoltage: %d mV", axp2101_getVbusVoltage());
-    PR_DEBUG("getSystemVoltage: %d mV", axp2101_getSystemVoltage());
-    PR_DEBUG("getTsTemperature: %.2f ℃", getTemperature());
+    PR_DEBUG("is Charging: %s", axp2101_isCharging() ? "YES" : "NO");
+    PR_DEBUG("is Standby:  %s", isStandby() ? "YES" : "NO");
+    PR_DEBUG("is VbusIn:   %s", axp2101_isVbusIn() ? "YES" : "NO");
+    PR_DEBUG("is VbusGood: %s", isVbusGood() ? "YES" : "NO");
+    PR_DEBUG("get Battery Voltage: %d mV", axp2101_getBattVoltage());
+    PR_DEBUG("get Vbus    Voltage: %d mV", axp2101_getVbusVoltage());
+    PR_DEBUG("get System  Voltage: %d mV", axp2101_getSystemVoltage());
+    PR_DEBUG("get Axp2101 Temperature: %.2f ℃", getTemperature());
 
-    // The battery percentage may be inaccurate at first use, the PMU will automatically
-    // learn the battery curve and will automatically calibrate the battery percentage
-    // after a charge and discharge cycle
-    if (axp2101_isBatteryConnect()) {
-        PR_DEBUG("getBatteryPercent: %d %% ", axp2101_getBatteryPercent());
-    }
+    return;
 }

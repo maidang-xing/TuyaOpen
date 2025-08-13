@@ -18,8 +18,8 @@ extern "C" {
 /***********************************************************
 ************************macro define************************
 ***********************************************************/
-#define RST_4G_MODULE_CTRL     TUYA_GPIO_NUM_25 /* high is valid */
-#define SIM_VDD_4G_MODULE_CTRL TUYA_GPIO_NUM_22 /* low is valid */
+#define RST_4G_MODULE_CTRL     TUYA_GPIO_NUM_25 /* high is valid work */
+#define SIM_VDD_4G_MODULE_CTRL TUYA_GPIO_NUM_22 /* low is valid work*/
 
 #define RTC_VDD        XPOWERS_LDO1
 #define VDD_CAM_2V8    XPOWERS_ALDO3
