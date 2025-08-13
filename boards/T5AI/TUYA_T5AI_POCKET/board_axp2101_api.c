@@ -53,7 +53,7 @@ static void __board_axp2101_charge_init(void)
 static void __board_axp2101_power_on(void)
 {
     // Disable all DCDC channels
-    // axp2101_disablePowerOutput(XPOWERS_DCDC1);
+    // axp2101_disablePowerOutput(XPOWERS_DCDC1);  // forbid disenable DCDC1
     axp2101_disablePowerOutput(XPOWERS_DCDC2);
     axp2101_disablePowerOutput(XPOWERS_DCDC3);
     axp2101_disablePowerOutput(XPOWERS_DCDC4);
@@ -74,13 +74,13 @@ static void __board_axp2101_power_on(void)
     axp2101_disablePowerOutput(XPOWERS_CPULDO);
 
     // Disable button battery
-    // axp2101_disablePowerOutput(XPOWERS_VBACKUP);
+    axp2101_disablePowerOutput(XPOWERS_VBACKUP);
 
     // Only enable board power
     axp2101_setPowerChannelVoltage(XPOWERS_DCDC1, 3300);
-    axp2101_setPowerChannelVoltage(XPOWERS_DCDC2, 1500);
-    axp2101_setPowerChannelVoltage(XPOWERS_DCDC3, 3300);
-    axp2101_setPowerChannelVoltage(XPOWERS_DCDC4, 1800);
+    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC2, 1500);
+    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC3, 3300);
+    // axp2101_setPowerChannelVoltage(XPOWERS_DCDC4, 1800);
     axp2101_setPowerChannelVoltage(XPOWERS_DCDC5, 3300);
     axp2101_setPowerChannelVoltage(RTC_VDD, 1800);
 
@@ -91,9 +91,9 @@ static void __board_axp2101_power_on(void)
     // axp2101_setPowerChannelVoltage(VDD_JOYCON_1V1, 1100);
 
     axp2101_enablePowerOutput(XPOWERS_DCDC1);
-    axp2101_enablePowerOutput(XPOWERS_DCDC2);
-    axp2101_enablePowerOutput(XPOWERS_DCDC3);
-    axp2101_enablePowerOutput(XPOWERS_DCDC4);
+    // axp2101_enablePowerOutput(XPOWERS_DCDC2);
+    // axp2101_enablePowerOutput(XPOWERS_DCDC3);
+    // axp2101_enablePowerOutput(XPOWERS_DCDC4);
     axp2101_enablePowerOutput(XPOWERS_DCDC5);
     axp2101_enablePowerOutput(RTC_VDD);
 
