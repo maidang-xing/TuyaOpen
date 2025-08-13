@@ -47,7 +47,7 @@ static void __board_axp2101_charge_init(void)
     axp2101_setChargeTargetVoltage(XPOWERS_AXP2101_CHG_VOL_4V2);           // 4.2V target voltage
     axp2101_enableCellbatteryCharge();
 
-    // axp2101_setChargingLedMode(XPOWERS_CHG_LED_CTRL_CHG); // Charging LED controlled by charger
+    axp2101_setChargingLedMode(XPOWERS_CHG_LED_CTRL_CHG); // Charging LED controlled by charger
 }
 
 static void __board_axp2101_power_on(void)
