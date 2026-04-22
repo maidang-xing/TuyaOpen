@@ -30,6 +30,14 @@
 #define TAL_COMMON_SERVICE_MAX_NUM    (2)
 #define TAL_MATTER_TUYA_SERVICE_INDEX (1)
 #define TAL_MATTER_TUYA_CHAR_MAX_NUM  (3)
+#elif (defined(ENABLE_CLAUDE_DESKTOP_BUDDY_BLE) && (ENABLE_CLAUDE_DESKTOP_BUDDY_BLE == 1))
+/* Claude Desktop Buddy co-registers its own primary NUS service alongside
+ * Tuya's, so the GATT DB holds both Tuya provisioning and Claude NUS from boot. */
+#define TAL_COMMON_SERVICE_MAX_NUM (2)
+#define TAL_CLAUDE_SERVICE_INDEX   (1)
+#define TAL_CLAUDE_RX_CHAR_INDEX   (3) /* RX = 1st Claude char (after Tuya's 3) */
+#define TAL_CLAUDE_TX_CHAR_INDEX   (4) /* TX = 2nd Claude char */
+#define TAL_CLAUDE_CHAR_MAX_NUM    (2)
 #else
 #define TAL_COMMON_SERVICE_MAX_NUM (1)
 #endif
@@ -50,6 +58,14 @@ static uint16_t tkl_ble_common_connect_handle = TKL_BLE_GATT_INVALID_HANDLE;
 static TAL_BLE_EVT_FUNC_CB tal_ble_event_callback;
 #if (TY_HS_BLE_ROLE_CENTRAL)
 static TAL_BLE_PEER_INFO_T tal_ble_peer = {0};
+#endif
+
+#if (defined(ENABLE_CLAUDE_DESKTOP_BUDDY_BLE) && (ENABLE_CLAUDE_DESKTOP_BUDDY_BLE == 1))
+/* Extra "sniffer" callback. The primary tal_ble_event_callback is owned by
+ * Tuya's ble_mgr; the Claude Buddy module registers an auxiliary callback
+ * here so it can observe/consume GATT traffic targeted at the NUS service
+ * without disturbing the Tuya pairing protocol. */
+static TAL_BLE_EVT_FUNC_CB tal_ble_sniffer_callback = NULL;
 #endif
 
 static __attribute__((unused)) uint16_t tal_ble_uuid16_convert(TKL_BLE_UUID_T *p_uuid)
@@ -199,6 +215,11 @@ static void tkl_ble_kernel_gap_event_callback(TKL_BLE_GAP_PARAMS_EVT_T *p_event)
     if (tal_ble_event_callback) {
         tal_ble_event_callback(&tal_event);
     }
+#if (defined(ENABLE_CLAUDE_DESKTOP_BUDDY_BLE) && (ENABLE_CLAUDE_DESKTOP_BUDDY_BLE == 1))
+    if (tal_ble_sniffer_callback) {
+        tal_ble_sniffer_callback(&tal_event);
+    }
+#endif
 }
 
 static void tkl_ble_kernel_gatt_event_callback(TKL_BLE_GATT_PARAMS_EVT_T *p_event)
@@ -383,7 +404,50 @@ static void tkl_ble_kernel_gatt_event_callback(TKL_BLE_GATT_PARAMS_EVT_T *p_even
     if (tal_ble_event_callback) {
         tal_ble_event_callback(&tal_event);
     }
+#if (defined(ENABLE_CLAUDE_DESKTOP_BUDDY_BLE) && (ENABLE_CLAUDE_DESKTOP_BUDDY_BLE == 1))
+    if (tal_ble_sniffer_callback) {
+        tal_ble_sniffer_callback(&tal_event);
+    }
+#endif
 }
+
+#if (defined(ENABLE_CLAUDE_DESKTOP_BUDDY_BLE) && (ENABLE_CLAUDE_DESKTOP_BUDDY_BLE == 1))
+/**
+ * @brief Register an auxiliary TAL BLE event callback ("sniffer") that will
+ *        receive the same GAP/GATT events as the primary callback.
+ * @param[in] cb sniffer callback, or NULL to unregister
+ * @return OPRT_OK on success
+ * @note The sniffer must NOT mutate the event payload nor block; it only
+ *       observes traffic. This is used to let Claude Buddy drain its NUS
+ *       GATT writes/notifies without racing Tuya's ble_mgr.
+ */
+OPERATE_RET tal_ble_claude_sniffer_register(TAL_BLE_EVT_FUNC_CB cb)
+{
+    tal_ble_sniffer_callback = cb;
+    return OPRT_OK;
+}
+
+/**
+ * @brief Return the handles assigned by the GATT stack to the Claude NUS
+ *        RX / TX characteristics (valid after tal_ble_bt_init returned OK).
+ * @param[out] rx_handle optional, RX char handle
+ * @param[out] tx_handle optional, TX char handle
+ * @return OPRT_OK on success, OPRT_COM_ERROR if handles not yet populated
+ */
+OPERATE_RET tal_ble_claude_handles_get(uint16_t *rx_handle, uint16_t *tx_handle)
+{
+    if (ptkl_ble_service_char == NULL) {
+        return OPRT_COM_ERROR;
+    }
+    if (rx_handle != NULL) {
+        *rx_handle = ptkl_ble_service_char[TAL_CLAUDE_RX_CHAR_INDEX].handle;
+    }
+    if (tx_handle != NULL) {
+        *tx_handle = ptkl_ble_service_char[TAL_CLAUDE_TX_CHAR_INDEX].handle;
+    }
+    return OPRT_OK;
+}
+#endif /* ENABLE_CLAUDE_DESKTOP_BUDDY_BLE */
 
 /**
  * @brief   Function for initializing the bluetooth
@@ -522,6 +586,63 @@ OPERATE_RET tal_ble_bt_init(TAL_BLE_ROLE_E role, const TAL_BLE_EVT_FUNC_CB ble_e
         };
 
 #endif
+
+#if (defined(ENABLE_CLAUDE_DESKTOP_BUDDY_BLE) && (ENABLE_CLAUDE_DESKTOP_BUDDY_BLE == 1))
+        {
+            /* Nordic UART Service for Claude Desktop Buddy.
+             * Service UUID: 6e400001-b5a3-f393-e0a9-e50e24dcca9e
+             * RX Char UUID: 6e400002-... (write / write-no-rsp)
+             * TX Char UUID: 6e400003-... (notify) */
+            static const uint8_t s_claude_nus_svc_uuid[16] = {0x9E, 0xCA, 0xDC, 0x24, 0x0E, 0xE5, 0xA9, 0xE0,
+                                                              0x93, 0xF3, 0xA3, 0xB5, 0x01, 0x00, 0x40, 0x6E};
+            static const uint8_t s_claude_nus_rx_uuid[16] = {0x9E, 0xCA, 0xDC, 0x24, 0x0E, 0xE5, 0xA9, 0xE0,
+                                                             0x93, 0xF3, 0xA3, 0xB5, 0x02, 0x00, 0x40, 0x6E};
+            static const uint8_t s_claude_nus_tx_uuid[16] = {0x9E, 0xCA, 0xDC, 0x24, 0x0E, 0xE5, 0xA9, 0xE0,
+                                                             0x93, 0xF3, 0xA3, 0xB5, 0x03, 0x00, 0x40, 0x6E};
+
+            /* Claude NUS RX characteristic (desktop -> device). */
+            *(ptkl_ble_service_char + TAL_CLAUDE_RX_CHAR_INDEX) = (TKL_BLE_CHAR_PARAMS_T){
+                .handle = TKL_BLE_GATT_INVALID_HANDLE,
+                .char_uuid =
+                    {
+                        .uuid_type = TKL_BLE_UUID_TYPE_128,
+                    },
+                .property = TKL_BLE_GATT_CHAR_PROP_WRITE | TKL_BLE_GATT_CHAR_PROP_WRITE_NO_RSP,
+                .permission = TKL_BLE_GATT_PERM_WRITE,
+                .value_len = 244,
+            };
+            memcpy((ptkl_ble_service_char + TAL_CLAUDE_RX_CHAR_INDEX)->char_uuid.uuid.uuid128, s_claude_nus_rx_uuid,
+                   16);
+
+            /* Claude NUS TX characteristic (device -> desktop, notify). */
+            *(ptkl_ble_service_char + TAL_CLAUDE_TX_CHAR_INDEX) = (TKL_BLE_CHAR_PARAMS_T){
+                .handle = TKL_BLE_GATT_INVALID_HANDLE,
+                .char_uuid =
+                    {
+                        .uuid_type = TKL_BLE_UUID_TYPE_128,
+                    },
+                .property = TKL_BLE_GATT_CHAR_PROP_NOTIFY,
+                .permission = TKL_BLE_GATT_PERM_READ,
+                .value_len = 244,
+            };
+            memcpy((ptkl_ble_service_char + TAL_CLAUDE_TX_CHAR_INDEX)->char_uuid.uuid.uuid128, s_claude_nus_tx_uuid,
+                   16);
+
+            /* Claude NUS service (secondary entry in the service table). */
+            *(ptkl_ble_service + TAL_CLAUDE_SERVICE_INDEX) = (TKL_BLE_SERVICE_PARAMS_T){
+                .handle = TKL_BLE_GATT_INVALID_HANDLE,
+                .svc_uuid =
+                    {
+                        .uuid_type = TKL_BLE_UUID_TYPE_128,
+                    },
+                .type = TKL_BLE_UUID_SERVICE_PRIMARY,
+                .char_num = TAL_CLAUDE_CHAR_MAX_NUM,
+                .p_char = ptkl_ble_service_char + TAL_CLAUDE_RX_CHAR_INDEX,
+            };
+            memcpy((ptkl_ble_service + TAL_CLAUDE_SERVICE_INDEX)->svc_uuid.uuid.uuid128, s_claude_nus_svc_uuid, 16);
+        }
+#endif
+
         if (tkl_ble_gatts_service_add(p_ble_services) != 0) {
             return OPRT_OS_ADAPTER_BLE_INIT_FAILED;
         }

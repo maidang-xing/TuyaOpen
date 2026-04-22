@@ -1,0 +1,8 @@
+daemon/.venv/
+daemon/.venv-*/
+daemon/**/__pycache__/
+daemon/*.egg-info/
+daemon/**/*.egg-info/
+daemon/.pytest_cache/
+daemon/.mypy_cache/
+daemon/.ruff_cache/

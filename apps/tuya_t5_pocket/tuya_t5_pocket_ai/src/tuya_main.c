@@ -41,6 +41,7 @@
 #include "reset_netcfg.h"
 #include "game_pet.h"
 #include "tkl_gpio.h"
+#include "buddy_ui_entry.h"
 /* Tuya device handle */
 tuya_iot_client_t ai_client;
 
@@ -167,6 +168,15 @@ void user_event_handler_on(tuya_iot_client_t *client, tuya_event_msg_t *event)
             AI_UI_WIFI_STATUS_E wifi_status = AI_UI_WIFI_STATUS_GOOD;
             ai_ui_disp_msg(AI_UI_DISP_NETWORK, (uint8_t *)&wifi_status, sizeof(AI_UI_WIFI_STATUS_E));
             ai_audio_volume_upload();
+
+            /* Tuya provisioning/MQTT is up: take over BLE advertising for
+             * the Claude Desktop Buddy NUS profile (the NUS service itself
+             * was co-registered at stack init, so no teardown/reinit is
+             * required - we just publish Claude-branded ADV/RSP payloads). */
+            OPERATE_RET ble_rt = buddy_ble_start();
+            if (ble_rt != OPRT_OK) {
+                PR_WARN("buddy_ble_start failed rt=%d", ble_rt);
+            }
         }
         break;
 
@@ -340,6 +350,11 @@ void user_main(void)
 
     /* Start tuya iot task */
     tuya_iot_start(&ai_client);
+
+    /* Prepare the Claude Desktop Buddy bridge; it only allocates state here.
+     * The BLE radio is switched over to Claude NUS later, when MQTT reports
+     * connected (see TUYA_EVENT_MQTT_CONNECTED in user_event_handler_on). */
+    buddy_ble_init();
 
     tkl_wifi_set_lp_mode(0, 0);
 

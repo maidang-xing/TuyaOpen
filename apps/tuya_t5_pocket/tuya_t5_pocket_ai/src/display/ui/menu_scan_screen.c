@@ -27,6 +27,7 @@
 #include "temp_humidity_screen.h"
 #include "ai_log_screen.h"
 #include "photo_screen.h"
+#include "buddy_ui_entry.h"
 #include <stdio.h>
 
 // Font definitions - easily customizable
@@ -170,39 +171,43 @@ static void handle_scan_selection(void)
     last_selected_item = selected_item;
 
     switch (selected_item) {
-    case 0: // WiFi scan demo
+    case 0: // Claude Buddy
+        printf("Claude Buddy selected\n");
+        screen_load(&buddy_main_screen);
+        break;
+    case 1: // WiFi scan demo
         printf("WiFi scan demo selected\n");
         screen_load(&wifi_scan_screen);
         break;
-    case 1: // I2C device scan demo
+    case 2: // I2C device scan demo
         printf("I2C device scan demo selected\n");
         screen_load(&i2c_scan_screen);
         break;
-    case 2: // Dino Game
+    case 3: // Dino Game
         printf("Dino Game selected\n");
         screen_load(&dino_game_screen);
         break;
-    case 3: // Snake Game
+    case 4: // Snake Game
         printf("Snake Game selected\n");
         screen_load(&snake_game_screen);
         break;
-    case 4: // Level Indicator
+    case 5: // Level Indicator
         printf("Level Indicator selected\n");
         screen_load(&level_indicator_screen);
         break;
-    case 5: // E-book Reader
+    case 6: // E-book Reader
         printf("E-book Reader action selected\n");
         screen_load(&ebook_screen);
         break;
-    case 6: // Temperature & Humidity
+    case 7: // Temperature & Humidity
         printf("Temperature & Humidity selected\n");
         screen_load(&temp_humidity_screen);
         break;
-    case 7: // Camera
-        printf("Camera selected\n");
+    case 8: // AI Log Analyzer
+        printf("AI Log Analyzer selected\n");
         screen_load(&ai_log_screen);
         break;
-    case 8: // PHOTO
+    case 9: // PHOTO
         printf("PHOTO selected\n");
         screen_load(&photo_screen);
         break;
@@ -243,6 +248,11 @@ void menu_scan_screen_init(void)
     // Add scan menu items
     lv_obj_t *btn;
     lv_obj_t *label;
+
+    btn = lv_list_add_btn(scan_menu_list, LV_SYMBOL_BLUETOOTH, "Claude Buddy");
+    label = lv_obj_get_child(btn, 1);
+    if (label)
+        lv_obj_set_style_text_font(label, SCREEN_CONTENT_FONT, 0);
 
     btn = lv_list_add_btn(scan_menu_list, LV_SYMBOL_WIFI, "WiFi scan demo");
     label = lv_obj_get_child(btn, 1);

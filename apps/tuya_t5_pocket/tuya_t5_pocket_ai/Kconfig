@@ -8,6 +8,7 @@ config APP_CONFIG
     select ENABLE_LIBLVGL
     select ENABLE_LVGL_LODEPNG
     select LV_FONT_MONTSERRAT_32
+    select ENABLE_CLAUDE_DESKTOP_BUDDY_BLE
 
 config TUYA_PRODUCT_ID
     string "product ID of project"

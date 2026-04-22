@@ -1,0 +1,10 @@
+{
+  "name": "tuya-pocket-buddy",
+  "version": "0.1.0",
+  "description": "Claude Code companion on a Tuya T5AI-Pocket. Mirrors sessions, routes permission prompts to hardware buttons over BLE (Nordic UART Service).",
+  "author": "TuyaOpen Project",
+  "homepage": "https://github.com/TuyaOpen/TuyaOpen",
+  "commands": "./commands",
+  "hooks": "./settings/hooks.json",
+  "scripts": "./scripts"
+}

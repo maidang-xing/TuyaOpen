@@ -1,0 +1,68 @@
+[0;34;49m[04-22 16:47:30 ty N][tuya_ai_client.c:98] ***** ai client state 0 -> 1 *****[0m
+[0;34;49m[04-22 16:47:30 ty N][tuya_ai_protocol.c:342] ai proto init success, sl:4[0m
+tkl_net_socket_create type(0), fd(1)!
+[0;32;49m[04-22 16:47:30 ty D][tuya_ai_monitor.c:653] Server socket created, fd=1[0m
+[0;32;49m[04-22 16:47:30 ty D][lan_sock.c:363] reg post queue 1[0m
+[0;32;49m[04-22 16:47:30 ty D][tuya_ai_monitor.c:839] Server socket created successfully, stopped timer[0m
+[0;32;49m[04-22 16:47:30 ty D][lan_sock.c:136] reg lan sock 1,read:0x21e3701[0m
+[0;32;49m[04-22 16:47:30 ty D][game_pet_indev.c:77] Button pressed: btn_esc, event: 0, key type: 27[0m
+47:39 ty D][tuya_health.c:75] feed watchdog[0m
+2;49m[04-22 16:an_screen] Keyboard event received: key = 27
+[0m
+[0;32;49m[04-22 16:47:30 ty D][menu_scan_screen.c:132] ESC key pressed - ret47:39 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 16:47:49 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 16:47:59 ty D][tuya_health.c:75] feed watchdog[0m
+[0;36;49m[04-22 16:48:01 ty I][ble_hs.c:433] ble_hs_timer reset:0 [0m
+[0;36;49m[04-22 16:48:01 ty I][tkl_bluetooth.c:151] BLE_GAP_EVENT_CONNECT(0x00), handle = 0x01, Role(1)
+[0m
+[0;34;49m[04-22 16:48:01 ty N][buddy_ble.c:336] buddy_ble peer connected conn=1 (rx=11 tx=13)[0m
+[0;32;49m[04-22 16:48:01 ty D][ble_mgr.c:990] pair monitor disabled, skip pair_timer start[0m
+[0;34;49m[04-22 16:48:01 ty N][ble_mgr.c:992] Ble Connected[0m
+[0;32;49m[04-22 16:48:01 ty D][ble_hs_hci_evt.c:152] evt code null:20[0m
+[0;36;49m[04-22 16:48:01 ty I][tkl_bluetooth.c:195] mtu update event; conn_handle=0x0001 mtu=256, channel id = 4
+[0m
+[0;36;49m[04-22 16:48:01 ty I][buddy_ble.c:353] buddy_ble mtu=256[0m
+[0;36;49m[04-22 16:48:01 ty I][ble_hs.c:393] ble_hs_timer_exp:[0m
+[0;32;49m[04-22 16:48:01 ty D][ble_att.c:491] Rx Op Not Support= 0x06
+[0m
+[0;32;49m[04-22 16:48:02 ty D][ble_att_svr.c:1936] debug rc = 0[0m
+[0;32;49m[04-22 16:48:02 ty D][ble_att_svr.c:1936] debug rc = 0[0m
+ipc_router_tx_cmpl_isr error @423, indx=4!
+ipc_router_tx_cmpl_isr error @423, indx=22!
+ipc_router_tx_cmpl_isr error @423, indx=10!
+[0;36;49m[04-22 16:48:03 ty I][tkl_bluetooth.c:221] BLE_GAP_EVENT_SUBSCRIBE[0m
+[0;32;49m[04-22 16:48:03 ty D][buddy_ble.c:488] buddy_ble RX {"time":[1776847682,28800]}[0m
+[0;32;49m[04-22 16:48:03 ty D][buddy_ble.c:526] buddy_ble time sync received[0m
+[0;32;49m[04-22 16:48:03 ty D][buddy_ble.c:488] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 16:48:03 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 16:48:04 ty D][buddy_ble.c:488] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 16:48:05 ty D][tal_kv.c:202] key:device_timer_tasks, len 151[0m
+ipc_router_tx_cmpl_isr error @423, indx=3!
+ipc_router_tx_cmpl_isr error @423, indx=0!
+ipc_router_tx_cmpl_isr error @423, indx=22!
+ipc_router_tx_cmpl_isr error @423, indx=10!
+ipc_router_tx_cmpl_isr error @423, indx=1!
+[0;32;49m[04-22 16:48:09 ty D][tuya_health.c:75] feed watchdog[0m
+ipc_router_tx_cmpl_isr error @423, indx=11!
+ipc_router_tx_cmpl_isr error @423, indx=7!
+ipc_router_tx_cmpl_isr error @423, indx=15!
+ipc_router_tx_cmpl_isr error @423, indx=17!
+[0;32;49m[04-22 16:48:14 ty D][buddy_ble.c:488] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 16:48:19 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 16:48:24 ty D][buddy_ble.c:488] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 16:48:29 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 16:48:32 ty D][main_screen.c:1194] [Main] Entering standby mode due to inactivity
+[0m
+[0;32;49m[04-22 16:48:32 ty D][main_screen.c:560] deinit main screen
+[0m
+[0;32;49m[04-22 16:48:32 ty D][standby_screen.c:185] [standby] Initializing standby screen
+[0m
+[0;32;49m[04-22 16:48:32 ty D][standby_screen.c:231] [standby] Standby screen initialized successfully
+[0m
+[0;32;49m[04-22 16:48:32 ty D][screen_manager.c:194] [Manager] Loading to new screen: [standby]
+[0m
+[0;32;49m[04-22 16:48:34 ty D][buddy_ble.c:488] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 16:48:39 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 16:48:44 ty D][buddy_ble.c:488] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 16:48:49 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 16:48:54 ty D][buddy_ble.c:488] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m

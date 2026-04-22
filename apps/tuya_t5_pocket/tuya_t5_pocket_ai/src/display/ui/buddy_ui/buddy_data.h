@@ -1,5 +1,17 @@
-// Buddy UI shared data types
-// Defines the core data structures for buddy persona state, BLE session data, and persistent statistics
+/**
+ * @file buddy_data.h
+ * @brief Shared data type for the Claude Desktop Buddy UI bridge.
+ *
+ * The simplified UI only renders fields sourced from the Claude desktop
+ * over BLE (Nordic UART Service).  No local persona / mood / stats are
+ * tracked on device; everything visible on screen must come from a JSON
+ * line received from the desktop client.
+ *
+ * Fields map 1:1 onto the claude-desktop-buddy heartbeat / prompt frames:
+ *   { "total":4, "running":3, "waiting":1, "tokens":..., "tokens_today":...,
+ *     "msg":"...", "prompt": { "id":"...", "tool":"Read", "hint":"src/..." } }
+ *   { "cmd":"owner", "name":"alice" }
+ */
 
 #ifndef BUDDY_DATA_H
 #define BUDDY_DATA_H
@@ -7,43 +19,65 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Persona state enum - maps to visual animation
-typedef enum {
-    BUDDY_PERSONA_SLEEP = 0,    // no BLE connection
-    BUDDY_PERSONA_IDLE,         // connected, no active sessions
-    BUDDY_PERSONA_BUSY,         // sessions running (>=3)
-    BUDDY_PERSONA_ATTENTION,    // approval pending
-    BUDDY_PERSONA_CELEBRATE,    // level-up / recently completed
-    BUDDY_PERSONA_DIZZY,        // shake detected
-    BUDDY_PERSONA_HEART,        // quick approval (<5s)
-    BUDDY_PERSONA_COUNT
-} buddy_persona_t;
+/* ---------------------------------------------------------------------------
+ * Macros
+ * --------------------------------------------------------------------------- */
+/* Entries ring (heartbeat `entries[]` running transcript).
+ *   - BUDDY_ENTRY_MAX_CHARS: per-entry text cap in bytes, excluding NUL.
+ *   - BUDDY_ENTRIES_RING:    number of slots retained on device. */
+#define BUDDY_ENTRY_MAX_CHARS 79
+#define BUDDY_ENTRIES_RING    8
 
-// Session and token data received from Claude Desktop via BLE
+/* ---------------------------------------------------------------------------
+ * Type definitions
+ * --------------------------------------------------------------------------- */
+/**
+ * @brief Single line of the heartbeat `entries[]` running transcript.
+ */
 typedef struct {
-    uint8_t sessions_total;
-    uint8_t sessions_running;
-    uint8_t sessions_waiting;
-    bool recently_completed;
-    uint32_t tokens;
-    uint32_t tokens_today;
-    char msg[64];
-    bool ble_connected;
-    char prompt_id[40];
-    char prompt_tool[32];
-    char prompt_hint[64];
-    bool has_prompt;
+    char text[BUDDY_ENTRY_MAX_CHARS + 1];
+} buddy_entry_t;
+
+/**
+ * @brief Snapshot of everything the UI currently knows about Claude.
+ *
+ * All char arrays are UTF-8, NUL-terminated, and bounded.  Fields that
+ * have not been reported yet are left as zeroes / empty strings so the
+ * UI can render a "waiting" state without special-casing NULLs.
+ */
+typedef struct {
+    bool     ble_connected;         /* GATT link to the desktop is up            */
+    bool     recently_completed;    /* heartbeat says a session just finished    */
+    bool     has_prompt;            /* an approval request is currently pending  */
+
+    uint8_t  sessions_total;        /* "total"   from heartbeat frame            */
+    uint8_t  sessions_running;      /* "running" from heartbeat frame            */
+    uint8_t  sessions_waiting;      /* "waiting" from heartbeat frame            */
+    uint32_t tokens;                /* cumulative tokens reported by desktop     */
+    uint32_t tokens_today;          /* tokens used in the current calendar day   */
+
+    char     msg[64];               /* free-form status string ("Working on...")  */
+    char     owner_name[32];        /* set via {"cmd":"owner"}                   */
+    char     device_name[20];       /* advertised BLE name (Claude_XXXX)         */
+
+    char     prompt_id[40];         /* id echoed in permission decisions          */
+    char     prompt_tool[32];       /* tool being requested (Read / Write / ...) */
+    char     prompt_hint[64];       /* argument hint (file path or summary)      */
+
+    /* Running transcript ring: newest at head, oldest at tail.
+     * `entries_count` is how many slots are populated, <= BUDDY_ENTRIES_RING.
+     * `entries_head` points at the most recent entry, wrapping modulo the
+     * ring size. */
+    buddy_entry_t entries[BUDDY_ENTRIES_RING];
+    uint8_t       entries_count;
+    uint8_t       entries_head;
+
+    /* Wall-clock sync from `{"time":[epoch, tz]}`.  Zeroed means "not
+     * synced yet"; the UI must render "--:--" in that case.  All time
+     * math uses int64_t to avoid 32-bit wrap. */
+    int64_t  wall_epoch_s;          /* epoch seconds captured at rx               */
+    int16_t  wall_tz_min;           /* signed tz offset in minutes                */
+    uint64_t wall_local_ms_at_rx;   /* tal_system_get_millisecond() at rx         */
 } buddy_tama_state_t;
 
-// Persistent statistics
-typedef struct {
-    uint32_t tokens_total;
-    uint16_t level;          // tokens_total / 50000
-    uint16_t approvals;
-    uint16_t denials;
-    uint8_t mood;            // 0-4 (based on approval rate)
-    uint8_t fed;             // 0-10 (tokens % 50K / 5K)
-    uint8_t energy;          // 0-5
-} buddy_stats_t;
-
-#endif // BUDDY_DATA_H
+#endif /* BUDDY_DATA_H */

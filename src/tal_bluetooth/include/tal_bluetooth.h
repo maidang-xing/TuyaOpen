@@ -253,6 +253,27 @@ OPERATE_RET tal_ble_server_exchange_mtu_reply(const TAL_BLE_PEER_INFO_T peer, ui
  * */
 OPERATE_RET tal_ble_client_exchange_mtu_request(const TAL_BLE_PEER_INFO_T peer, uint16_t client_mtu);
 
+#if (defined(ENABLE_CLAUDE_DESKTOP_BUDDY_BLE) && (ENABLE_CLAUDE_DESKTOP_BUDDY_BLE == 1))
+/**
+ * @brief Register an auxiliary ("sniffer") TAL BLE event callback.
+ * @param[in] cb sniffer callback, or NULL to unregister
+ * @return OPRT_OK on success
+ * @note The sniffer receives the same events as the primary callback
+ *       registered via tal_ble_bt_init(). It is intended to let the Claude
+ *       Desktop Buddy module observe NUS GATT traffic without disturbing
+ *       Tuya's ble_mgr protocol state machine.
+ */
+OPERATE_RET tal_ble_claude_sniffer_register(TAL_BLE_EVT_FUNC_CB cb);
+
+/**
+ * @brief Get the GATT handles assigned to the Claude NUS RX / TX characteristics.
+ * @param[out] rx_handle optional, RX char handle (writes from desktop)
+ * @param[out] tx_handle optional, TX char handle (notifies to desktop)
+ * @return OPRT_OK on success, OPRT_COM_ERROR if handles not yet populated
+ */
+OPERATE_RET tal_ble_claude_handles_get(uint16_t *rx_handle, uint16_t *tx_handle);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
