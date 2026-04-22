@@ -1,0 +1,573 @@
+	ð	ð	[0;36;49m[01-01 08:00:13 ty I][ble_hs.c:433] ble_hs_timer reset:0 [0m
+[0;36;49m[01-01 08:00:13 ty I][tkl_bluetooth.c:151] BLE_GAP_EVENT_CONNECT(0x00), handle = 0x01, Role(1)
+[0m
+[0;34;49m[01-01 08:00:13 ty N][buddy_ble.c:339] buddy_ble peer connected conn=1 (rx=11 tx=13)[0m
+[0;34;49m[01-01 08:00:13 ty N][ble_mgr.c:992] Ble Connected[0m
+[0;36;49m[01-01 08:00:13 ty I][ble_hs.c:393] ble_hs_timer_exp:[0m
+[0;32;49m[01-01 08:00:13 ty D][ble_hs_hci_evt.c:152] evt code null:20[0m
+[0;36;49m[01-01 08:00:13 ty I][tkl_bluetooth.c:195] mtu update event; conn_handle=0x0001 mtu=256, channel id = 4
+[0m
+[0;36;49m[01-01 08:00:13 ty I][buddy_ble.c:356] buddy_ble mtu=256[0m
+[0;32;49m[01-01 08:00:13 ty D][ble_att.c:491] Rx Op Not Support= 0x06
+[0m
+[0;32;49m[01-01 08:00:13 ty D][ble_att_svr.c:1936] debug rc = 0[0m
+[0;32;49m[01-01 08:00:13 ty D][ble_att_svr.c:1936] debug rc = 0[0m
+[0;36;49m[01-01 08:00:14 ty I][tkl_bluetooth.c:221] BLE_GAP_EVENT_SUBSCRIBE[0m
+[0;32;49m[01-01 08:00:15 ty D][buddy_ble.c:577] buddy_ble RX {"time":[1776850255,28800]}[0m
+[0;32;49m[01-01 08:00:15 ty D][buddy_ble.c:564] buddy_ble time sync ok epoch=1776850255 tz=28800[0m
+[0;32;49m[01-01 08:00:15 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[01-01 08:00:16 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[01-01 08:00:21 ty D][netconn_wifi.c:167] auto conn timeout cnt 0, stat 1[0m
+[0;32;49m[01-01 08:00:21 ty D][netconn_wifi.c:174] wifi connect wait 0-1[0m
+[0;32;49m[01-01 08:00:22 ty D][netconn_wifi.c:167] auto conn timeout cnt 1, stat 3[0m
+[0;32;49m[01-01 08:00:22 ty D][netconn_wifi.c:70] wifi connnet Odin-AP[0m
+station disconnect ap
+W(23025):cif_bk_send_event
+wifid:I(23026):[KW:]mm_remove_if: vif0
+tkl_wifi_station_connect, ssid: Odin-AP
+_wifi_event_cb 3
+wifid:I(23035):mm_add_if_req: succ 0, vif_idx=0, type=0, p2p=0
+wifid:I(23037):[KW:]scanu_start_req:src_id=15,vif=0,dur=0,chan_cnt=13,ssid_len=7,bssid=0xffff-ffff-ffff
+wifid:I(23038):[KW:]scanu_start_req:ssid=Odin-AP
+[0;32;49m[01-01 08:00:22 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[01-01 08:00:22 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[01-01 08:00:24 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+wifid:I(24644):[KW:]scanu_confirm:status=0,req_type=0,upload_cnt=5,recv_cnt=98,time=1607118us,result=1,rfcli=1
+wifid:I(24646):[KW:]conn vif0-0,auth_type:3,bssid:e7ec-96c2-829e,ssid:Odin-AP,is encryp:8.
+wifid:I(24647):mm_sta_add:vif 0,sta 0,status 0
+[0;32;49m[01-01 08:00:24 ty D][main_screen.c:299] [Main] Keyboard event: LEFT
+[0m
+[0;32;49m[01-01 08:00:24 ty D][main_screen.c:1552] [Main] Menu navigation: 0 -> 6
+[0m
+[0;32;49m[01-01 08:00:24 ty D][game_pet_indev.c:77] Button pressed: btn_enter, event: 0, key type: 10[0m
+[0;32;49m[01-01 08:00:24 ty D][main_screen.c:309] [Main] Keyboard event: ENTER
+[0m
+[0;32;49m[01-01 08:00:24 ty D][main_screen.c:972] [Main] Menu selection: button 6
+[0m
+[0;32;49m[01-01 08:00:24 ty D][main_screen.c:1001] Loading scan screen
+[0m
+[0;32;49m[01-01 08:00:24 ty D][main_screen.c:560] deinit main screen
+[0m
+[0;32;49m[01-01 08:00:24 ty D][menu_scan_screen.c:312] [menu_scan_screen] Restored selection to item 0
+[0m
+[0;32;49m[01-01 08:00:24 ty D][screen_manager.c:194] [Manager] Loading to new screen: [menu_scan_screen]
+[0m
+wifid:I(25327):[KW:]assoc_rsp:status0,tx_s0x80800000
+wifid:I(25330):[KW:]mm_set_vif_state,vif=0,vif_type=0,is_active=1, aid=0x1,rssi=-44
+[0;32;49m[01-01 08:00:25 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[01-01 08:00:25 ty D][game_pet_indev.c:77] Button pressed: btn_enter, event: 0, key type: 10[0m
+[0;32;49m[01-01 08:00:25 ty D][menu_scan_screen.c:102] [menu_scan_screen] Keyboard event received: key = 10
+[0m
+[0;32;49m[01-01 08:00:25 ty D][menu_scan_screen.c:175] Claude Buddy selected
+[0m
+[0;32;49m[01-01 08:00:25 ty D][menu_scan_screen.c:330] deinit scan menu screen
+[0m
+[0;32;49m[01-01 08:00:25 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=31[0m
+[0;32;49m[01-01 08:00:25 ty D][buddy_main_screen.c:634] [buddy_main_screen] init done
+[0m
+[0;32;49m[01-01 08:00:25 ty D][screen_manager.c:194] [Manager] Loading to new screen: [buddy_main_screen]
+[0m
+W(26580):cif_bk_send_event
+sta ip start
+_wifi_event_cb 2
+EVENT_WIFI_STA_CONNECTED 2
+_netif_event_cb 0
+WFE_CONNECTED 0
+__notify_wifi_event report event: 0
+[0;32;49m[01-01 08:00:26 ty D][netconn_wifi.c:135] wifi connected in stat 1[0m
+[0;32;49m[01-01 08:00:26 ty D][netmgr.c:213] netmgr conn status changed [link_down] --> [link_up][0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_main.c:147] Tuya Event ID:14(TUYA_EVENT_BINDED_NOTIFY)[0m
+[0;36;49m[01-01 08:00:26 ty I][tuya_main.c:148] Device Free heap 107168[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_iot.c:1403] [{\"otaChannel\":0,\"protocolVer\":\"2.3\",\"baselineVer\":\"40.07\",\"softVer\":\"0.0.1\"}][0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_iot.c:1419] The verison unchanged, dont need sync.[0m
+[0;36;49m[01-01 08:00:26 ty I][mqtt_service.c:456] tuya_mqtt_start...[0m
+tkl_net_socket_create type(0), fd(0)!
+[0;32;49m[01-01 08:00:26 ty D][tuya_tls.c:591] TUYA_TLS Begin Connect m2.tuyacn.com:8883[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_tls.c:342] mbedtls authmode: MBEDTLS_SSL_VERIFY_REQUIRED[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_tls.c:355] load root ca cert.[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_tls.c:664] socket fd is set. set to inner send/recv to handshake[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_tls.c:324] mbedtls_cert_pkey_free.[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_tls.c:705] handshake finish for m2.tuyacn.com. set send/recv to user set[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_tls.c:711] TUYA_TLS Success Connect m2.tuyacn.com:8883 Suit:TLS-ECDHE-RSA-WITH-AES-128-CBC-SHA256[0m
+[0;36;49m[01-01 08:00:26 ty I][mqtt_service.c:298] mqtt client connected![0m
+[0;32;49m[01-01 08:00:26 ty D][mqtt_service.c:302] SUBSCRIBE sent for topic smart/device/in/6c0bd4387a3e1fa5bcsfp1 to broker.[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_main.c:147] Tuya Event ID:4(TUYA_EVENT_MQTT_CONNECTED)[0m
+[0;36;49m[01-01 08:00:26 ty I][tuya_main.c:148] Device Free heap 96096[0m
+[0;36;49m[01-01 08:00:26 ty I][tuya_main.c:163] Device MQTT Connected![0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_main.c:133] DP upload volume:70[0m
+[0;32;49m[01-01 08:00:26 ty D][main_screen.c:1104] [Main] WiFi strength set to: 3
+[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_iot_dp.c:240] dp report: devid 6c0bd4387a3e1fa5bcsfp1, dps 0x60740dd4, dpscnt 1, flags 0[0m
+[0;32;49m[01-01 08:00:26 ty D][dp_schema.c:552] dp<3> check. need_update:1 pv_stat:0 trig_t:0 type:0 force_send:0 prop_tp:1[0m
+[0;32;49m[01-01 08:00:26 ty D][dp_schema.c:570] dp<3> value: 0, new: 70[0m
+[0;32;49m[01-01 08:00:26 ty D][dp_schema.c:1009] dp rept out: {"3":70}[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_iot_dp.c:311] mqtt channel report[0m
+[0;36;49m[01-01 08:00:26 ty I][ble_mgr.c:150] pair monitor disabled[0m
+[0;36;49m[01-01 08:00:26 ty I][ble_gap.c:2248] GAP init: stop adv[0m
+[0;36;49m[01-01 08:00:26 ty I][ble_hs.c:433] ble_hs_timer reset:0 [0m
+[0;36;49m[01-01 08:00:26 ty I][tkl_bluetooth.c:701] error enabling advertisement; rc=6
+[0m
+[0;33;49m[01-01 08:00:26 ty W][buddy_ble.c:288] buddy_ble adv_start rt=-28682[0m
+[0;31;49m[01-01 08:00:26 ty E][buddy_ble.c:926] buddy_ble start failed rt=-28682[0m
+[0;33;49m[01-01 08:00:26 ty W][tuya_main.c:178] buddy_ble_start failed rt=-28682[0m
+[0;32;49m[01-01 08:00:26 ty D][mqc_app.c:64] register mq protocol:9000[0m
+[0;36;49m[01-01 08:00:26 ty I][tal_thread.c:226] thread_create name:ai_client,stackDepth:4096,totalstackDepth:61952,priority:4[0m
+[0;34;49m[01-01 08:00:26 ty N][tuya_ai_client.c:571] ai client init success, version:1[0m
+[0;32;49m[01-01 08:00:26 ty D][tal_thread.c:245] Thread:ai_client Exec Start. Set to Running Stat[0m
+[0;36;49m[01-01 08:00:26 ty I][tal_thread.c:226] thread_create name:ai_agent_input,stackDepth:4608,totalstackDepth:66560,priority:4[0m
+[0;32;49m[01-01 08:00:26 ty D][tal_thread.c:245] Thread:ai_agent_input Exec Start. Set to Running Stat[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_ai_input.c:459] ai input init success[0m
+[0;36;49m[01-01 08:00:26 ty I][tal_thread.c:226] thread_create name:ai_agent_output,stackDepth:4096,totalstackDepth:70656,priority:4[0m
+[0;32;49m[01-01 08:00:26 ty D][tal_thread.c:245] Thread:ai_agent_output Exec Start. Set to Running Stat[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_ai_output.c:230] ai output init success[0m
+[0;34;49m[01-01 08:00:26 ty N][tuya_ai_agent.c:1073] ai agent init[0m
+[0;36;49m[01-01 08:00:26 ty I][tal_thread.c:226] thread_create name:lan_sock_loop,stackDepth:4096,totalstackDepth:74752,priority:3[0m
+[0;32;49m[01-01 08:00:26 ty D][tal_thread.c:245] Thread:lan_sock_loop Exec Start. Set to Running Stat[0m
+[0;32;49m[01-01 08:00:26 ty D][lan_sock.c:333] init sock loop success[0m
+[0;36;49m[01-01 08:00:26 ty I][tuya_ai_monitor.c:943] AI monitor initialized, port=5055, max_clients=3, inital sid=3023540687[0m
+[0;36;49m[01-01 08:00:26 ty I][tuya_ai_monitor.c:873] AI monitor started, listening on port 5055[0m
+[0;32;49m[01-01 08:00:26 ty D][ai_chat_main.c:108] read ai_toy config: {"volume": 70, "chat_mode":0}[0m
+[0;34;49m[01-01 08:00:26 ty N][ai_audio_input.c:360] audio input -> wakeup mode set from 0 to 0![0m
+[0;32;49m[01-01 08:00:26 ty D][ai_mode_hold.c:145] mode hold state change form INIT to IDLE[0m
+[0;32;49m[01-01 08:00:26 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 33[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_mqtt_dispatch.c:185] tuya_mqtt_dispatch_init register protocol_id:19[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_mqtt_dispatch.c:185] tuya_mqtt_dispatch_init register protocol_id:22[0m
+[0;32;49m[01-01 08:00:26 ty D][tuya_ai_agent.c:1483] mcp cb set[0m
+[0;36;49m[01-01 08:00:26 ty I][ai_mcp_server.c:825] Added tool: device_info_get[0m
+[0;36;49m[01-01 08:00:26 ty I][ai_mcp_server.c:825] Added tool: device_audio_volume_set[0m
+[0;36;49m[01-01 08:00:26 ty I][ai_mcp_server.c:825] Added tool: device_audio_mode_set[0m
+[0;32;49m[01-01 08:00:26 ty D][ai_mcp_tools.c:223] MCP Server initialized successfully[0m
+[0;36;49m[01-01 08:00:26 ty I][tuya_iot.c:1056] Tuya MQTT connected.[0m
+[0;34;49m[01-01 08:00:26 ty N][tdl_led_manage.c:267] led_set_status: 0[0m
+[0;32;49m[01-01 08:00:26 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 34[0m
+[0;36;49m[01-01 08:00:27 ty I][ble_hs.c:393] ble_hs_timer_exp:[0m
+[0;32;49m[01-01 08:00:27 ty D][mqtt_client_wrapper.c:58] MQTT_PACKET_TYPE_SUBACK id:1[0m
+[0;32;49m[01-01 08:00:27 ty D][mqtt_service.c:334] Subscribe successed ID:1[0m
+[0;32;49m[01-01 08:00:27 ty D][mqtt_client_wrapper.c:58] MQTT_PACKET_TYPE_SUBACK id:2[0m
+[0;32;49m[01-01 08:00:27 ty D][mqtt_service.c:334] Subscribe successed ID:2[0m
+[0;32;49m[01-01 08:00:27 ty D][mqtt_client_wrapper.c:58] MQTT_PACKET_TYPE_SUBACK id:3[0m
+[0;32;49m[01-01 08:00:27 ty D][mqtt_service.c:334] Subscribe successed ID:3[0m
+[0;32;49m[01-01 08:00:27 ty D][mqtt_client_wrapper.c:72] MQTT_PACKET_TYPE_PUBACK id:4[0m
+[0;32;49m[01-01 08:00:27 ty D][mqtt_service.c:341] PUBACK ID:4[0m
+[0;32;49m[01-01 08:00:27 ty D][game_pet_indev.c:77] Button pressed: btn_esc, event: 0, key type: 27[0m
+[0;32;49m[01-01 08:00:27 ty D][menu_scan_screen.c:312] [menu_scan_screen] Restored selection to item 0
+[0m
+[0;32;49m[01-01 08:00:27 ty D][screen_manager.c:130] [Manager] Returning to previous screen: menu_scan_screen
+[0m
+[0;32;49m[01-01 08:00:27 ty D][matop_service.c:417] atop request: {"id":1,"a":"tuya.device.upgrade.silent.get","t":27,"data":{"subId":null,"t":27},"v":"4.4"}[0m
+[0;32;49m[01-01 08:00:27 ty D][game_pet_indev.c:77] Button pressed: btn_esc, event: 0, key type: 27[0m
+[0;32;49m[01-01 08:00:27 ty D][menu_scan_screen.c:102] [menu_scan_screen] Keyboard event received: key = 27
+[0m
+[0;32;49m[01-01 08:00:27 ty D][menu_scan_screen.c:132] ESC key pressed - returning to main menu
+[0m
+[0;32;49m[01-01 08:00:27 ty D][menu_scan_screen.c:330] deinit scan menu screen
+[0m
+[0;32;49m[01-01 08:00:28 ty D][menu_scan_screen.c:330] deinit scan menu screen
+[0m
+[0;32;49m[01-01 08:00:28 ty D][mqtt_service.c:326] recv message TopicName:rpc/rsp/6c0bd4387a3e1fa5bcsfp1, payload len:110[0m
+[0;32;49m[04-22 17:31:09 ty D][tuya_main.c:147] Tuya Event ID:12(TUYA_EVENT_TIMESTAMP_SYNC)[0m
+[0;36;49m[04-22 17:31:09 ty I][tuya_main.c:148] Device Free heap 97544[0m
+[0;32;49m[04-22 17:31:09 ty D][main_screen.c:1629] [Main] Pet stats initialized - Name: Ducky, Health: 85, Hungry: 60, Clean: 70, Happy: 90
+[0m
+[0;32;49m[04-22 17:31:09 ty D][screen_manager.c:130] [Manager] Returning to previous screen: Main
+[0m
+[0;34;49m[04-22 17:31:09 ty N][tuya_ai_client.c:98] ***** ai client state 0 -> 1 *****[0m
+tkl_net_socket_create type(0), fd(1)!
+[0;32;49m[04-22 17:31:09 ty D][tuya_ai_monitor.c:653] Server socket created, fd=1[0m
+[0;32;49m[04-22 17:31:09 ty D][lan_sock.c:363] reg post queue 1[0m
+[0;32;49m[04-22 17:31:09 ty D][tuya_ai_monitor.c:839] Server socket created successfully, stopped timer[0m
+[0;34;49m[04-22 17:31:09 ty N][tuya_ai_protocol.c:342] ai proto init success, sl:4[0m
+[0;32;49m[04-22 17:31:09 ty D][lan_sock.c:136] reg lan sock 1,read:0x21e3bc1[0m
+[0;32;49m[04-22 17:31:10 ty D][mqtt_service.c:326] recv message TopicName:smart/device/in/6c0bd4387a3e1fa5bcsfp1, payload len:616[0m
+[0;32;49m[04-22 17:31:10 ty D][mqc_app.c:44] mqc app handler protocol:9000[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_client.c:218] connect refresh success,expire:1776853870 current:1776850270 next 3590 s[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_client.c:98] ***** ai client state 1 -> 2 *****[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_protocol.c:2234] connect to host :106.15.176.160, port: 8884[0m
+tkl_net_socket_create type(0), fd(2)!
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_client.c:98] ***** ai client state 2 -> 3 *****[0m
+[0;32;49m[04-22 17:31:10 ty D][tuya_ai_protocol.c:2789] send success, total bytes sent: 277, sequence 2[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_client.c:98] ***** ai client state 3 -> 4 *****[0m
+[0;32;49m[04-22 17:31:10 ty D][tuya_ai_protocol.c:2789] send success, total bytes sent: 169, sequence 3[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_client.c:98] ***** ai client state 4 -> 5 *****[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_protocol.c:2072] auth success[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_protocol.c:2088] connection id:079dbe79-7c41-494b-881e-04fa8dc2009f[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_client.c:98] ***** ai client state 5 -> 6 *****[0m
+[0;34;49m[04-22 17:31:10 ty N][tuya_ai_biz.c:1206] ai biz init success[0m
+[0;34;49m[04-22 17:31:10 ty N][ai_mode_hold.c:242] connected to server[0m
+[0;32;49m[04-22 17:31:10 ty D][ai_mode_hold.c:244] mode hold state change form IDLE to IDLE[0m
+[0;32;49m[04-22 17:31:10 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 32[0m
+[0;34;49m[04-22 17:31:10 ty N][ai_audio_player.c:473] audio player -> play alert type=3[0m
+[0;34;49m[04-22 17:31:10 ty N][ai_audio_player.c:355] audio player -> player tts mem data len 12896[0m
+[0;32;49m[04-22 17:31:10 ty D][svc_ai_player.c:492] ai player FG cmd START[0m
+[0;32;49m[04-22 17:31:10 ty D][svc_ai_player.c:105] start player FG value=null[0m
+[0;32;49m[04-22 17:31:10 ty D][ai_audio_player.c:156] audio player -> player tts event: 1[0m
+[0;32;49m[04-22 17:31:10 ty D][ai_audio_player.c:177] audio player -> playing start event[0m
+[0;32;49m[04-22 17:31:10 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 21[0m
+[0;32;49m[04-22 17:31:10 ty D][tuya_ai_agent.c:760] ai session new[0m
+[0;32;49m[04-22 17:31:10 ty D][decoder_mp3.c:56] ID3 tag_size = 34[0m
+[0;32;49m[04-22 17:31:10 ty D][mqtt_service.c:326] recv message TopicName:smart/device/in/6c0bd4387a3e1fa5bcsfp1, payload len:433[0m
+[0;32;49m[04-22 17:31:10 ty D][mqc_app.c:44] mqc app handler protocol:9000[0m
+[0;32;49m[04-22 17:31:10 ty D][tuya_ai_agent.c:846] session attrs: {"tts.order.supports":[{"format":"mp3","container":"","sampleRate":16000,"bitDepth":16,"channels":1,"bitRate":64000}],"deviceMcp":{"supportCustomMCP":true}}[0m
+[0;32;49m[04-22 17:31:10 ty D][tuya_ai_protocol.c:2789] send success, total bytes sent: 393, sequence 4[0m
+[0;32;49m[04-22 17:31:10 ty D][tuya_ai_agent.c:914] create session success, 8daf01c7-cccb-4a5d-8c13-9353-156e197e[0m
+[0;34;49m[04-22 17:31:13 ty N][svc_ai_player.c:244] ai player FG eof[0m
+[0;32;49m[04-22 17:31:13 ty D][svc_ai_player.c:133] stop player FG[0m
+[0;32;49m[04-22 17:31:13 ty D][svc_ai_playlist.c:52] playlist player state 0 index 0 count 0 loop 0 single 0[0m
+[0;32;49m[04-22 17:31:13 ty D][ai_audio_player.c:156] audio player -> player tts event: 0[0m
+[0;32;49m[04-22 17:31:13 ty D][ai_audio_player.c:163] audio player -> stop event[0m
+[0;32;49m[04-22 17:31:13 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 31[0m
+[0;32;49m[04-22 17:31:13 ty D][ai_mode_hold.c:225] mode hold state change form IDLE to IDLE[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_device_meta.c:240] add meta key:timerCapability value:1[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_device_meta.c:245] add number meta json:{"metas":{"timerCapability":1},"t":0}[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_device_meta.c:286] meta json:{"metas":{"timerCapability":1},"t":1776850274}[0m
+[0;32;49m[04-22 17:31:14 ty D][atop_base.c:417] TUYA_HTTPS_ATOP_URL: /d.json?[0m
+[0;32;49m[04-22 17:31:14 ty D][atop_base.c:434] request url len:122: /d.json?a=tuya.device.meta.save&devId=6c0bd4387a3e1fa5bcsfp1&et=3&t=1776850274&v=1.0&sign=3e13454ec75962cac5e707a598731a3f[0m
+[0;32;49m[04-22 17:31:14 ty D][atop_base.c:448] atop_request_data_encode[0m
+[0;32;49m[04-22 17:31:14 ty D][atop_base.c:457] out post data len:153, data:data=326162343063663530393832395351E3AFC0EA9FCB6119B20183894F173A0B504E164263A770C21515FB975AAD9A527C5CBC8AD33E15F1CF6EA4418278EEFFAB4106966112C3A361B18C[0m
+[0;32;49m[04-22 17:31:14 ty D][atop_base.c:469] http request send![0m
+tkl_net_socket_create type(0), fd(3)!
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:591] TUYA_TLS Begin Connect a2.tuyacn.com:443[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:342] mbedtls authmode: MBEDTLS_SSL_VERIFY_REQUIRED[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:355] load root ca cert.[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:664] socket fd is set. set to inner send/recv to handshake[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:324] mbedtls_cert_pkey_free.[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:705] handshake finish for a2.tuyacn.com. set send/recv to user set[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:711] TUYA_TLS Success Connect a2.tuyacn.com:443 Suit:TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256[0m
+[0;32;49m[04-22 17:31:14 ty D][http_client_wrapper.c:119] tls connencted![0m
+[0;32;49m[04-22 17:31:14 ty D][http_client_wrapper.c:147] http request send![0m
+[0;32;49m[04-22 17:31:14 ty D][http_client_wrapper.c:40] HTTP header add key=User-Agent[0m
+[0;32;49m[04-22 17:31:14 ty D][http_client_wrapper.c:40] HTTP header add key=Content-Type[0m
+[0;32;49m[04-22 17:31:14 ty D][http_client_wrapper.c:51] Sending HTTP POST request to a2.tuyacn.com[0m
+[0;32;49m[04-22 17:31:14 ty D][tls_transporter.c:122] tls transporter close socket fd:3[0m
+[0;32;49m[04-22 17:31:14 ty D][tcp_transporter.c:200] tcp transporter close socket fd:3[0m
+[0;32;49m[04-22 17:31:14 ty D][tls_transporter.c:130] tls transporter close tls handler:0x6099e378[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:822] TUYA_TLS Disconnect ENTER[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:847] TUYA_TLS Disconnect Success[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_tls.c:512] tuya_tls_connect_destroy.[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_device_meta.c:69] device meta report success[0m
+[0;32;49m[04-22 17:31:14 ty D][tuya_device_meta.c:73] device meta report success, event publish[0m
+[0;32;49m[04-22 17:31:15 ty D][mqtt_service.c:326] recv message TopicName:smart/device/in/6c0bd4387a3e1fa5bcsfp1, payload len:226[0m
+[0;32;49m[04-22 17:31:15 ty D][tuya_mqtt_dispatch.c:99] mqtt dispatch >> reqType=timer_sync taskId=1776850275191[0m
+[0;32;49m[04-22 17:31:15 ty D][tuya_mqtt_dispatch.c:124] mqtt dispatch >> matched: timer_sync (device timer sync)[0m
+[0;34;49m[04-22 17:31:15 ty N][tuya_device_timer.c:483] full sync complete: received 0/0[0m
+[0;32;49m[04-22 17:31:15 ty D][tuya_mqtt_dispatch.c:132] mqtt dispatch << done[0m
+[0;32;49m[04-22 17:31:15 ty D][mqtt_service.c:326] recv message TopicName:smart/device/in/6c0bd4387a3e1fa5bcsfp1, payload len:118[0m
+[0;32;49m[04-22 17:31:15 ty D][tuya_mqtt_dispatch.c:99] mqtt dispatch >> reqType=timer_full_syn taskId=null[0m
+[0;32;49m[04-22 17:31:15 ty D][tuya_mqtt_dispatch.c:124] mqtt dispatch >> matched: timer_full_syn (device timer full sync)[0m
+[0;32;49m[04-22 17:31:15 ty D][tuya_mqtt_dispatch.c:132] mqtt dispatch << done[0m
+[0;32;49m[04-22 17:31:16 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:31:17 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:31:17 ty D][game_pet_indev.c:77] Button pressed: btn_enter, event: 0, key type: 10[0m
+[0;32;49m[04-22 17:31:17 ty D][main_screen.c:309] [Main] Keyboard event: ENTER
+[0m
+[0;32;49m[04-22 17:31:17 ty D][main_screen.c:972] [Main] Menu selection: button 6
+[0m
+[0;32;49m[04-22 17:31:17 ty D][main_screen.c:1001] Loading scan screen
+[0m
+[0;32;49m[04-22 17:31:17 ty D][main_screen.c:560] deinit main screen
+[0m
+[0;32;49m[04-22 17:31:17 ty D][menu_scan_screen.c:312] [menu_scan_screen] Restored selection to item 0
+[0m
+[0;32;49m[04-22 17:31:17 ty D][screen_manager.c:194] [Manager] Loading to new screen: [menu_scan_screen]
+[0m
+[0;32;49m[04-22 17:31:18 ty D][game_pet_indev.c:77] Button pressed: btn_enter, event: 0, key type: 10[0m
+[0;32;49m[04-22 17:31:18 ty D][menu_scan_screen.c:102] [menu_scan_screen] Keyboard event received: key = 10
+[0m
+[0;32;49m[04-22 17:31:18 ty D][menu_scan_screen.c:175] Claude Buddy selected
+[0m
+[0;32;49m[04-22 17:31:18 ty D][menu_scan_screen.c:330] deinit scan menu screen
+[0m
+[0;32;49m[04-22 17:31:18 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=31[0m
+[0;32;49m[04-22 17:31:18 ty D][buddy_main_screen.c:634] [buddy_main_screen] init done
+[0m
+[0;32;49m[04-22 17:31:18 ty D][screen_manager.c:194] [Manager] Loading to new screen: [buddy_main_screen]
+[0m
+[0;32;49m[04-22 17:31:19 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:20 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:20 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+[0;32;49m[04-22 17:31:21 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:21 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:21 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:21 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:22 ty D][game_pet_indev.c:91] joystick event: 8,  key type: 17[0m
+[0;32;49m[04-22 17:31:22 ty D][game_pet_indev.c:91] joystick event: 8,  key type: 17[0m
+[0;32;49m[04-22 17:31:22 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+[0;32;49m[04-22 17:31:23 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+[0;32;49m[04-22 17:31:23 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+[0;32;49m[04-22 17:31:23 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+[0;32;49m[04-22 17:31:24 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:25 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:25 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:26 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:26 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:31:26 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=31[0m
+[0;32;49m[04-22 17:31:26 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:27 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:27 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:31:27 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:27 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:27 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:28 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:29 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+[0;32;49m[04-22 17:31:29 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:30 ty D][game_pet_indev.c:77] Button pressed: btn_esc, event: 0, key type: 27[0m
+[0;32;49m[04-22 17:31:30 ty D][menu_scan_screen.c:312] [menu_scan_screen] Restored selection to item 0
+[0m
+[0;32;49m[04-22 17:31:30 ty D][screen_manager.c:130] [Manager] Returning to previous screen: menu_scan_screen
+[0m
+[0;32;49m[04-22 17:31:30 ty D][game_pet_indev.c:77] Button pressed: btn_enter, event: 0, key type: 10[0m
+[0;32;49m[04-22 17:31:30 ty D][menu_scan_screen.c:102] [menu_scan_screen] Keyboard event received: key = 10
+[0m
+[0;32;49m[04-22 17:31:30 ty D][menu_scan_screen.c:175] Claude Buddy selected
+[0m
+[0;32;49m[04-22 17:31:30 ty D][menu_scan_screen.c:330] deinit scan menu screen
+[0m
+[0;32;49m[04-22 17:31:30 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=31[0m
+[0;32;49m[04-22 17:31:30 ty D][buddy_main_screen.c:634] [buddy_main_screen] init done
+[0m
+[0;32;49m[04-22 17:31:30 ty D][screen_manager.c:194] [Manager] Loading to new screen: [buddy_main_screen]
+[0m
+[0;32;49m[04-22 17:31:31 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:32 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:33 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:33 ty D][game_pet_indev.c:91] joystick event: 9,  key type: 18[0m
+[0;32;49m[04-22 17:31:33 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+[0;32;49m[04-22 17:31:34 ty D][game_pet_indev.c:91] joystick event: 10,  key type: 20[0m
+[0;32;49m[04-22 17:31:34 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:34 ty D][game_pet_indev.c:91] joystick event: 8,  key type: 17[0m
+[0;32;49m[04-22 17:31:35 ty D][game_pet_indev.c:91] joystick event: 11,  key type: 19[0m
+[0;32;49m[04-22 17:31:36 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:31:36 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=31[0m
+[0;32;49m[04-22 17:31:37 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:31:45 ty D][tal_kv.c:202] key:device_timer_tasks, len 151[0m
+[0;32;49m[04-22 17:31:46 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:31:46 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=31[0m
+[0;32;49m[04-22 17:31:47 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:31:56 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:31:56 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=31[0m
+[0;32;49m[04-22 17:31:57 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:32:03 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:32:03 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:32:06 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:32:06 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=32[0m
+[0;32;49m[04-22 17:32:07 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:32:16 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:32:16 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=32[0m
+[0;32;49m[04-22 17:32:17 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:32:26 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:32:26 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=32[0m
+[0;32;49m[04-22 17:32:27 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:32:37 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:32:37 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=32[0m
+[0;32;49m[04-22 17:32:37 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:32:47 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:32:47 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=32[0m
+[0;32;49m[04-22 17:32:47 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:32:57 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:32:57 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=32[0m
+[0;32;49m[04-22 17:32:57 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:33:03 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:33:03 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:33:07 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:33:07 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=33[0m
+[0;32;49m[04-22 17:33:07 ty D][tuya_health.c:75] feed watchdog[0m
+[0;34;49m[04-22 17:33:10 ty N][tuya_ai_protocol.c:2191] ai ping[0m
+[0;32;49m[04-22 17:33:10 ty D][tuya_ai_protocol.c:2789] send success, total bytes sent: 105, sequence 5[0m
+[0;34;49m[04-22 17:33:10 ty N][tuya_ai_client.c:267] ai pong[0m
+[0;32;49m[04-22 17:33:17 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:33:17 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=33[0m
+[0;32;49m[04-22 17:33:17 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:33:27 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:33:27 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:33:27 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=33[0m
+[0;32;49m[04-22 17:33:37 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:33:37 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:33:37 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=33[0m
+[0;32;49m[04-22 17:33:47 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:33:47 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:33:47 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=33[0m
+[0;32;49m[04-22 17:33:57 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:33:57 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:33:57 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=33[0m
+[0;32;49m[04-22 17:34:03 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:03 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:07 ty D][tuya_health.c:75] feed watchdog[0m
+help
+====Build-in Commands====
+help
+log: log [echo(0,1)] [level(0~5)] [sync(0,1)] [Whitelist(0,1)]
+ap_cmd: ap_cmd cmd (ex:ap_cmd help)
+loginfo: log statistics.
+modlog: modlog tag_name on/off
+
+====User Commands====
+ap: ap ssid [password] [channel[1:14]]
+auto_pwr_change_by_rssi: 1:enable,0:disable
+bcn_loss_intv: bcn_loss_intv interval repeat_num}
+bcn_loss_time: bcn_loss_time wait_cnt wake_cnt}
+bcn_miss_time: bcn misstime}
+bcn_recv_win: bcn_recv_win default_win max_win step}
+blacklist: Set ssid blacklist
+ble: ble arg1 arg2
+cali: cali auto_test
+capa: wifi capability config
+cca: cca open\close\show
+channel: channel {1~13} - set monitor channel
+cif: controller test cmd
+close_coex_csa: close csa in coexist mode {1|0}
+dhcpc: dhcpc
+event: event {reg|unreg|post} {mod_id} {event_id}
+filter: filter <bits> - bit0/d, 1/preq, 2/prsp, 3/b, 4/a
+get: get wifi status
+ip: ip [sta|ap][{ip}{mask}{gate}{dns}]
+ipconfig: ipconfig [sta|ap][{ip}{mask}{gate}{dns}]
+ipdbg: ipdbg [function][value]
+iperf: iperf help
+iplog: iplog [modle][type]
+la: la rf_adc_40M/rf_adc[_80M]/fe_adc/rf_dac/fe_dac
+mem_apply: mem_apply [module][value]
+monitor: monitor {1~13|15|99}
+net: net {sta/ap} ... - wifi net config
+per_packet_info: per_packet_info [per_packet_info_output_bitmap(base 16)]
+ping: ping <ip>
+pkt_dbg: packet debug config
+pm: pm [sleep_mode] [wake_source] [vote1] [vote2] [vote3] [param1] [param2] [param3]
+pm_debug: pm_debug [debug_en_value]
+pm_vote: pm_vote [pm_sleep_mode] [pm_vote] [pm_vote_value] [pm_sleep_time]
+ps: ps enable and debug info config
+psram_cache: psram_cache <addr> <size>
+psram_task_create: create task on psram
+psram_task_delete: delete task on psram
+psram_test: start|stop
+psram_test_ext: init|byte|word|rewirte|deinit
+rc: wifi rate control config
+rfcali_cfg_mode: 1:manual, 0:auto
+rfcali_cfg_rate_dist: b g n40 ble (0-31)
+rfcali_cfg_tssi_b: 0-255
+rfcali_cfg_tssi_g: 0-255
+rfcali_flag_in_otp2: 
+rfcali_show_data: 
+rfcfg_test_log: 1:open,0:close
+rfconfig: rfconfig bt_polar|bt_btpll|bt_wifipll|wifi_btpll|wifi_wifipll
+rxsens: rxsens [-m] [-d] [-c] [-l]
+scan: scan [ssid]
+set_arp_rate: set arp rate}
+set_interval: set listen interval}
+sta: sta ssid [password][bssid][channel]
+start_hidden_softap: start_hidden_softap ssid [password] [channel[1:14]]
+state: state - show STA/AP state
+stop: stop {sta|ap}
+txevm: txevm [-m] [-c] [-l] [-r] [-w]
+uid: uid [init/get]/
+wifi_diag: Wi-Fi HW diagnostics config
+CMDRsp:OK
+
+$
+$[0;32;49m[04-22 17:34:07 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:34:07 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=34[0m
+[0;32;49m[04-22 17:34:17 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:34:17 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:34:17 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=34[0m
+[0;32;49m[04-22 17:34:27 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:34:27 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:34:27 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=34[0m
+[0;32;49m[04-22 17:34:37 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:34:38 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:34:38 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=34[0m
+[0;32;49m[04-22 17:34:39 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:39 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:40 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:40 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:42 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:42 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:44 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:44 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:46 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:46 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:47 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:34:48 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:34:48 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=34[0m
+[0;32;49m[04-22 17:34:48 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:48 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:50 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:50 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:52 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:52 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:54 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:54 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:56 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:56 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:34:57 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:34:58 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:34:58 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=34[0m
+[0;32;49m[04-22 17:34:58 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:34:58 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:00 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:00 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:02 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:02 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:04 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:04 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:06 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:06 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:07 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:35:08 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:35:08 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=35[0m
+[0;32;49m[04-22 17:35:08 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:08 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;34;49m[04-22 17:35:10 ty N][tuya_ai_protocol.c:2191] ai ping[0m
+[0;32;49m[04-22 17:35:10 ty D][tuya_ai_protocol.c:2789] send success, total bytes sent: 105, sequence 6[0m
+[0;34;49m[04-22 17:35:10 ty N][tuya_ai_client.c:267] ai pong[0m
+[0;32;49m[04-22 17:35:10 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:10 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:12 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:12 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:14 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:14 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:16 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:16 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:17 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:35:18 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:35:18 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=35[0m
+[0;32;49m[04-22 17:35:18 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:18 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:20 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:20 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:22 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:22 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:24 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:24 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:26 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:26 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:27 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:35:28 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:35:28 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=35[0m
+[0;32;49m[04-22 17:35:28 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:28 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:30 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:30 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:32 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:32 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:34 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:34 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:36 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:36 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:37 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:35:38 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:35:38 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=35[0m
+[0;32;49m[04-22 17:35:38 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:38 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:40 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:35:40 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:35:47 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:35:48 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:35:48 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=35[0m
+[0;32;49m[04-22 17:35:57 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:35:58 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:35:58 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=35[0m
+[0;32;49m[04-22 17:36:03 ty D][buddy_ble.c:577] buddy_ble RX {"cmd":"status"}[0m
+[0;36;49m[04-22 17:36:03 ty I][tkl_bluetooth.c:205] send notify ok[0m
+[0;32;49m[04-22 17:36:07 ty D][tuya_health.c:75] feed watchdog[0m
+[0;32;49m[04-22 17:36:08 ty D][buddy_ble.c:577] buddy_ble RX {"total":0,"running":0,"waiting":0,"msg":"ready","entries":[],"tokens":0,"tokens_today":0}[0m
+[0;32;49m[04-22 17:36:08 ty D][buddy_main_screen.c:325] ui clock render HH=09 MM=36[0m
