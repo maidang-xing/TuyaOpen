@@ -639,6 +639,9 @@ STATIC VOID_T __handle_heartbeat(cJSON *root)
     cJSON *tokens_in = cJSON_GetObjectItem(root, "tokens_in");
     cJSON *tokens_in_today = cJSON_GetObjectItem(root, "tokens_in_today");
     cJSON *cache_read = cJSON_GetObjectItem(root, "cache_read");
+    cJSON *cache_write = cJSON_GetObjectItem(root, "cache_write");
+    cJSON *ctx_used = cJSON_GetObjectItem(root, "ctx_used");
+    cJSON *ctx_total = cJSON_GetObjectItem(root, "ctx_total");
     cJSON *msg = cJSON_GetObjectItem(root, "msg");
 
     if (cJSON_IsNumber(total)) {
@@ -664,6 +667,15 @@ STATIC VOID_T __handle_heartbeat(cJSON *root)
     }
     if (cJSON_IsNumber(cache_read)) {
         snap.cache_read = (uint32_t)cache_read->valuedouble;
+    }
+    if (cJSON_IsNumber(cache_write)) {
+        snap.cache_write = (uint32_t)cache_write->valuedouble;
+    }
+    if (cJSON_IsNumber(ctx_used)) {
+        snap.ctx_used = (uint32_t)ctx_used->valuedouble;
+    }
+    if (cJSON_IsNumber(ctx_total)) {
+        snap.ctx_total = (uint32_t)ctx_total->valuedouble;
     }
     __copy_str(snap.msg, sizeof(snap.msg), msg);
 

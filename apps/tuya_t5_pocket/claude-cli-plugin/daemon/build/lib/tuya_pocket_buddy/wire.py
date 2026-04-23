@@ -63,6 +63,9 @@ def heartbeat(
     tokens_in: int = 0,
     tokens_in_today: int = 0,
     cache_read: int = 0,
+    cache_write: int = 0,
+    ctx_used: int = 0,
+    ctx_total: int = 0,
     entries: list[str] | None = None,
     prompt: dict[str, Any] | None = None,
     model: str | None = None,
@@ -84,6 +87,12 @@ def heartbeat(
         obj["tokens_in_today"] = int(tokens_in_today)
     if cache_read:
         obj["cache_read"] = int(cache_read)
+    if cache_write:
+        obj["cache_write"] = int(cache_write)
+    if ctx_used:
+        obj["ctx_used"] = int(ctx_used)
+    if ctx_total:
+        obj["ctx_total"] = int(ctx_total)
     if entries is not None:
         obj["entries"] = [_truncate_utf8(e, ENTRY_MAX_BYTES) for e in entries]
     if prompt is not None:

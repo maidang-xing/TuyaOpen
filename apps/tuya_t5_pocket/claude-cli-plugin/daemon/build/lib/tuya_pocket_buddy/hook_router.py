@@ -9,6 +9,11 @@ M2 additions:
   - Model detection from environment / Claude Code settings file.
   - Extended heartbeat: ``model`` + ``sessions`` list + ``mstats``.
 
+M3 additions:
+  - Context window tracking: ctx_used / ctx_total / cache_write.
+  - JSONL reader: parses ~/.claude/projects/*/<session_id>.jsonl to get
+    per-call token usage (mirrors what ``/status`` shows in the CLI).
+
 Protocol note:
   tokens / tokens_today track OUTPUT tokens only, matching REFERENCE.md.
 """
@@ -58,6 +63,74 @@ def _detect_model() -> str:
     return ""
 
 
+def _model_ctx_size(model: str) -> int:
+    """Return context window token limit inferred from model name."""
+    m = model.lower()
+    if "[1m]" in m or "-1m" in m:
+        return 1_000_000
+    if "200k" in m:
+        return 200_000
+    return 200_000  # conservative default
+
+
+# ---------------------------------------------------------------------------
+# JSONL reader — mirrors /status context window data
+# ---------------------------------------------------------------------------
+
+_JSONL_TAIL_BYTES = 16 * 1024  # read last 16 KB to find latest usage
+
+
+def _find_session_jsonl(session_id: str) -> Path | None:
+    """Locate ~/.claude/projects/*/<session_id>.jsonl, if it exists."""
+    if not session_id:
+        return None
+    projects_dir = Path.home() / ".claude" / "projects"
+    if not projects_dir.is_dir():
+        return None
+    for proj_dir in projects_dir.iterdir():
+        if not proj_dir.is_dir():
+            continue
+        candidate = proj_dir / f"{session_id}.jsonl"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _read_last_usage(session_id: str) -> dict[str, Any] | None:
+    """Return the usage dict from the most recent assistant message in the
+    session JSONL, or None if unavailable.
+
+    Reads only the last _JSONL_TAIL_BYTES so large files are cheap.
+    """
+    jsonl = _find_session_jsonl(session_id)
+    if jsonl is None:
+        return None
+    try:
+        with jsonl.open("rb") as fh:
+            fh.seek(0, 2)
+            size = fh.tell()
+            fh.seek(max(0, size - _JSONL_TAIL_BYTES))
+            chunk = fh.read()
+        last_usage: dict[str, Any] | None = None
+        for raw in chunk.split(b"\n"):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                entry = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("type") == "assistant":
+                msg = entry.get("message")
+                if isinstance(msg, dict):
+                    u = msg.get("usage")
+                    if isinstance(u, dict) and u:
+                        last_usage = u
+        return last_usage
+    except OSError:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Per-session snapshot
 # ---------------------------------------------------------------------------
@@ -88,6 +161,9 @@ class State:
     tokens_in: int = 0        # cumulative input tokens
     tokens_in_today: int = 0  # input tokens since local midnight
     cache_read: int = 0       # cumulative cache_read_input_tokens
+    cache_write: int = 0      # cumulative cache_creation_input_tokens
+    ctx_used: int = 0         # current context window used (last API call total input)
+    ctx_total: int = 0        # model context window size
     msg: str = ""
     model: str = field(default_factory=_detect_model)
     entries: deque[str] = field(
@@ -156,6 +232,22 @@ def _format_entry(tool_name: str, payload: dict[str, Any]) -> str:
     return f"{hh_mm} {tool_name} {hint}" if hint else f"{hh_mm} {tool_name}"
 
 
+def _apply_jsonl_usage(s: State, usage: dict[str, Any]) -> None:
+    """Update ctx_used/ctx_total from a JSONL assistant message usage dict.
+
+    Only updates if the computed ctx is larger than what hooks already
+    provided (hooks are authoritative; JSONL is a supplement).
+    """
+    ti = int(usage.get("input_tokens", 0))
+    cr = int(usage.get("cache_read_input_tokens", 0))
+    cc = int(usage.get("cache_creation_input_tokens", 0))
+    ctx_now = ti + cr + cc
+    if ctx_now > s.ctx_used:
+        s.ctx_used = ctx_now
+        s.ctx_total = _model_ctx_size(s.model)
+    log.debug("ctx from jsonl: %d / %d", ctx_now, s.ctx_total)
+
+
 # ---------------------------------------------------------------------------
 # Router
 # ---------------------------------------------------------------------------
@@ -177,6 +269,9 @@ class Router:
             tokens_in=s.tokens_in,
             tokens_in_today=s.tokens_in_today,
             cache_read=s.cache_read,
+            cache_write=s.cache_write,
+            ctx_used=s.ctx_used,
+            ctx_total=s.ctx_total,
             msg=s.msg,
             entries=list(s.entries) if s.entries else None,
             prompt=prompt,
@@ -288,9 +383,14 @@ class Router:
 
     async def _on_post_tool_use(self, payload: dict[str, Any]) -> dict[str, Any]:
         s = self._state
+        sid = str(payload.get("session_id") or "")
         tool_name = str(payload.get("tool_name") or "tool")
         s.entries.append(_format_entry(tool_name, payload))
         s.msg = f"done: {tool_name}"
+        # Refresh context window stats from JSONL after each tool use.
+        usage = _read_last_usage(sid)
+        if usage:
+            _apply_jsonl_usage(s, usage)
         await self._emit_heartbeat()
         return {}
 
@@ -324,6 +424,7 @@ class Router:
         to = int(usage.get("output_tokens", 0))
         ti = int(usage.get("input_tokens", 0))
         cr = int(usage.get("cache_read_input_tokens", 0))
+        cc = int(usage.get("cache_creation_input_tokens", 0))
         if to > 0:
             s.tokens += to
             s.tokens_today += to
@@ -338,9 +439,21 @@ class Router:
             s.tokens_in_today += ti
         if cr > 0:
             s.cache_read += cr
+        if cc > 0:
+            s.cache_write += cc
+        # ctx_used = total input tokens for this API call
+        ctx_now = ti + cr + cc
+        if ctx_now > 0:
+            s.ctx_used = ctx_now
+            s.ctx_total = _model_ctx_size(s.model)
 
         if sid and sid in s.session_map:
             s.session_map[sid].is_running = False
+
+        # Also refresh ctx from JSONL as a fallback / cross-check
+        jsonl_usage = _read_last_usage(sid)
+        if jsonl_usage:
+            _apply_jsonl_usage(s, jsonl_usage)
 
         await self._emit_heartbeat()
         return {}

@@ -131,8 +131,8 @@ STATIC lv_obj_t *lbl_persona_level;
 STATIC lv_obj_t *pg0;
 STATIC lv_obj_t *pg0_msg;
 STATIC lv_obj_t *pg0_sessions_line;
-STATIC lv_obj_t *pg0_tokens_out_line;
-STATIC lv_obj_t *pg0_tokens_in_line;
+STATIC lv_obj_t *pg0_ctx_bar;      /* context window ASCII bar + pct */
+STATIC lv_obj_t *pg0_ctx_detail;   /* ctx_used/ctx_total + cache stats */
 STATIC lv_obj_t *pg0_model_line;
 STATIC lv_obj_t *pg0_owner_line;
 STATIC lv_obj_t *pg0_entries[STATUS_ENTRIES];
@@ -290,9 +290,9 @@ STATIC VOID_T __build_header(lv_obj_t *parent)
     lv_obj_set_style_pad_all(bar, 0, 0);
     lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* Left: BLE status (6 chars) */
+    /* Left: BLE status */
     lbl_ble = lv_label_create(bar);
-    lv_label_set_text(lbl_ble, "BLE:-");
+    lv_label_set_text(lbl_ble, "BLE: --");
     lv_obj_set_style_text_font(lbl_ble, FONT_S, 0);
     lv_obj_set_style_text_color(lbl_ble, C_INV_FG, 0);
     lv_obj_align(lbl_ble, LV_ALIGN_LEFT_MID, 4, 0);
@@ -413,30 +413,30 @@ STATIC lv_obj_t *__make_sep(lv_obj_t *parent, int32_t y)
 /* --- Page 0: Status ---
  *
  * Layout in 238×148px (INFO_PAD=3):
- *   y=  0  msg       (FONT_M)
+ *   y=  0  msg          (FONT_M)
  *   y= 18  sep
- *   y= 21  sessions  "3s  1 active  0 waiting"
- *   y= 36  out line  "Out: 1.2k today  56k total"
- *   y= 50  in line   "In:  5.4k today  Cache: 2.1k"
- *   y= 64  model     "Model: sonnet[1m]"
- *   y= 78  owner     "Owner: alice"
+ *   y= 21  sessions     "3s  1r  0w"
+ *   y= 36  ctx_bar      "[#######.....] 35%  244k/1M"
+ *   y= 50  ctx_detail   "Out:1.2k  R:244k  W:55"
+ *   y= 64  model        "Model: sonnet[1m]"
+ *   y= 78  owner        "Owner: alice"
  *   y= 94  sep
- *   y= 97  entry[0]  (FONT_M)
- *   y=115  entry[1]  (FONT_S)
- *   y=130  entry[2]  (FONT_S)
+ *   y= 97  entry[0]     (FONT_M)
+ *   y=115  entry[1]     (FONT_S)
+ *   y=130  entry[2]     (FONT_S)
  */
 STATIC VOID_T __build_page0(lv_obj_t *parent)
 {
     pg0 = __make_page(parent, FALSE);
     const int32_t W = INFO_W - INFO_PAD * 2;
 
-    pg0_msg            = __lbl(pg0, 0,  0, W, FONT_M);
+    pg0_msg          = __lbl(pg0, 0,  0, W, FONT_M);
     __make_sep(pg0, 18);
-    pg0_sessions_line  = __lbl(pg0, 0, 21, W, FONT_S);
-    pg0_tokens_out_line= __lbl(pg0, 0, 36, W, FONT_S);
-    pg0_tokens_in_line = __lbl(pg0, 0, 50, W, FONT_S);
-    pg0_model_line     = __lbl(pg0, 0, 64, W, FONT_S);
-    pg0_owner_line     = __lbl(pg0, 0, 78, W, FONT_S);
+    pg0_sessions_line= __lbl(pg0, 0, 21, W, FONT_S);
+    pg0_ctx_bar      = __lbl(pg0, 0, 36, W, FONT_S);
+    pg0_ctx_detail   = __lbl(pg0, 0, 50, W, FONT_S);
+    pg0_model_line   = __lbl(pg0, 0, 64, W, FONT_S);
+    pg0_owner_line   = __lbl(pg0, 0, 78, W, FONT_S);
     __make_sep(pg0, 94);
 
     static const int32_t ENTRY_Y[5] = {97, 115, 130, 130, 130};
@@ -608,7 +608,8 @@ STATIC VOID_T __derive_persona(VOID_T)
 STATIC VOID_T __refresh_header(VOID_T)
 {
     if (lbl_ble)
-        lv_label_set_text(lbl_ble, s_state.ble_connected ? "BLE:OK" : "BLE:-");
+        lv_label_set_text(lbl_ble,
+            s_state.ble_connected ? "BLE: linked" : "BLE: --");
     if (lbl_model)
         lv_label_set_text(lbl_model,
             s_state.model[0] ? s_state.model : "?");
@@ -621,8 +622,8 @@ STATIC VOID_T __refresh_header(VOID_T)
         char tok[8];
         __fmt_tok(s_state.tokens, tok, sizeof(tok));
         char buf[16];
-        (VOID_T)snprintf(buf, sizeof(buf), "%us %s",
-                         (unsigned)s_state.sessions_total, tok);
+        (VOID_T)snprintf(buf, sizeof(buf), "%u sessions",
+                         (unsigned)s_state.sessions_total);
         lv_label_set_text(lbl_stat_line, buf);
     }
 }
@@ -647,7 +648,7 @@ STATIC VOID_T __refresh_persona_strip(VOID_T)
         }
         bar[LEVEL_BAR_BLOCKS] = '\0';
         char lvbuf[24];
-        (VOID_T)snprintf(lvbuf, sizeof(lvbuf), "Lv.%u [%s]", (unsigned)level, bar);
+        (VOID_T)snprintf(lvbuf, sizeof(lvbuf), "Level %u [%s]", (unsigned)level, bar);
         lv_label_set_text(lbl_persona_level, lvbuf);
     }
 }
@@ -655,7 +656,7 @@ STATIC VOID_T __refresh_persona_strip(VOID_T)
 STATIC VOID_T __refresh_page_ind(VOID_T)
 {
     if (!lbl_page_ind) return;
-    static const char *const NAMES[PAGE_COUNT] = {"[St]", "[Se]", "[Lo]", "[Md]"};
+    static const char *const NAMES[PAGE_COUNT] = {"1/4", "2/4", "3/4", "4/4"};
     lv_label_set_text(lbl_page_ind, NAMES[s_page]);
 }
 
@@ -664,50 +665,79 @@ STATIC VOID_T __refresh_page0(VOID_T)
     if (!pg0_msg) return;
     const int32_t W = INFO_W - INFO_PAD * 2;
 
+    /* --- msg --- */
     lv_label_set_text(pg0_msg,
         s_state.msg[0] ? s_state.msg
         : (s_state.ble_connected ? "Ready." : "Waiting for Claude..."));
 
+    /* --- sessions --- */
     if (pg0_sessions_line) {
         if (!s_state.ble_connected) {
             lv_label_set_text(pg0_sessions_line, "Not connected");
         } else {
             lv_label_set_text_fmt(pg0_sessions_line,
-                "%us  %ur  %uw",
+                "%u open  %u active  %u waiting",
                 (unsigned)s_state.sessions_total,
                 (unsigned)s_state.sessions_running,
                 (unsigned)s_state.sessions_waiting);
         }
     }
 
-    if (pg0_tokens_out_line) {
-        char td[10], tt[10];
-        __fmt_tok(s_state.tokens_today, td, sizeof(td));
-        __fmt_tok(s_state.tokens, tt, sizeof(tt));
-        lv_label_set_text_fmt(pg0_tokens_out_line,
-            "Out: %s today  %s total", td, tt);
-    }
+    /* --- context window bar: "Context [########] 24%  244k/1M" --- */
+    if (pg0_ctx_bar) {
+        uint32_t used  = s_state.ctx_used;
+        uint32_t total = s_state.ctx_total ? s_state.ctx_total : 200000U;
+        uint32_t pct   = (uint32_t)(((uint64_t)used * 100U) / total);
+        if (pct > 100U) pct = 100U;
 
-    if (pg0_tokens_in_line) {
-        char ti[10], cr[10];
-        __fmt_tok(s_state.tokens_in_today, ti, sizeof(ti));
-        __fmt_tok(s_state.cache_read, cr, sizeof(cr));
-        if (s_state.tokens_in_today || s_state.cache_read) {
-            lv_label_set_text_fmt(pg0_tokens_in_line,
-                "In:  %s today  Cache: %s", ti, cr);
+        /* 8-char bar: "Context " (8 chars) + "[########]" = fits in 232px */
+        char bar[10];
+        uint32_t filled = pct * 8U / 100U;
+        for (uint32_t b = 0; b < 8U; b++) {
+            bar[b] = (b < filled) ? '#' : '.';
+        }
+        bar[8] = '\0';
+
+        char used_s[10], tot_s[8];
+        __fmt_tok(used, used_s, sizeof(used_s));
+        if (total >= 1000000U)
+            (VOID_T)snprintf(tot_s, sizeof(tot_s), "%uM",
+                             (unsigned)(total / 1000000U));
+        else
+            (VOID_T)snprintf(tot_s, sizeof(tot_s), "%uk",
+                             (unsigned)(total / 1000U));
+
+        if (used) {
+            lv_label_set_text_fmt(pg0_ctx_bar,
+                "Context [%s] %u%%  %s/%s", bar, (unsigned)pct, used_s, tot_s);
         } else {
-            lv_label_set_text(pg0_tokens_in_line, "In:  --  Cache: --");
+            lv_label_set_text_fmt(pg0_ctx_bar,
+                "Context [--------] --  --/%s", tot_s);
         }
     }
 
+    /* --- token detail: "Output: 1.2k  Read cache: 244k" --- */
+    if (pg0_ctx_detail) {
+        char out_s[10], cr_s[10];
+        __fmt_tok(s_state.tokens,     out_s, sizeof(out_s));
+        __fmt_tok(s_state.cache_read, cr_s,  sizeof(cr_s));
+        if (s_state.tokens || s_state.cache_read) {
+            lv_label_set_text_fmt(pg0_ctx_detail,
+                "Output: %s  Read cache: %s", out_s, cr_s);
+        } else {
+            lv_label_set_text(pg0_ctx_detail, "Output: --  Read cache: --");
+        }
+    }
+
+    /* --- model / owner --- */
     if (pg0_model_line)
         lv_label_set_text_fmt(pg0_model_line, "Model: %s",
             s_state.model[0] ? s_state.model : "unknown");
-
     if (pg0_owner_line)
         lv_label_set_text_fmt(pg0_owner_line, "Owner: %s",
             s_state.owner_name[0] ? s_state.owner_name : "-");
 
+    /* --- recent entries (up to 3) --- */
     uint8_t count = s_state.entries_count;
     uint8_t head  = s_state.entries_head;
     static const int32_t ENTRY_Y[5] = {97, 115, 130, 130, 130};
@@ -995,7 +1025,7 @@ STATIC VOID_T __deinit(VOID_T)
 
     lbl_model = lbl_clock = lbl_ble = lbl_stat_line = lbl_page_ind = NULL;
     lbl_persona_name = lbl_persona_level = NULL;
-    pg0 = pg0_msg = pg0_sessions_line = pg0_tokens_out_line = pg0_tokens_in_line = NULL;
+    pg0 = pg0_msg = pg0_sessions_line = pg0_ctx_bar = pg0_ctx_detail = NULL;
     pg0_model_line = pg0_owner_line = NULL;
     for (uint32_t i = 0; i < STATUS_ENTRIES; i++) pg0_entries[i] = NULL;
     pg1 = pg1_hdr = pg1_empty = NULL;

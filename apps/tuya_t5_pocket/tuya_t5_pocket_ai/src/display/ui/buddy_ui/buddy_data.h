@@ -150,6 +150,9 @@ typedef struct {
     uint32_t tokens_in;             /* 累计 input token                           */
     uint32_t tokens_in_today;       /* 本日 input token                           */
     uint32_t cache_read;            /* 累计 cache_read_input_tokens               */
+    uint32_t cache_write;           /* 累计 cache_creation_input_tokens           */
+    uint32_t ctx_used;              /* 当前 context window 已用 token（最近一次 API call 的总输入） */
+    uint32_t ctx_total;             /* 模型 context window 上限（1M=1000000）       */
 
     char     msg[64];               /* 自由文本状态（"Working on..."）             */
     char     owner_name[32];        /* {"cmd":"owner"} 设置                        */
