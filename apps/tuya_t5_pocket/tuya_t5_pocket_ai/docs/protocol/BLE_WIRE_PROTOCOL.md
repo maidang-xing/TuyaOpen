@@ -1,12 +1,17 @@
 # T5AI-Pocket × Claude — BLE Wire Protocol
 
+> **Note (2026-04-22):** The Chinese edition at
+> `docs/protocol/BLE_WIRE_PROTOCOL_zh.md` is now the authoritative copy
+> of this protocol. If the two diverge, **defer to the Chinese version**.
+> This English version is kept for historical / external reference.
+
 | | |
 |---|---|
 | **Version** | v1.1 |
 | **Date** | 2026-04-22 |
 | **Status** | Frozen (amendments follow the procedure in §8) |
 | **Maintainers** | Firmware sub-project A, CLI plugin sub-project C |
-| **Source of truth** | This document. Derived from `apps/tuya_t5_pocket/claude-desktop-buddy/REFERENCE.md` + `apps/tuya_t5_pocket/tuya_t5_pocket_ai/src/display/ui/buddy_ui/buddy_ble.c` |
+| **Source of truth** | `docs/protocol/BLE_WIRE_PROTOCOL_zh.md` (Chinese). This English file is a mirror; derived from `apps/tuya_t5_pocket/claude-desktop-buddy/REFERENCE.md` + `apps/tuya_t5_pocket/tuya_t5_pocket_ai/src/display/ui/buddy_ui/buddy_ble.c` |
 
 ---
 

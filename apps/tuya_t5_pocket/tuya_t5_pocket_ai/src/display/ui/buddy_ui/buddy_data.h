@@ -1,16 +1,23 @@
 /**
  * @file buddy_data.h
- * @brief Shared data type for the Claude Desktop Buddy UI bridge.
+ * @brief Claude Desktop Buddy UI 桥层共享数据类型。
  *
- * The simplified UI only renders fields sourced from the Claude desktop
- * over BLE (Nordic UART Service).  No local persona / mood / stats are
- * tracked on device; everything visible on screen must come from a JSON
- * line received from the desktop client.
+ * 设备端只渲染来自 Claude 桌面/CLI 通过 BLE（NUS）推送的字段；本机不
+ * 追踪本地 persona/mood/stats。屏幕上可见的一切都来自最近一次 JSON 帧。
  *
- * Fields map 1:1 onto the claude-desktop-buddy heartbeat / prompt frames:
+ * 字段与心跳/prompt 协议 1:1 对应：
  *   { "total":4, "running":3, "waiting":1, "tokens":..., "tokens_today":...,
  *     "msg":"...", "prompt": { "id":"...", "tool":"Read", "hint":"src/..." } }
  *   { "cmd":"owner", "name":"alice" }
+ *
+ * v1.1 新增：entries[] 滚动转写、{"time":[epoch,tz]} UI 侧墙钟。
+ *
+ * M1-UI 新增：
+ *   - buddy_persona_state_e   从协议字段推导出的 7 个人格状态
+ *   - buddy_led_state_e       LED 视觉状态枚举（由 persona 状态驱动）
+ *   - persona_id / led_state  仅做缓存，实际值由 buddy_main_screen 推导
+ *
+ * @copyright Copyright (c) 2024-2026 TuyaOpen Project
  */
 
 #ifndef BUDDY_DATA_H
@@ -19,65 +26,122 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* ---------------------------------------------------------------------------
  * Macros
  * --------------------------------------------------------------------------- */
-/* Entries ring (heartbeat `entries[]` running transcript).
- *   - BUDDY_ENTRY_MAX_CHARS: per-entry text cap in bytes, excluding NUL.
- *   - BUDDY_ENTRIES_RING:    number of slots retained on device. */
+/* Entries ring（心跳 entries[] 滚动转写）
+ *   - BUDDY_ENTRY_MAX_CHARS: 每条文本上限（字节，含 NUL 前）
+ *   - BUDDY_ENTRIES_RING:    设备端保留的槽位数 */
 #define BUDDY_ENTRY_MAX_CHARS 79
 #define BUDDY_ENTRIES_RING    8
+
+/* 人格注册表长度；与 persona_registry 中的条目一一对应。 */
+#define BUDDY_PERSONA_COUNT   18
 
 /* ---------------------------------------------------------------------------
  * Type definitions
  * --------------------------------------------------------------------------- */
 /**
- * @brief Single line of the heartbeat `entries[]` running transcript.
+ * @brief 从协议字段推导出的人格状态。
+ *
+ * 每个状态对应一组 ASCII 帧动画（见 ascii_persona.h / persona_registry.c）。
+ * 映射规则（buddy_main_screen 中实现）：
+ *   !ble_connected                 -> BUDDY_PERSONA_STATE_SLEEP
+ *   has_prompt                     -> BUDDY_PERSONA_STATE_ATTENTION
+ *   running > 0                    -> BUDDY_PERSONA_STATE_BUSY
+ *   recently_completed             -> BUDDY_PERSONA_STATE_CELEBRATE（瞬态，≤3s）
+ *   quick-approve after ATTENTION  -> BUDDY_PERSONA_STATE_HEART（瞬态，≤2s）
+ *   external shake event           -> BUDDY_PERSONA_STATE_DIZZY（瞬态，≤2s）
+ *   otherwise                      -> BUDDY_PERSONA_STATE_IDLE
+ */
+typedef enum {
+    BUDDY_PERSONA_STATE_SLEEP = 0,
+    BUDDY_PERSONA_STATE_IDLE,
+    BUDDY_PERSONA_STATE_BUSY,
+    BUDDY_PERSONA_STATE_ATTENTION,
+    BUDDY_PERSONA_STATE_CELEBRATE,
+    BUDDY_PERSONA_STATE_DIZZY,
+    BUDDY_PERSONA_STATE_HEART,
+    BUDDY_PERSONA_STATE_COUNT
+} buddy_persona_state_e;
+
+/**
+ * @brief LED 视觉状态枚举。
+ *
+ * 映射（buddy_main_screen 中实现，buddy_led 执行）：
+ *   SLEEP                 -> BUDDY_LED_STATE_OFF
+ *   IDLE                  -> BUDDY_LED_STATE_ON_DIM（常亮弱光）
+ *   BUSY                  -> BUDDY_LED_STATE_BLINK_SLOW（慢闪 1 Hz）
+ *   ATTENTION             -> BUDDY_LED_STATE_BLINK_FAST（快闪 4 Hz）
+ *   CELEBRATE / HEART     -> BUDDY_LED_STATE_FLASH_ONCE（短亮 200 ms 后回前态）
+ *   DIZZY                 -> BUDDY_LED_STATE_BLINK_FAST
+ */
+typedef enum {
+    BUDDY_LED_STATE_OFF = 0,
+    BUDDY_LED_STATE_ON_DIM,
+    BUDDY_LED_STATE_BLINK_SLOW,
+    BUDDY_LED_STATE_BLINK_FAST,
+    BUDDY_LED_STATE_FLASH_ONCE,
+    BUDDY_LED_STATE_COUNT
+} buddy_led_state_e;
+
+/**
+ * @brief 心跳 entries[] 滚动转写的一行。
  */
 typedef struct {
     char text[BUDDY_ENTRY_MAX_CHARS + 1];
 } buddy_entry_t;
 
 /**
- * @brief Snapshot of everything the UI currently knows about Claude.
+ * @brief UI 当前知道的所有 Claude 状态快照。
  *
- * All char arrays are UTF-8, NUL-terminated, and bounded.  Fields that
- * have not been reported yet are left as zeroes / empty strings so the
- * UI can render a "waiting" state without special-casing NULLs.
+ * 所有字符数组均为 UTF-8、NUL 终止且长度受限。尚未汇报的字段留为 0 /
+ * 空串，UI 可以渲染"等待中"状态而无需特判 NULL。
  */
 typedef struct {
-    bool     ble_connected;         /* GATT link to the desktop is up            */
-    bool     recently_completed;    /* heartbeat says a session just finished    */
-    bool     has_prompt;            /* an approval request is currently pending  */
+    bool     ble_connected;         /* GATT 链路是否建立                         */
+    bool     recently_completed;    /* 心跳显示会话刚刚结束（CELEBRATE 提示）     */
+    bool     has_prompt;            /* 是否有待审批请求                           */
 
-    uint8_t  sessions_total;        /* "total"   from heartbeat frame            */
-    uint8_t  sessions_running;      /* "running" from heartbeat frame            */
-    uint8_t  sessions_waiting;      /* "waiting" from heartbeat frame            */
-    uint32_t tokens;                /* cumulative tokens reported by desktop     */
-    uint32_t tokens_today;          /* tokens used in the current calendar day   */
+    uint8_t  sessions_total;        /* "total"   字段                             */
+    uint8_t  sessions_running;      /* "running" 字段                             */
+    uint8_t  sessions_waiting;      /* "waiting" 字段                             */
+    uint32_t tokens;                /* 桌面端累计 token                           */
+    uint32_t tokens_today;          /* 本日 token                                 */
 
-    char     msg[64];               /* free-form status string ("Working on...")  */
-    char     owner_name[32];        /* set via {"cmd":"owner"}                   */
-    char     device_name[20];       /* advertised BLE name (Claude_XXXX)         */
+    char     msg[64];               /* 自由文本状态（"Working on..."）             */
+    char     owner_name[32];        /* {"cmd":"owner"} 设置                        */
+    char     device_name[20];       /* 广播名（Claude_XXXX）                       */
 
-    char     prompt_id[40];         /* id echoed in permission decisions          */
-    char     prompt_tool[32];       /* tool being requested (Read / Write / ...) */
-    char     prompt_hint[64];       /* argument hint (file path or summary)      */
+    char     prompt_id[40];         /* 权限响应中逐字节回显                         */
+    char     prompt_tool[32];       /* 被请求的工具（Read / Write / ...）          */
+    char     prompt_hint[64];       /* 参数摘要（文件路径或简述）                    */
 
-    /* Running transcript ring: newest at head, oldest at tail.
-     * `entries_count` is how many slots are populated, <= BUDDY_ENTRIES_RING.
-     * `entries_head` points at the most recent entry, wrapping modulo the
-     * ring size. */
+    /* 转写环：最新在 head，最旧在 tail。
+     * entries_count 为已填充槽位数（≤ BUDDY_ENTRIES_RING）。
+     * entries_head 指向最新条目，按环长取模回绕。 */
     buddy_entry_t entries[BUDDY_ENTRIES_RING];
     uint8_t       entries_count;
     uint8_t       entries_head;
 
-    /* Wall-clock sync from `{"time":[epoch, tz]}`.  Zeroed means "not
-     * synced yet"; the UI must render "--:--" in that case.  All time
-     * math uses int64_t to avoid 32-bit wrap. */
-    int64_t  wall_epoch_s;          /* epoch seconds captured at rx               */
-    int16_t  wall_tz_min;           /* signed tz offset in minutes                */
-    uint64_t wall_local_ms_at_rx;   /* tal_system_get_millisecond() at rx         */
+    /* {"time":[epoch, tz]} 时钟同步。全 0 表示"尚未同步"，UI 须渲染
+     * "--:--"。所有时间计算均用 int64_t，避免 32 位溢出。 */
+    int64_t  wall_epoch_s;          /* 收到帧时的 epoch 秒                          */
+    int16_t  wall_tz_min;           /* 时区偏移（UTC 东向分钟，带符号）               */
+    uint64_t wall_local_ms_at_rx;   /* 收到帧时的 tal_system_get_millisecond()      */
+
+    /* M1-UI 派生字段；仅由 UI 层写入，不影响协议。 */
+    uint8_t                persona_id;      /* 当前 species 索引，0..BUDDY_PERSONA_COUNT-1 */
+    buddy_persona_state_e  persona_state;   /* 由上述字段推导的人格状态                  */
+    buddy_led_state_e      led_state;       /* 由 persona_state 推导的 LED 视觉状态      */
 } buddy_tama_state_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* BUDDY_DATA_H */

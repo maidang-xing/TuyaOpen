@@ -28,6 +28,8 @@ claude cli 将能够获取到的状态、信息、数据、审批功能都通过
 
 参考项目：https://github.com/op7418/m5-paper-buddy.git
 
+**项目中所有文档采用中文输出。**
+
 
 
 ## 项目模块

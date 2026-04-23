@@ -1,12 +1,22 @@
 # Claude Buddy — UI Interaction
 
+> **Note (M1-UI / 2026-04):** This document captures the **M1-A** baseline
+> (entries ring + HH:MM clock). The **M1-UI** milestone replaces the body
+> layout with a left ASCII-persona canvas + right text column, rebinds
+> `KEY_LEFT/RIGHT` to persona cycling when no prompt is pending, and adds
+> LED-state mirroring and a custom-GIF placeholder. For the authoritative
+> post-M1-UI specification see [`UI_INTERACTION_zh.md`](./UI_INTERACTION_zh.md)
+> (Chinese, canonical). Keep this file as-is for historical reference; any
+> discrepancy is resolved in favour of the Chinese version until this file
+> is rewritten.
+
 | | |
 |---|---|
 | Target | `apps/tuya_t5_pocket/tuya_t5_pocket_ai` |
 | Panel | 384×168 mono-capable colour LCD (`AI_PET_SCREEN_*`) |
 | Relevant source | `src/display/ui/buddy_ui/buddy_main_screen.c` |
-| Related | [`BUDDY_UI_PORT.md`](./BUDDY_UI_PORT.md), [`docs/protocol/BLE_WIRE_PROTOCOL.md`](../docs/protocol/BLE_WIRE_PROTOCOL.md) |
-| Milestone | M1-A (entries ring + HH:MM clock) |
+| Related | [`BUDDY_UI_PORT.md`](./BUDDY_UI_PORT.md), [`docs/protocol/BLE_WIRE_PROTOCOL.md`](../docs/protocol/BLE_WIRE_PROTOCOL.md), [`UI_INTERACTION_zh.md`](./UI_INTERACTION_zh.md) |
+| Milestone | M1-A (entries ring + HH:MM clock) — see zh doc for M1-UI delta |
 
 ---
 

@@ -1,32 +1,29 @@
 /**
  * @file buddy_main_screen.h
- * @brief Claude Desktop Buddy single-screen UI.
+ * @brief Claude Desktop Buddy 主屏 UI（M1-UI 版本）。
  *
- * A minimal, text-only 384x168 landscape screen that renders live data
- * pushed by the Claude desktop over BLE (NUS).  There is no on-device
- * persona, stats, pagination or demo mode: everything visible comes from
- * the last JSON frame received from the host.
+ * 一屏布局，384x168 横向：
+ *   +------------------------------------------------------+
+ *   | header 20px  Claude Buddy   HH:MM   BLE: -  Claude_..|
+ *   +-----------------------------+------------------------+
+ *   | body 124px                  |  body right 124px       |
+ *   |   ASCII persona 184x120     |  msg / sessions / toks  |
+ *   |   (or GIF stub placeholder) |  owner / entries (4 r)  |
+ *   |   [permission card overlays entire body if pending]   |
+ *   +------------------------------------------------------+
+ *   | footer 24px  key hints (context sensitive)            |
+ *   +------------------------------------------------------+
  *
- * Layout (see doc/UI_INTERACTION.md for the full spec):
- *   +-----------------------------------------------+
- *   | header 20px  Claude Buddy   BLE: -  Claude_.. |
- *   +-----------------------------------------------+
- *   | body 124px   msg / sessions / tokens / owner  |
- *   |              [permission card if pending]     |
- *   +-----------------------------------------------+
- *   | footer 24px  key hints (context sensitive)    |
- *   +-----------------------------------------------+
+ * 按键（见 doc/UI_INTERACTION_zh.md 完整规格）：
+ *   ENTER   审批 "once"        （prompt 时）
+ *   LEFT    审批 "deny"         （prompt 时） / 上一个 persona（无 prompt）
+ *   RIGHT   审批 "always"       （prompt 时） / 下一个 persona（无 prompt）
+ *   UP/DOWN entries 滚动
+ *   JOYCON  发送 {"cmd":"status"}
+ *   ESC     返回上一屏
  *
- * Keys:
- *   ENTER  : approve pending permission  ("decision":"once")
- *   RIGHT  : deny pending permission     ("decision":"deny")
- *   UP     : always allow                ("decision":"always")
- *   DOWN   : request a status refresh from Claude  ({"cmd":"status"})
- *   ESC    : return to the previous screen
- *
- * All keys are no-ops when no permission request is pending, except
- * DOWN (status poke) and ESC (navigation), so the UI can never send a
- * decision without a matching prompt id.
+ * 除了 UP/DOWN/JOYCON/ESC 之外，其他按键在无 prompt 且无 persona 切换
+ * 场景时 no-op，避免把未匹配 id 的决策送上链路。
  *
  * @copyright Copyright (c) 2024-2026 TuyaOpen Project
  */
@@ -41,17 +38,21 @@
 extern "C" {
 #endif
 
+/* ---------------------------------------------------------------------------
+ * Exported Screen_t
+ * --------------------------------------------------------------------------- */
 extern Screen_t buddy_main_screen;
 
+/* ---------------------------------------------------------------------------
+ * Function declarations
+ * --------------------------------------------------------------------------- */
 /**
- * @brief Push the latest BLE-sourced snapshot onto the main screen.
+ * @brief 把最新 BLE 快照推送到主屏。
  *
- * Thread-safe: acquires the LVGL display lock internally, so it may be
- * called from any task (e.g. directly from the BLE RX path).  Does
- * nothing if the screen has not been loaded yet; the next init() will
- * paint with whatever snapshot is staged via buddy_ble_snapshot().
+ * 线程安全：内部自取 LVGL 锁，因此可从任意任务（含 BLE RX）调用。屏幕
+ * 尚未加载时仅缓存，下次 init() 会用缓存 + buddy_ble_snapshot() 重新绘制。
  *
- * @param[in] state snapshot from buddy_ble (must not be NULL)
+ * @param[in] state BLE 层推送的快照（非 NULL）
  * @return none
  */
 void buddy_main_screen_update_state(const buddy_tama_state_t *state);

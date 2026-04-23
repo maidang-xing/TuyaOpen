@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude plugins *)",
+      "Bash(git --version)",
+      "Bash(CLAUDE_CODE_GIT_BASH_PATH=\"C:/Program Files/Git/bin/bash.exe\" claude plugins *)",
+      "Bash(cygpath -w /usr/bin/bash)",
+      "Bash(CLAUDE_CODE_GIT_BASH_PATH=\"D:/software/Git/usr/bin/bash.exe\" claude plugins *)",
+      "Bash(git config *)",
+      "Bash(git credential *)",
+      "Bash(git clone *)"
+    ]
+  }
+}
