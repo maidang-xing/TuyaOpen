@@ -64,6 +64,7 @@ def heartbeat(
     prompt: dict[str, Any] | None = None,
     model: str | None = None,
     sessions: list[dict[str, Any]] | None = None,
+    mstats: list[dict[str, Any]] | None = None,
 ) -> bytes:
     """Encode a heartbeat snapshot (peer → device) per §3.1.
 
@@ -98,11 +99,18 @@ def heartbeat(
                 "id": _truncate_utf8(str(s.get("id", ""))[:SESSION_ID_SHORT], SESSION_ID_SHORT),
                 "n":  _truncate_utf8(str(s.get("n",  "")), SESSION_NAME_MAX),
                 "m":  _truncate_utf8(str(s.get("m",  "")), MODEL_MAX),
-                "ti": int(s.get("ti", 0)),
-                "to": int(s.get("to", 0)),
-                "r":  bool(s.get("r",  False)),
+                "to": int(s.get("to", 0)),   # output tokens only
+                "r":  bool(s.get("r", False)),
             }
             for s in sessions
+        ]
+    if mstats:
+        obj["mstats"] = [
+            {
+                "m":  _truncate_utf8(str(ms.get("m", "")), MODEL_MAX),
+                "to": int(ms.get("to", 0)),  # output tokens
+            }
+            for ms in mstats
         ]
     return _dump(obj)
 
@@ -114,16 +122,16 @@ def _require_int(value: Any, name: str) -> int:
     return int(value)
 
 
-def time_sync(epoch_s: int, tz_min: int) -> bytes:
-    """Encode a ``{"time":[epoch, tz]}`` frame (§3.3).
+def time_sync(epoch_s: int, tz_sec: int) -> bytes:
+    """Encode a ``{"time":[epoch, tz]}`` frame per REFERENCE.md §Transport.
 
-    ``tz_min`` is passed through as-is (the firmware parses whatever the
-    peer sends and currently only logs it). Both arguments MUST be plain
-    ``int``; anything else is a programmer error and raises ``TypeError``.
+    ``tz_sec`` is the UTC offset in **seconds** (e.g. UTC-7 → -25200),
+    matching the Claude Desktop app's wire protocol.
+    Both arguments MUST be plain ``int``.
     """
     _require_int(epoch_s, "epoch_s")
-    _require_int(tz_min, "tz_min")
-    return _dump({"time": [epoch_s, tz_min]})
+    _require_int(tz_sec, "tz_sec")
+    return _dump({"time": [epoch_s, tz_sec]})
 
 
 def owner(name: str) -> bytes:

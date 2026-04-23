@@ -47,6 +47,9 @@ extern "C" {
 #define BUDDY_SESSION_NAME_LEN   28   /* 会话名字符上限（字节） */
 #define BUDDY_MODEL_LEN          22   /* 模型名字符上限（字节） */
 
+/* Per-model token statistics — 来自心跳 "mstats" 数组 */
+#define BUDDY_MSTATS_MAX         4
+
 /* ---------------------------------------------------------------------------
  * Type definitions
  * --------------------------------------------------------------------------- */
@@ -116,10 +119,17 @@ typedef struct {
     char     sid[12];                           /* session id 前 11 字符 + NUL */
     char     name[BUDDY_SESSION_NAME_LEN + 1];  /* 会话名 */
     char     model[BUDDY_MODEL_LEN + 1];        /* 模型名 */
-    uint32_t tokens_in;                         /* 输入 token */
-    uint32_t tokens_out;                        /* 输出 token */
+    uint32_t tokens_out;                        /* 输出 token（REFERENCE.md 定义） */
     bool     is_running;                        /* 是否正在生成 */
 } buddy_session_t;
+
+/**
+ * @brief 单个模型的输出 token 统计（来自心跳 "mstats" 数组）。
+ */
+typedef struct {
+    char     model[BUDDY_MODEL_LEN + 1];
+    uint32_t tokens_out;
+} buddy_mstat_t;
 
 /**
  * @brief UI 当前知道的所有 Claude 状态快照。
@@ -163,6 +173,10 @@ typedef struct {
     char            model[BUDDY_MODEL_LEN + 1];     /* 当前模型名（如 "sonnet-4-6"） */
     buddy_session_t sessions[BUDDY_SESSIONS_MAX];   /* 会话快照数组（最多 6 条）     */
     uint8_t         sessions_count;                 /* 本次心跳收到的会话数          */
+
+    /* M3-UI 新增：per-model token 统计（来自心跳 "mstats" 字段）。 */
+    buddy_mstat_t   mstats[BUDDY_MSTATS_MAX];       /* 模型用量数组（最多 4 条）     */
+    uint8_t         mstats_count;
 
     /* M1-UI 派生字段；仅由 UI 层写入，不影响协议。 */
     uint8_t                persona_id;      /* 当前 species 索引，0..BUDDY_PERSONA_COUNT-1 */

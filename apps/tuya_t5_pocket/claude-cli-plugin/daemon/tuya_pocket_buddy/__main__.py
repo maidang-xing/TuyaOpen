@@ -83,8 +83,8 @@ async def _heartbeat_loop(
         if not ble.is_connected():
             continue
         try:
-            tz_offset_min = -int(time.timezone / 60)
-            await ble.enqueue_tx(wire.time_sync(int(time.time()), tz_offset_min))
+            tz_sec = -int(time.timezone)   # UTC offset in seconds (REFERENCE.md)
+            await ble.enqueue_tx(wire.time_sync(int(time.time()), tz_sec))
             await router.tick()
         except Exception as exc:  # noqa: BLE001
             log.debug("heartbeat: send failed: %s", exc)

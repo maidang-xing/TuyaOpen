@@ -1,27 +1,33 @@
 /**
  * @file buddy_main_screen.c
- * @brief Claude Desktop Buddy 主屏（M5-UI，黑白单色风格）。
+ * @brief Claude Desktop Buddy 主屏（M7-UI）。
  *
- * 风格参考 main_screen.c / standby_screen.c：
- *   - 纯黑白，无彩色
- *   - 选中态：黑底白字（反色）
- *   - 普通态：白底黑字
- *   - 边框/分割线：黑色
+ * 布局（384×168，无 footer）：
+ *   Header   20px  黑底白字：标题 / 时钟 / BLE / 页面指示
+ *   Body    148px  左右分割：
+ *     左侧 144px：
+ *       ├─ persona 动画（144×110 canvas，y=20~130）
+ *       └─ 名字+等级区（y=130~168，38px）：
+ *             "capybara"
+ *             "Lv.3  ▓▓▓░░░░░ 42k"
+ *     竖线  2px  黑色分割线
+ *     右侧 238px：4 页信息面板（LEFT/RIGHT 翻页）
+ *       St — Status   : msg / 会话 / token / 模型 / owner / 最近条目
+ *       Se — Sessions : 会话列表（运行中反色）
+ *       Lo — Log      : 完整条目（UP/DOWN 滚动）
+ *       Md — Models   : 各模型 output token 统计
  *
- * 布局：Header 20px（黑底）+ Body 148px（白底）。
- * 左侧 184px：persona 动画。
- * 右侧 192px：3 页信息，LEFT/RIGHT 翻页（页面指示在 header 右侧）：
- *   Page 0 (St) — Status：摘要 + 模型 + 最近条目
- *   Page 1 (Se) — Sessions：会话列表（名称 / 模型 / token）
- *   Page 2 (Lo) — Log：完整条目（UP/DOWN 滚动）
+ * has_prompt FALSE→TRUE 时直接 screen_load 到 buddy_approval_screen，
+ * 主屏不保留任何审批 UI。
  *
- * 有 prompt 时弹出居中大窗口（340×138），遮盖 body。
- * UP/DOWN 移动光标（选中项反色），ENTER 确认，ESC 拒绝。
+ * 按键：LEFT/RIGHT 翻页；UP/DOWN 在 Log 页滚动；JOYCON 循环 persona；
+ *        ENTER 无操作（避免误触）；ESC 返回上一屏。
  *
  * @copyright Copyright (c) 2024-2026 TuyaOpen Project
  */
 
 #include "buddy_main_screen.h"
+#include "buddy_approval_screen.h"
 #include "buddy_ble.h"
 #include "buddy_data.h"
 #include "buddy_led.h"
@@ -37,19 +43,19 @@
 #include <stdint.h>
 
 /* ---------------------------------------------------------------------------
- * Fonts — same as rest of project
+ * Fonts
  * --------------------------------------------------------------------------- */
 #define FONT_L   &lv_font_terminusTTF_Bold_18
 #define FONT_M   &lv_font_terminusTTF_Bold_16
 #define FONT_S   &lv_font_terminusTTF_Bold_14
 
 /* ---------------------------------------------------------------------------
- * Colors — pure B&W, matching main_screen.c style
+ * Colors — pure B&W
  * --------------------------------------------------------------------------- */
-#define C_BG      lv_color_white()           /* default background */
-#define C_FG      lv_color_black()           /* default text */
-#define C_INV_BG  lv_color_black()           /* inverted: selected background */
-#define C_INV_FG  lv_color_white()           /* inverted: selected text */
+#define C_BG      lv_color_white()
+#define C_FG      lv_color_black()
+#define C_INV_BG  lv_color_black()
+#define C_INV_FG  lv_color_white()
 
 /* ---------------------------------------------------------------------------
  * Layout
@@ -57,44 +63,49 @@
 #define SCR_W       AI_PET_SCREEN_WIDTH     /* 384 */
 #define SCR_H       AI_PET_SCREEN_HEIGHT    /* 168 */
 #define HEADER_H    20
-#define BODY_TOP    HEADER_H
+#define BODY_TOP    HEADER_H                /* 20  */
 #define BODY_H      (SCR_H - HEADER_H)     /* 148 */
 
-#define PERSONA_X   0
-#define PERSONA_Y   BODY_TOP
-#define PERSONA_W   184
-#define PERSONA_H   BODY_H
+/* Left column: persona canvas + name/level strip */
+#define PERSONA_W        144               /* = ASCII_CANVAS_W */
+#define PERSONA_CANVAS_H 110               /* = ASCII_CANVAS_H */
+#define PERSONA_STRIP_Y  (BODY_TOP + PERSONA_CANVAS_H)   /* 130 */
+#define PERSONA_STRIP_H  (SCR_H - PERSONA_STRIP_Y)       /* 38  */
 
-/* Right info panel — 2px gap from persona, 2px right margin */
-#define INFO_X      (PERSONA_W + 2)         /* 186 */
-#define INFO_Y      BODY_TOP
-#define INFO_W      (SCR_W - INFO_X - 2)   /* 196 */
-#define INFO_H      BODY_H                  /* 148 */
-#define INFO_PAD    2
+/* Vertical divider */
+#define DIV_X   PERSONA_W                  /* 144 */
+#define DIV_W   2
 
-/* Divider between persona and info panel */
-#define DIV_X       PERSONA_W               /* 184 */
-#define DIV_W       2
+/* Right info panel */
+#define INFO_X      (PERSONA_W + DIV_W)    /* 146 */
+#define INFO_Y      BODY_TOP               /* 20  */
+#define INFO_W      (SCR_W - INFO_X)       /* 238 */
+#define INFO_H      BODY_H                 /* 148 */
+#define INFO_PAD    3
+
+/* Font heights — must match actual font metrics */
+#define H_M  16    /* FONT_M = terminusTTF_Bold_16 */
+#define H_S  14    /* FONT_S = terminusTTF_Bold_14 */
+
+/* Gap between consecutive rows (px) */
+#define ROW_GAP  3
+
+/* Level calculation */
+#define TOKENS_PER_LEVEL  50000U
+#define LEVEL_BAR_BLOCKS  8
 
 /* Pages */
-#define PAGE_COUNT    3
+#define PAGE_COUNT    4
 #define PAGE_STATUS   0
 #define PAGE_SESSIONS 1
 #define PAGE_LOG      2
+#define PAGE_MODELS   3
 
-#define STATUS_ENTRIES   3
-#define LOG_VISIBLE      7
-#define SESS_ROW_H       22
+#define STATUS_ENTRIES  5   /* entries visible on status page */
+#define LOG_VISIBLE     7
+#define SESS_ROW_H      23
 
-/* Permission popup — centered in body */
-#define POPUP_W         340
-#define POPUP_H         138
-#define POPUP_X         ((SCR_W - POPUP_W) / 2)
-#define POPUP_Y         (BODY_TOP + (BODY_H - POPUP_H) / 2)
-#define POPUP_PAD       6
-#define PERM_OPT_COUNT  3
-
-/* Timer constants */
+/* Timers */
 #define PERSONA_TICK_MS    100U
 #define CELEBRATE_HOLD_MS  3000U
 #define HEART_HOLD_MS      2000U
@@ -109,15 +120,19 @@ STATIC lv_obj_t *ui_buddy_main_screen = NULL;
 STATIC lv_obj_t *lbl_title;
 STATIC lv_obj_t *lbl_clock;
 STATIC lv_obj_t *lbl_ble;
-STATIC lv_obj_t *lbl_page_ind;  /* "St" / "Se" / "Lo" */
+STATIC lv_obj_t *lbl_page_ind;
+
+/* persona name + level strip */
+STATIC lv_obj_t *lbl_persona_name;
+STATIC lv_obj_t *lbl_persona_level;
 
 /* Page 0 — Status */
 STATIC lv_obj_t *pg0;
 STATIC lv_obj_t *pg0_msg;
-STATIC lv_obj_t *pg0_sessions;
-STATIC lv_obj_t *pg0_tokens;
-STATIC lv_obj_t *pg0_model;
-STATIC lv_obj_t *pg0_owner;
+STATIC lv_obj_t *pg0_sessions_line;
+STATIC lv_obj_t *pg0_tokens_line;
+STATIC lv_obj_t *pg0_model_line;
+STATIC lv_obj_t *pg0_owner_line;
 STATIC lv_obj_t *pg0_entries[STATUS_ENTRIES];
 
 /* Page 1 — Sessions */
@@ -130,12 +145,11 @@ STATIC lv_obj_t *pg1_empty;
 STATIC lv_obj_t *pg2;
 STATIC lv_obj_t *pg2_lines[LOG_VISIBLE];
 
-/* Permission popup */
-STATIC lv_obj_t *perm_popup;
-STATIC lv_obj_t *perm_tool;
-STATIC lv_obj_t *perm_hint;
-STATIC lv_obj_t *perm_ctx;
-STATIC lv_obj_t *perm_opts[PERM_OPT_COUNT];
+/* Page 3 — Models */
+STATIC lv_obj_t *pg3;
+STATIC lv_obj_t *pg3_hdr;
+STATIC lv_obj_t *pg3_rows[BUDDY_MSTATS_MAX][2];
+STATIC lv_obj_t *pg3_empty;
 
 /* ---------------------------------------------------------------------------
  * State
@@ -146,7 +160,6 @@ STATIC buddy_persona_state_e s_persona_state = BUDDY_PERSONA_STATE_SLEEP;
 STATIC buddy_led_state_e     s_led_state     = BUDDY_LED_STATE_OFF;
 STATIC uint8_t               s_page          = 0;
 STATIC uint8_t               s_log_scroll    = 0;
-STATIC uint8_t               s_cursor        = 0;
 
 STATIC uint64_t s_celebrate_until_ms = 0;
 STATIC uint64_t s_heart_until_ms     = 0;
@@ -162,21 +175,21 @@ STATIC VOID_T __init(VOID_T);
 STATIC VOID_T __deinit(VOID_T);
 STATIC VOID_T __key_cb(lv_event_t *e);
 STATIC VOID_T __build_header(lv_obj_t *parent);
+STATIC VOID_T __build_persona_strip(lv_obj_t *parent);
 STATIC VOID_T __build_pages(lv_obj_t *parent);
 STATIC VOID_T __build_page0(lv_obj_t *parent);
 STATIC VOID_T __build_page1(lv_obj_t *parent);
 STATIC VOID_T __build_page2(lv_obj_t *parent);
-STATIC VOID_T __build_perm_popup(lv_obj_t *parent);
+STATIC VOID_T __build_page3(lv_obj_t *parent);
 STATIC VOID_T __refresh(VOID_T);
 STATIC VOID_T __refresh_header(VOID_T);
+STATIC VOID_T __refresh_persona_strip(VOID_T);
 STATIC VOID_T __refresh_page_ind(VOID_T);
 STATIC VOID_T __refresh_page0(VOID_T);
 STATIC VOID_T __refresh_page1(VOID_T);
 STATIC VOID_T __refresh_page2(VOID_T);
-STATIC VOID_T __refresh_popup(VOID_T);
-STATIC VOID_T __refresh_cursor(VOID_T);
+STATIC VOID_T __refresh_page3(VOID_T);
 STATIC VOID_T __switch_page(uint8_t p);
-STATIC VOID_T __send_decision(const char *decision);
 STATIC VOID_T __persona_tick_cb(lv_timer_t *t);
 STATIC VOID_T __persona_cycle(int8_t delta);
 STATIC uint8_t __load_persona_id(VOID_T);
@@ -185,10 +198,8 @@ STATIC VOID_T __format_clock(const buddy_tama_state_t *s, char *out, size_t n);
 STATIC VOID_T __fmt_tok(uint32_t v, char *out, size_t n);
 STATIC VOID_T __derive_persona(VOID_T);
 STATIC buddy_led_state_e __led_from_persona(buddy_persona_state_e s);
-
-/* Helper: make a label with common defaults */
-STATIC lv_obj_t *__lbl(lv_obj_t *parent, int32_t x, int32_t y, int32_t w,
-                        const lv_font_t *font);
+STATIC lv_obj_t *__lbl(lv_obj_t *parent, int32_t x, int32_t y,
+                        int32_t w, const lv_font_t *font);
 
 Screen_t buddy_main_screen = {
     .init       = __init,
@@ -205,20 +216,32 @@ VOID_T buddy_main_screen_update_state(const buddy_tama_state_t *state)
 {
     if (!state) return;
     lv_vendor_disp_lock();
+    const BOOL_T was_prompt = s_state.has_prompt ? TRUE : FALSE;
     s_state = *state;
-    if (ui_buddy_main_screen) __refresh();
+    if (ui_buddy_main_screen) {
+        if (s_state.has_prompt && !was_prompt) {
+            lv_vendor_disp_unlock();
+            screen_load(&buddy_approval_screen);
+            return;
+        }
+        __refresh();
+    }
     lv_vendor_disp_unlock();
 }
 
 /* ---------------------------------------------------------------------------
- * Utility helpers
+ * Utilities
  * --------------------------------------------------------------------------- */
-STATIC lv_obj_t *__lbl(lv_obj_t *parent, int32_t x, int32_t y, int32_t w,
-                        const lv_font_t *font)
+STATIC lv_obj_t *__lbl(lv_obj_t *parent, int32_t x, int32_t y,
+                        int32_t w, const lv_font_t *font)
 {
     lv_obj_t *l = lv_label_create(parent);
     lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
-    if (w > 0) lv_obj_set_width(l, w);
+    /* Constrain to a single line: set both width and height explicitly.
+     * This prevents multi-line expansion when content contains '\n'. */
+    int32_t h = (font == FONT_M) ? H_M : H_S;
+    lv_obj_set_size(l, (w > 0) ? w : LV_SIZE_CONTENT, h);
+    lv_obj_set_style_pad_all(l, 0, 0);  /* remove LVGL default padding */
     lv_obj_set_style_text_font(l, font, 0);
     lv_obj_set_style_text_color(l, C_FG, 0);
     lv_obj_set_pos(l, x, y);
@@ -241,13 +264,14 @@ STATIC VOID_T __format_clock(const buddy_tama_state_t *s, char *out, size_t n)
 STATIC VOID_T __fmt_tok(uint32_t v, char *out, size_t n)
 {
     if (v >= 1000U)
-        (VOID_T)snprintf(out, n, "%u.%uk", (unsigned)(v / 1000), (unsigned)((v % 1000) / 100));
+        (VOID_T)snprintf(out, n, "%u.%uk",
+                         (unsigned)(v / 1000), (unsigned)((v % 1000) / 100));
     else
         (VOID_T)snprintf(out, n, "%u", (unsigned)v);
 }
 
 /* ---------------------------------------------------------------------------
- * Header — black bar, white text (matching main_screen.c)
+ * Header
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __build_header(lv_obj_t *parent)
 {
@@ -276,114 +300,202 @@ STATIC VOID_T __build_header(lv_obj_t *parent)
     lv_label_set_text(lbl_ble, "BLE:-");
     lv_obj_set_style_text_font(lbl_ble, FONT_S, 0);
     lv_obj_set_style_text_color(lbl_ble, C_INV_FG, 0);
-    lv_obj_align(lbl_ble, LV_ALIGN_LEFT_MID, 140, 0);
+    lv_obj_align(lbl_ble, LV_ALIGN_LEFT_MID, 130, 0);
 
-    /* Page indicator — right side of header, inverted style */
     lbl_page_ind = lv_label_create(bar);
     lv_label_set_text(lbl_page_ind, "St");
     lv_obj_set_style_text_font(lbl_page_ind, FONT_S, 0);
     lv_obj_set_style_text_color(lbl_page_ind, C_INV_FG, 0);
-    lv_obj_align(lbl_page_ind, LV_ALIGN_RIGHT_MID, -6, 0);
+    lv_obj_align(lbl_page_ind, LV_ALIGN_RIGHT_MID, -4, 0);
 }
 
 /* ---------------------------------------------------------------------------
- * Page container + pages
+ * Persona name + level strip (below the canvas, y=130~168)
  * --------------------------------------------------------------------------- */
+STATIC VOID_T __build_persona_strip(lv_obj_t *parent)
+{
+    /* Black background strip below persona canvas */
+    lv_obj_t *strip = lv_obj_create(parent);
+    lv_obj_set_size(strip, PERSONA_W, PERSONA_STRIP_H);
+    lv_obj_set_pos(strip, 0, PERSONA_STRIP_Y);
+    lv_obj_set_style_bg_color(strip, C_INV_BG, 0);
+    lv_obj_set_style_border_width(strip, 0, 0);
+    lv_obj_set_style_radius(strip, 0, 0);
+    lv_obj_set_style_pad_all(strip, 1, 0);
+    lv_obj_clear_flag(strip, LV_OBJ_FLAG_SCROLLABLE);
+
+    lbl_persona_name = lv_label_create(strip);
+    lv_label_set_long_mode(lbl_persona_name, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(lbl_persona_name, PERSONA_W - 4);
+    lv_obj_set_style_text_font(lbl_persona_name, FONT_S, 0);
+    lv_obj_set_style_text_color(lbl_persona_name, C_INV_FG, 0);
+    lv_obj_align(lbl_persona_name, LV_ALIGN_TOP_MID, 0, 1);
+
+    lbl_persona_level = lv_label_create(strip);
+    lv_label_set_long_mode(lbl_persona_level, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(lbl_persona_level, PERSONA_W - 4);
+    lv_obj_set_style_text_font(lbl_persona_level, FONT_S, 0);
+    lv_obj_set_style_text_color(lbl_persona_level, C_INV_FG, 0);
+    lv_obj_align(lbl_persona_level, LV_ALIGN_TOP_MID, 0, 17);
+}
+
+/* ---------------------------------------------------------------------------
+ * Pages
+ * --------------------------------------------------------------------------- */
+STATIC lv_obj_t *__make_page(lv_obj_t *parent, BOOL_T hidden)
+{
+    lv_obj_t *p = lv_obj_create(parent);
+    lv_obj_set_size(p, INFO_W, INFO_H);
+    lv_obj_set_pos(p, 0, 0);
+    lv_obj_set_style_bg_color(p, C_BG, 0);
+    lv_obj_set_style_border_width(p, 0, 0);
+    lv_obj_set_style_radius(p, 0, 0);
+    lv_obj_set_style_pad_all(p, INFO_PAD, 0);
+    lv_obj_clear_flag(p, LV_OBJ_FLAG_SCROLLABLE);
+    if (hidden) lv_obj_add_flag(p, LV_OBJ_FLAG_HIDDEN);
+    return p;
+}
+
+STATIC lv_obj_t *__make_inv_hdr(lv_obj_t *parent, lv_obj_t **out_lbl)
+{
+    const int32_t W = INFO_W - INFO_PAD * 2;
+    lv_obj_t *bg = lv_obj_create(parent);
+    lv_obj_set_size(bg, W, 16);
+    lv_obj_set_pos(bg, 0, 0);
+    lv_obj_set_style_bg_color(bg, C_INV_BG, 0);
+    lv_obj_set_style_border_width(bg, 0, 0);
+    lv_obj_set_style_radius(bg, 0, 0);
+    lv_obj_set_style_pad_all(bg, 0, 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *lbl = lv_label_create(bg);
+    lv_obj_set_style_text_font(lbl, FONT_S, 0);
+    lv_obj_set_style_text_color(lbl, C_INV_FG, 0);
+    lv_obj_set_pos(lbl, 3, 1);
+    if (out_lbl) *out_lbl = lbl;
+    return bg;
+}
+
+STATIC lv_obj_t *__make_sep(lv_obj_t *parent, int32_t y)
+{
+    const int32_t W = INFO_W - INFO_PAD * 2;
+    lv_obj_t *s = lv_obj_create(parent);
+    lv_obj_set_size(s, W, 1);
+    lv_obj_set_pos(s, 0, y);
+    lv_obj_set_style_bg_color(s, C_FG, 0);
+    lv_obj_set_style_border_width(s, 0, 0);
+    lv_obj_set_style_radius(s, 0, 0);
+    lv_obj_set_style_pad_all(s, 0, 0);
+    return s;
+}
+
+/* --- Page 0: Status ---
+ *
+ * Layout in 238×148px (INFO_PAD=3):
+ *   y=  0  msg (FONT_M, bold status line)
+ *   y= 18  separator
+ *   y= 21  sessions line  "3 sessions · 1 active · 0 waiting"
+ *   y= 36  tokens line    "Today: 1.2k · Total: 56k"
+ *   y= 51  model line     "Model: sonnet-4-6"
+ *   y= 66  owner line     "Owner: alice"
+ *   y= 81  separator
+ *   y= 84  entry[0]  (FONT_M, latest, most prominent)
+ *   y=101  entry[1]  (FONT_S)
+ *   y=115  entry[2]  (FONT_S)
+ *   y=129  entry[3]  (FONT_S)
+ */
 STATIC VOID_T __build_page0(lv_obj_t *parent)
 {
-    pg0 = lv_obj_create(parent);
-    lv_obj_set_size(pg0, INFO_W, INFO_H);
-    lv_obj_set_pos(pg0, 0, 0);
-    lv_obj_set_style_bg_color(pg0, C_BG, 0);
-    lv_obj_set_style_border_width(pg0, 0, 0);
-    lv_obj_set_style_radius(pg0, 0, 0);
-    lv_obj_set_style_pad_all(pg0, INFO_PAD, 0);
-    lv_obj_clear_flag(pg0, LV_OBJ_FLAG_SCROLLABLE);
-
+    pg0 = __make_page(parent, FALSE);
     const int32_t W = INFO_W - INFO_PAD * 2;
-    pg0_msg      = __lbl(pg0, 0,  0, W, FONT_M);
-    pg0_sessions = __lbl(pg0, 0, 20, W, FONT_S);
-    pg0_tokens   = __lbl(pg0, 0, 35, W, FONT_S);
-    pg0_model    = __lbl(pg0, 0, 50, W, FONT_S);
-    pg0_owner    = __lbl(pg0, 0, 65, W, FONT_S);
 
-    /* Divider line before entries */
-    lv_obj_t *div = lv_obj_create(pg0);
-    lv_obj_set_size(div, W, 1);
-    lv_obj_set_pos(div, 0, 80);
-    lv_obj_set_style_bg_color(div, C_FG, 0);
-    lv_obj_set_style_border_width(div, 0, 0);
-    lv_obj_set_style_radius(div, 0, 0);
-    lv_obj_set_style_pad_all(div, 0, 0);
+    /* y positions computed as: prev_y + prev_h + ROW_GAP
+     * msg: 0, h=16, ends=16 | sep=17 | sessions=20, h=14, ends=34
+     * tokens=35+16=35? no: sep at 17(h=1,ends=18), sessions at 20
+     * tokens: 20+14+3=37? wait let me be explicit:           */
+    pg0_msg           = __lbl(pg0, 0,  0, W, FONT_M);  /* y=0,  h=16, ends=16 */
+    __make_sep(pg0, 17);                                 /* y=17, h=1,  ends=18 */
+    pg0_sessions_line = __lbl(pg0, 0, 20, W, FONT_S);  /* y=20, h=14, ends=34 */
+    pg0_tokens_line   = __lbl(pg0, 0, 37, W, FONT_S);  /* y=37, h=14, ends=51 (34+3=37) */
+    pg0_model_line    = __lbl(pg0, 0, 54, W, FONT_S);  /* y=54, h=14, ends=68 (51+3=54) */
+    pg0_owner_line    = __lbl(pg0, 0, 71, W, FONT_S);  /* y=71, h=14, ends=85 (68+3=71) */
+    __make_sep(pg0, 87);                                 /* y=87, h=1,  ends=88 (85+2=87) */
 
+    /* Entry rows start at y=90. With explicit h and 1px gap between rows:
+     * entry[0] FONT_M h=16: y=90, ends=106
+     * entry[1] FONT_S h=14: y=108 (106+2), ends=122
+     * entry[2] FONT_S h=14: y=124 (122+2), ends=138
+     * entry[3] FONT_S h=14: y=140 (138+2), ends=154 → over 142 content limit, skip
+     * So 3 entries fit cleanly. STATUS_ENTRIES=5 keeps array for future; only 3 shown. */
+    static const int32_t ENTRY_Y[5] = {90, 108, 124, 124, 124};  /* [3][4] unused */
     for (uint32_t i = 0; i < STATUS_ENTRIES; i++) {
-        pg0_entries[i] = __lbl(pg0, 0, (int32_t)(84 + i * 22), W,
-                               (i == 0) ? FONT_M : FONT_S);
+        const lv_font_t *f = (i == 0) ? FONT_M : FONT_S;
+        pg0_entries[i] = __lbl(pg0, 0, ENTRY_Y[i], W, f);
         lv_obj_add_flag(pg0_entries[i], LV_OBJ_FLAG_HIDDEN);
     }
 }
 
+/* --- Page 1: Sessions --- */
 STATIC VOID_T __build_page1(lv_obj_t *parent)
 {
-    pg1 = lv_obj_create(parent);
-    lv_obj_set_size(pg1, INFO_W, INFO_H);
-    lv_obj_set_pos(pg1, 0, 0);
-    lv_obj_set_style_bg_color(pg1, C_BG, 0);
-    lv_obj_set_style_border_width(pg1, 0, 0);
-    lv_obj_set_style_radius(pg1, 0, 0);
-    lv_obj_set_style_pad_all(pg1, INFO_PAD, 0);
-    lv_obj_clear_flag(pg1, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(pg1, LV_OBJ_FLAG_HIDDEN);
-
+    pg1 = __make_page(parent, TRUE);
     const int32_t W = INFO_W - INFO_PAD * 2;
 
-    /* Header row — inverted (black bg, white text) */
-    lv_obj_t *hdr_bg = lv_obj_create(pg1);
-    lv_obj_set_size(hdr_bg, W, 16);
-    lv_obj_set_pos(hdr_bg, 0, 0);
-    lv_obj_set_style_bg_color(hdr_bg, C_INV_BG, 0);
-    lv_obj_set_style_border_width(hdr_bg, 0, 0);
-    lv_obj_set_style_radius(hdr_bg, 0, 0);
-    lv_obj_set_style_pad_all(hdr_bg, 0, 0);
-    lv_obj_clear_flag(hdr_bg, LV_OBJ_FLAG_SCROLLABLE);
-
-    pg1_hdr = lv_label_create(hdr_bg);
-    lv_label_set_text(pg1_hdr, "Sessions");
-    lv_obj_set_style_text_font(pg1_hdr, FONT_S, 0);
-    lv_obj_set_style_text_color(pg1_hdr, C_INV_FG, 0);
-    lv_obj_set_pos(pg1_hdr, 2, 1);
+    __make_inv_hdr(pg1, &pg1_hdr);
 
     for (uint32_t i = 0; i < BUDDY_SESSIONS_MAX; i++) {
-        int32_t y = (int32_t)(18 + i * SESS_ROW_H);
-        /* name label (white bg, black text normally; inverted if running) */
-        pg1_rows[i][0] = __lbl(pg1, 0, y, W, FONT_S);
-        /* detail label (small, slightly indented) */
-        pg1_rows[i][1] = __lbl(pg1, 4, (int32_t)(y + 10), W - 4, FONT_S);
+        /* name row + detail row: name(14) + 1px gap + detail(14) + 3px gap = 32px/session
+         * 4 sessions: 18 + 4×32 = 146 → just fits (142 usable, trim 4px at bottom ok) */
+        int32_t y  = (int32_t)(18 + i * 32);
+        int32_t y2 = y + H_S + 1;  /* detail: 1px below name */
+        pg1_rows[i][0] = __lbl(pg1, 0, y,  W,     FONT_S);
+        pg1_rows[i][1] = __lbl(pg1, 4, y2, W - 4, FONT_S);
         lv_obj_add_flag(pg1_rows[i][0], LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(pg1_rows[i][1], LV_OBJ_FLAG_HIDDEN);
     }
     pg1_empty = __lbl(pg1, 0, 20, W, FONT_S);
-    lv_label_set_text(pg1_empty, "No sessions yet");
+    lv_label_set_text(pg1_empty, "No sessions");
 }
 
+/* --- Page 2: Log --- */
 STATIC VOID_T __build_page2(lv_obj_t *parent)
 {
-    pg2 = lv_obj_create(parent);
-    lv_obj_set_size(pg2, INFO_W, INFO_H);
-    lv_obj_set_pos(pg2, 0, 0);
-    lv_obj_set_style_bg_color(pg2, C_BG, 0);
-    lv_obj_set_style_border_width(pg2, 0, 0);
-    lv_obj_set_style_radius(pg2, 0, 0);
-    lv_obj_set_style_pad_all(pg2, INFO_PAD, 0);
-    lv_obj_clear_flag(pg2, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(pg2, LV_OBJ_FLAG_HIDDEN);
-
+    pg2 = __make_page(parent, TRUE);
     const int32_t W = INFO_W - INFO_PAD * 2;
+    /* Line spacing: h + 1px gap.
+     * Row 0: FONT_M h=16, y=0,  ends=16  next=17
+     * Row 1: FONT_S h=14, y=17, ends=31  next=32
+     * Row 2: FONT_S h=14, y=32, ends=46  next=47
+     * Row 3: FONT_S h=14, y=47, ends=61  next=62
+     * Row 4: FONT_S h=14, y=62, ends=76  next=77
+     * Row 5: FONT_S h=14, y=77, ends=91  next=92
+     * Row 6: FONT_S h=14, y=92, ends=106 < 142 ✓
+     */
+    static const int32_t LOG_Y[LOG_VISIBLE] = {0, 17, 32, 47, 62, 77, 92};
     for (uint32_t i = 0; i < LOG_VISIBLE; i++) {
-        pg2_lines[i] = __lbl(pg2, 0, (int32_t)(i * 21), W,
+        pg2_lines[i] = __lbl(pg2, 0, LOG_Y[i], W,
                              (i == 0) ? FONT_M : FONT_S);
         lv_obj_add_flag(pg2_lines[i], LV_OBJ_FLAG_HIDDEN);
     }
+}
+
+/* --- Page 3: Models --- */
+STATIC VOID_T __build_page3(lv_obj_t *parent)
+{
+    pg3 = __make_page(parent, TRUE);
+    const int32_t W = INFO_W - INFO_PAD * 2;
+
+    __make_inv_hdr(pg3, &pg3_hdr);
+
+    for (uint32_t i = 0; i < BUDDY_MSTATS_MAX; i++) {
+        int32_t y = (int32_t)(20 + i * 30);
+        pg3_rows[i][0] = __lbl(pg3, 0, y,          W, FONT_M); /* model name */
+        pg3_rows[i][1] = __lbl(pg3, 4, (int32_t)(y + 16), W - 4, FONT_S); /* tokens */
+        lv_obj_add_flag(pg3_rows[i][0], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(pg3_rows[i][1], LV_OBJ_FLAG_HIDDEN);
+    }
+    pg3_empty = __lbl(pg3, 0, 24, W, FONT_S);
+    lv_label_set_text(pg3_empty, "No token data yet");
 }
 
 STATIC VOID_T __build_pages(lv_obj_t *parent)
@@ -400,8 +512,9 @@ STATIC VOID_T __build_pages(lv_obj_t *parent)
     __build_page0(container);
     __build_page1(container);
     __build_page2(container);
+    __build_page3(container);
 
-    /* Vertical divider between persona and info panel */
+    /* Vertical divider */
     lv_obj_t *div = lv_obj_create(parent);
     lv_obj_set_size(div, DIV_W, BODY_H);
     lv_obj_set_pos(div, DIV_X, BODY_TOP);
@@ -412,90 +525,24 @@ STATIC VOID_T __build_pages(lv_obj_t *parent)
 }
 
 /* ---------------------------------------------------------------------------
- * Permission popup — B&W style:
- *   - White background, black 2px border
- *   - Title in inverted bar (black bg, white text)
- *   - Selected option: inverted (black bg, white text)
- * --------------------------------------------------------------------------- */
-STATIC VOID_T __build_perm_popup(lv_obj_t *parent)
-{
-    perm_popup = lv_obj_create(parent);
-    lv_obj_set_size(perm_popup, POPUP_W, POPUP_H);
-    lv_obj_set_pos(perm_popup, POPUP_X, POPUP_Y);
-    lv_obj_set_style_bg_color(perm_popup, C_BG, 0);
-    lv_obj_set_style_border_color(perm_popup, C_FG, 0);
-    lv_obj_set_style_border_width(perm_popup, 2, 0);
-    lv_obj_set_style_radius(perm_popup, 3, 0);
-    lv_obj_set_style_pad_all(perm_popup, POPUP_PAD, 0);
-    lv_obj_clear_flag(perm_popup, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(perm_popup, LV_OBJ_FLAG_HIDDEN);
-
-    /* Title bar — inverted */
-    lv_obj_t *title_bg = lv_obj_create(perm_popup);
-    lv_obj_set_size(title_bg, POPUP_W - POPUP_PAD * 2, 18);
-    lv_obj_set_pos(title_bg, 0, 0);
-    lv_obj_set_style_bg_color(title_bg, C_INV_BG, 0);
-    lv_obj_set_style_border_width(title_bg, 0, 0);
-    lv_obj_set_style_radius(title_bg, 0, 0);
-    lv_obj_set_style_pad_all(title_bg, 0, 0);
-    lv_obj_clear_flag(title_bg, LV_OBJ_FLAG_SCROLLABLE);
-
-    lv_obj_t *title_lbl = lv_label_create(title_bg);
-    lv_label_set_text(title_lbl, "PERMISSION REQUEST");
-    lv_obj_set_style_text_font(title_lbl, FONT_M, 0);
-    lv_obj_set_style_text_color(title_lbl, C_INV_FG, 0);
-    lv_obj_set_pos(title_lbl, 2, 0);
-
-    const int32_t W = POPUP_W - POPUP_PAD * 2;
-    perm_tool = __lbl(perm_popup, 0, 22, W, FONT_M);
-    perm_hint = __lbl(perm_popup, 0, 40, W, FONT_S);
-    perm_ctx  = __lbl(perm_popup, 0, 56, W, FONT_S);
-
-    /* Horizontal divider */
-    lv_obj_t *sep = lv_obj_create(perm_popup);
-    lv_obj_set_size(sep, W, 1);
-    lv_obj_set_pos(sep, 0, 72);
-    lv_obj_set_style_bg_color(sep, C_FG, 0);
-    lv_obj_set_style_border_width(sep, 0, 0);
-    lv_obj_set_style_radius(sep, 0, 0);
-    lv_obj_set_style_pad_all(sep, 0, 0);
-
-    static const char *const OPT[PERM_OPT_COUNT] = {
-        "Approve (once)", "Approve (always)", "Deny"
-    };
-    for (uint32_t i = 0; i < PERM_OPT_COUNT; i++) {
-        perm_opts[i] = lv_label_create(perm_popup);
-        lv_label_set_long_mode(perm_opts[i], LV_LABEL_LONG_DOT);
-        lv_obj_set_width(perm_opts[i], W);
-        lv_obj_set_style_text_font(perm_opts[i], FONT_S, 0);
-        lv_obj_set_style_text_color(perm_opts[i], C_FG, 0);
-        lv_obj_set_pos(perm_opts[i], 0, (int32_t)(76 + i * 18));
-        char buf[32];
-        (VOID_T)snprintf(buf, sizeof(buf), "  %s", OPT[i]);
-        lv_label_set_text(perm_opts[i], buf);
-    }
-}
-
-/* ---------------------------------------------------------------------------
  * Page switching
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __switch_page(uint8_t p)
 {
     s_page = p % PAGE_COUNT;
     s_log_scroll = 0;
-
-    lv_obj_t *pages[PAGE_COUNT] = {pg0, pg1, pg2};
+    lv_obj_t *pages[PAGE_COUNT] = {pg0, pg1, pg2, pg3};
     for (uint32_t i = 0; i < PAGE_COUNT; i++) {
         if (!pages[i]) continue;
         if (i == (uint32_t)s_page) lv_obj_clear_flag(pages[i], LV_OBJ_FLAG_HIDDEN);
         else                       lv_obj_add_flag(pages[i],    LV_OBJ_FLAG_HIDDEN);
     }
     __refresh_page_ind();
-
     switch (s_page) {
     case PAGE_STATUS:   __refresh_page0(); break;
     case PAGE_SESSIONS: __refresh_page1(); break;
     case PAGE_LOG:      __refresh_page2(); break;
+    case PAGE_MODELS:   __refresh_page3(); break;
     default: break;
     }
 }
@@ -518,11 +565,9 @@ STATIC buddy_led_state_e __led_from_persona(buddy_persona_state_e s)
 STATIC VOID_T __derive_persona(VOID_T)
 {
     uint64_t now = tal_system_get_millisecond();
-
     if (s_state.recently_completed && !s_prev_completed)
         s_celebrate_until_ms = now + CELEBRATE_HOLD_MS;
     s_prev_completed = s_state.recently_completed ? TRUE : FALSE;
-
     if (!s_state.has_prompt && s_prev_prompt)
         s_heart_until_ms = now + HEART_HOLD_MS;
     s_prev_prompt = s_state.has_prompt ? TRUE : FALSE;
@@ -556,8 +601,7 @@ STATIC VOID_T __derive_persona(VOID_T)
 STATIC VOID_T __refresh_header(VOID_T)
 {
     if (lbl_ble)
-        lv_label_set_text(lbl_ble,
-            s_state.ble_connected ? "BLE:OK" : "BLE:-");
+        lv_label_set_text(lbl_ble, s_state.ble_connected ? "BLE:OK" : "BLE:-");
     if (lbl_clock) {
         char buf[6];
         __format_clock(&s_state, buf, sizeof(buf));
@@ -565,55 +609,93 @@ STATIC VOID_T __refresh_header(VOID_T)
     }
 }
 
+STATIC VOID_T __refresh_persona_strip(VOID_T)
+{
+    const persona_entry_t *p = persona_registry_get_by_id(s_persona_id);
+    const char *pname = (p && p->persona && p->persona->name)
+                        ? p->persona->name : "?";
+
+    if (lbl_persona_name)
+        lv_label_set_text(lbl_persona_name, pname);
+
+    if (lbl_persona_level) {
+        uint32_t tok = s_state.tokens;
+        uint32_t level = tok / TOKENS_PER_LEVEL + 1U;
+        uint32_t progress = (tok % TOKENS_PER_LEVEL) * LEVEL_BAR_BLOCKS / TOKENS_PER_LEVEL;
+        char bar[16];
+        uint32_t b;
+        for (b = 0; b < LEVEL_BAR_BLOCKS; b++) {
+            bar[b] = (b < progress) ? '#' : '.';
+        }
+        bar[LEVEL_BAR_BLOCKS] = '\0';
+        char lvbuf[24];
+        (VOID_T)snprintf(lvbuf, sizeof(lvbuf), "Lv.%u [%s]", (unsigned)level, bar);
+        lv_label_set_text(lbl_persona_level, lvbuf);
+    }
+}
+
 STATIC VOID_T __refresh_page_ind(VOID_T)
 {
     if (!lbl_page_ind) return;
-    static const char *const NAMES[PAGE_COUNT] = {"St", "Se", "Lo"};
+    static const char *const NAMES[PAGE_COUNT] = {"St", "Se", "Lo", "Md"};
     lv_label_set_text(lbl_page_ind, NAMES[s_page]);
 }
 
 STATIC VOID_T __refresh_page0(VOID_T)
 {
     if (!pg0_msg) return;
+    const int32_t W = INFO_W - INFO_PAD * 2;
 
-    const char *msg = s_state.msg[0]
-        ? s_state.msg
-        : (s_state.ble_connected ? "Ready." : "Waiting for Claude...");
-    lv_label_set_text(pg0_msg, msg);
+    /* Status message */
+    lv_label_set_text(pg0_msg,
+        s_state.msg[0] ? s_state.msg
+        : (s_state.ble_connected ? "Ready." : "Waiting for Claude..."));
 
-    if (pg0_sessions)
-        lv_label_set_text_fmt(pg0_sessions, "S:%u  R:%u  W:%u",
-            (unsigned)s_state.sessions_total,
-            (unsigned)s_state.sessions_running,
-            (unsigned)s_state.sessions_waiting);
-
-    if (pg0_tokens) {
-        char ti[8], to[8];
-        __fmt_tok(s_state.tokens_today, ti, sizeof(ti));
-        __fmt_tok(s_state.tokens, to, sizeof(to));
-        lv_label_set_text_fmt(pg0_tokens, "tok %s today / %s total", ti, to);
+    /* Sessions — compact but explicit */
+    if (pg0_sessions_line) {
+        if (!s_state.ble_connected) {
+            lv_label_set_text(pg0_sessions_line, "Not connected");
+        } else {
+            lv_label_set_text_fmt(pg0_sessions_line,
+                "%u sessions  %u active  %u waiting",
+                (unsigned)s_state.sessions_total,
+                (unsigned)s_state.sessions_running,
+                (unsigned)s_state.sessions_waiting);
+        }
     }
 
-    if (pg0_model)
-        lv_label_set_text_fmt(pg0_model, "model: %s",
+    /* Tokens — explicit labels */
+    if (pg0_tokens_line) {
+        char td[10], tt[10];
+        __fmt_tok(s_state.tokens_today, td, sizeof(td));
+        __fmt_tok(s_state.tokens, tt, sizeof(tt));
+        lv_label_set_text_fmt(pg0_tokens_line,
+            "Today: %s  Total: %s", td, tt);
+    }
+
+    /* Model */
+    if (pg0_model_line)
+        lv_label_set_text_fmt(pg0_model_line, "Model: %s",
             s_state.model[0] ? s_state.model : "unknown");
 
-    if (pg0_owner) {
-        const persona_entry_t *p = persona_registry_get_by_id(s_persona_id);
-        const char *pname = (p && p->persona && p->persona->name)
-                            ? p->persona->name : "?";
-        lv_label_set_text_fmt(pg0_owner, "%s  [%s]",
-            s_state.owner_name[0] ? s_state.owner_name : "-", pname);
-    }
+    /* Owner */
+    if (pg0_owner_line)
+        lv_label_set_text_fmt(pg0_owner_line, "Owner: %s",
+            s_state.owner_name[0] ? s_state.owner_name : "-");
 
+    /* Recent entries — show up to 3 (entries 3-4 share the same slot, hidden) */
     uint8_t count = s_state.entries_count;
     uint8_t head  = s_state.entries_head;
+    static const int32_t ENTRY_Y[5] = {90, 108, 124, 124, 124};
+    const uint32_t VISIBLE = 3;  /* only 3 fit cleanly */
     for (uint32_t i = 0; i < STATUS_ENTRIES; i++) {
         if (!pg0_entries[i]) continue;
-        if (i >= (uint32_t)count) {
+        if (i >= VISIBLE || i >= (uint32_t)count) {
             lv_obj_add_flag(pg0_entries[i], LV_OBJ_FLAG_HIDDEN);
             continue;
         }
+        lv_obj_set_pos(pg0_entries[i], 0, ENTRY_Y[i]);
+        lv_obj_set_width(pg0_entries[i], W);
         uint8_t idx = (uint8_t)((head + BUDDY_ENTRIES_RING - i) % BUDDY_ENTRIES_RING);
         lv_label_set_text(pg0_entries[i], s_state.entries[idx].text);
         lv_obj_clear_flag(pg0_entries[i], LV_OBJ_FLAG_HIDDEN);
@@ -623,7 +705,6 @@ STATIC VOID_T __refresh_page0(VOID_T)
 STATIC VOID_T __refresh_page1(VOID_T)
 {
     uint8_t cnt = s_state.sessions_count;
-
     if (pg1_hdr)
         lv_label_set_text_fmt(pg1_hdr, "Sessions (%u)", (unsigned)cnt);
 
@@ -646,11 +727,9 @@ STATIC VOID_T __refresh_page1(VOID_T)
         }
         const buddy_session_t *sess = &s_state.sessions[i];
 
-        /* name row: running = inverted, idle = normal */
-        char name_buf[32];
-        const char *prefix = sess->is_running ? "*" : " ";
+        char name_buf[36];
         (VOID_T)snprintf(name_buf, sizeof(name_buf), "%s %s",
-                         prefix,
+                         sess->is_running ? ">" : " ",
                          sess->name[0] ? sess->name : "(unnamed)");
         lv_label_set_text(pg1_rows[i][0], name_buf);
         if (sess->is_running) {
@@ -662,13 +741,11 @@ STATIC VOID_T __refresh_page1(VOID_T)
             lv_obj_set_style_bg_opa(pg1_rows[i][0],    LV_OPA_TRANSP, 0);
         }
 
-        /* detail row */
-        char ti[8], to_s[8];
-        __fmt_tok(sess->tokens_in,  ti,   sizeof(ti));
-        __fmt_tok(sess->tokens_out, to_s, sizeof(to_s));
+        char tok[10];
+        __fmt_tok(sess->tokens_out, tok, sizeof(tok));
         char detail[40];
-        (VOID_T)snprintf(detail, sizeof(detail), "  %s  in:%s  out:%s",
-                         sess->model[0] ? sess->model : "?", ti, to_s);
+        (VOID_T)snprintf(detail, sizeof(detail), "  %s  out: %s",
+                         sess->model[0] ? sess->model : "?", tok);
         lv_label_set_text(pg1_rows[i][1], detail);
         lv_obj_set_style_text_color(pg1_rows[i][1], C_FG, 0);
 
@@ -697,66 +774,54 @@ STATIC VOID_T __refresh_page2(VOID_T)
     }
 }
 
-/* Refresh permission popup option labels: selected = inverted */
-STATIC VOID_T __refresh_cursor(VOID_T)
+STATIC VOID_T __refresh_page3(VOID_T)
 {
-    static const char *const OPT[PERM_OPT_COUNT] = {
-        "Approve (once)", "Approve (always)", "Deny"
-    };
-    for (uint32_t i = 0; i < PERM_OPT_COUNT; i++) {
-        if (!perm_opts[i]) continue;
-        char buf[32];
-        if (i == (uint32_t)s_cursor) {
-            (VOID_T)snprintf(buf, sizeof(buf), "> %s", OPT[i]);
-            lv_obj_set_style_text_color(perm_opts[i], C_INV_FG, 0);
-            lv_obj_set_style_bg_color(perm_opts[i],   C_INV_BG, 0);
-            lv_obj_set_style_bg_opa(perm_opts[i],     LV_OPA_COVER, 0);
-        } else {
-            (VOID_T)snprintf(buf, sizeof(buf), "  %s", OPT[i]);
-            lv_obj_set_style_text_color(perm_opts[i], C_FG, 0);
-            lv_obj_set_style_bg_opa(perm_opts[i],     LV_OPA_TRANSP, 0);
-        }
-        lv_label_set_text(perm_opts[i], buf);
-    }
-}
+    uint8_t cnt = s_state.mstats_count;
+    if (pg3_hdr)
+        lv_label_set_text_fmt(pg3_hdr, "Model Usage (%u)", (unsigned)cnt);
 
-STATIC VOID_T __refresh_popup(VOID_T)
-{
-    if (perm_tool)
-        lv_label_set_text_fmt(perm_tool, "Tool:  %s",
-            s_state.prompt_tool[0] ? s_state.prompt_tool : "?");
-    if (perm_hint)
-        lv_label_set_text_fmt(perm_hint, "Info:  %s",
-            s_state.prompt_hint[0] ? s_state.prompt_hint : "-");
-    if (perm_ctx)
-        lv_label_set_text_fmt(perm_ctx, "Owner: %s  S:%u R:%u",
-            s_state.owner_name[0] ? s_state.owner_name : "-",
-            (unsigned)s_state.sessions_total,
-            (unsigned)s_state.sessions_running);
-    __refresh_cursor();
+    if (cnt == 0) {
+        if (pg3_empty) lv_obj_clear_flag(pg3_empty, LV_OBJ_FLAG_HIDDEN);
+        for (uint32_t i = 0; i < BUDDY_MSTATS_MAX; i++) {
+            if (pg3_rows[i][0]) lv_obj_add_flag(pg3_rows[i][0], LV_OBJ_FLAG_HIDDEN);
+            if (pg3_rows[i][1]) lv_obj_add_flag(pg3_rows[i][1], LV_OBJ_FLAG_HIDDEN);
+        }
+        return;
+    }
+    if (pg3_empty) lv_obj_add_flag(pg3_empty, LV_OBJ_FLAG_HIDDEN);
+
+    for (uint32_t i = 0; i < BUDDY_MSTATS_MAX; i++) {
+        if (!pg3_rows[i][0] || !pg3_rows[i][1]) continue;
+        if (i >= (uint32_t)cnt) {
+            lv_obj_add_flag(pg3_rows[i][0], LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(pg3_rows[i][1], LV_OBJ_FLAG_HIDDEN);
+            continue;
+        }
+        const buddy_mstat_t *ms = &s_state.mstats[i];
+        lv_label_set_text(pg3_rows[i][0],
+            ms->model[0] ? ms->model : "unknown");
+        char tok[12];
+        __fmt_tok(ms->tokens_out, tok, sizeof(tok));
+        char detail[32];
+        (VOID_T)snprintf(detail, sizeof(detail), "  Output: %s tokens", tok);
+        lv_label_set_text(pg3_rows[i][1], detail);
+        lv_obj_clear_flag(pg3_rows[i][0], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(pg3_rows[i][1], LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 STATIC VOID_T __refresh(VOID_T)
 {
     if (!ui_buddy_main_screen) return;
     __refresh_header();
+    __refresh_persona_strip();
     __derive_persona();
-
-    const BOOL_T pending = s_state.has_prompt ? TRUE : FALSE;
-    if (perm_popup) {
-        if (pending) {
-            if (!s_prev_prompt) s_cursor = 0;
-            lv_obj_clear_flag(perm_popup, LV_OBJ_FLAG_HIDDEN);
-            __refresh_popup();
-        } else {
-            lv_obj_add_flag(perm_popup, LV_OBJ_FLAG_HIDDEN);
-        }
-    }
 
     switch (s_page) {
     case PAGE_STATUS:   __refresh_page0(); break;
     case PAGE_SESSIONS: __refresh_page1(); break;
     case PAGE_LOG:      __refresh_page2(); break;
+    case PAGE_MODELS:   __refresh_page3(); break;
     default: break;
     }
 }
@@ -783,12 +848,13 @@ STATIC VOID_T __persona_cycle(int8_t delta)
     const persona_entry_t *p = persona_registry_get_by_id(next);
     PR_NOTICE("persona -> %u (%s)", (unsigned)next,
               (p && p->persona && p->persona->name) ? p->persona->name : "?");
+    __refresh_persona_strip();
     __refresh();
 }
 
 STATIC uint8_t __load_persona_id(VOID_T)
 {
-    uint8_t  v = 0; uint8_t *buf = NULL; size_t len = 0;
+    uint8_t v = 0; uint8_t *buf = NULL; size_t len = 0;
     if (tal_kv_get(KV_KEY_PERSONA_ID, &buf, &len) == OPRT_OK && buf) {
         if (len) v = buf[0];
         tal_kv_free(buf);
@@ -803,55 +869,11 @@ STATIC VOID_T __persist_persona_id(uint8_t id)
 }
 
 /* ---------------------------------------------------------------------------
- * Permission decision
- * --------------------------------------------------------------------------- */
-STATIC VOID_T __send_decision(const char *decision)
-{
-    if (!decision || !s_state.has_prompt || !s_state.prompt_id[0]) return;
-    (VOID_T)buddy_ble_send_permission(s_state.prompt_id, decision);
-    PR_NOTICE("decision=%s id=%s", decision, s_state.prompt_id);
-    s_state.has_prompt = FALSE;
-    s_state.prompt_id[0] = s_state.prompt_tool[0] = s_state.prompt_hint[0] = '\0';
-    __refresh();
-}
-
-/* ---------------------------------------------------------------------------
- * Key handler
+ * Key handler — ENTER does NOT cycle persona (JOYCON only)
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __key_cb(lv_event_t *e)
 {
     uint32_t key = lv_event_get_key(e);
-
-    if (s_state.has_prompt) {
-        static const char *const DECISIONS[PERM_OPT_COUNT] = {
-            "once", "always", "deny"
-        };
-        switch (key) {
-        case KEY_UP:
-            s_cursor = (s_cursor == 0) ? (uint8_t)(PERM_OPT_COUNT - 1)
-                                       : (uint8_t)(s_cursor - 1);
-            lv_vendor_disp_lock();
-            __refresh_cursor();
-            lv_vendor_disp_unlock();
-            break;
-        case KEY_DOWN:
-            s_cursor = (uint8_t)((s_cursor + 1) % PERM_OPT_COUNT);
-            lv_vendor_disp_lock();
-            __refresh_cursor();
-            lv_vendor_disp_unlock();
-            break;
-        case KEY_ENTER:
-            __send_decision(DECISIONS[s_cursor]);
-            break;
-        case KEY_ESC:
-            __send_decision("deny");
-            screen_back();
-            break;
-        default: break;
-        }
-        return;
-    }
-
     switch (key) {
     case KEY_LEFT:
         lv_vendor_disp_lock();
@@ -883,13 +905,17 @@ STATIC VOID_T __key_cb(lv_event_t *e)
         }
         break;
     case KEY_JOYCON:
-    case KEY_ENTER:
+        /* Only the joystick center press cycles the persona */
         __persona_cycle(+1);
+        break;
+    case KEY_ENTER:
+        /* Intentionally no-op in main screen to avoid mis-triggers */
         break;
     case KEY_ESC:
         screen_back();
         break;
-    default: break;
+    default:
+        break;
     }
 }
 
@@ -905,16 +931,19 @@ STATIC VOID_T __init(VOID_T)
     lv_obj_clear_flag(ui_buddy_main_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     __build_header(ui_buddy_main_screen);
-    ascii_persona_attach(ui_buddy_main_screen, PERSONA_X, PERSONA_Y);
+    /* Persona canvas first (z-bottom); name/level strip after */
+    ascii_persona_attach(ui_buddy_main_screen, 0, BODY_TOP);
+    __build_persona_strip(ui_buddy_main_screen);
     __build_pages(ui_buddy_main_screen);
-    __build_perm_popup(ui_buddy_main_screen);
 
-    s_page = 0; s_log_scroll = 0; s_cursor = 0;
+    s_page = 0; s_log_scroll = 0;
     s_persona_id = __load_persona_id();
 
     buddy_tama_state_t snap;
     buddy_ble_snapshot(&snap);
     s_state = snap;
+    s_prev_prompt = snap.has_prompt ? TRUE : FALSE;
+
     __refresh_page_ind();
     __refresh();
 
@@ -941,14 +970,17 @@ STATIC VOID_T __deinit(VOID_T)
     }
 
     lbl_title = lbl_clock = lbl_ble = lbl_page_ind = NULL;
-    pg0 = pg0_msg = pg0_sessions = pg0_tokens = pg0_model = pg0_owner = NULL;
+    lbl_persona_name = lbl_persona_level = NULL;
+    pg0 = pg0_msg = pg0_sessions_line = pg0_tokens_line = NULL;
+    pg0_model_line = pg0_owner_line = NULL;
     for (uint32_t i = 0; i < STATUS_ENTRIES; i++) pg0_entries[i] = NULL;
     pg1 = pg1_hdr = pg1_empty = NULL;
     for (uint32_t i = 0; i < BUDDY_SESSIONS_MAX; i++)
         pg1_rows[i][0] = pg1_rows[i][1] = NULL;
     pg2 = NULL;
     for (uint32_t i = 0; i < LOG_VISIBLE; i++) pg2_lines[i] = NULL;
-    perm_popup = perm_tool = perm_hint = perm_ctx = NULL;
-    for (uint32_t i = 0; i < PERM_OPT_COUNT; i++) perm_opts[i] = NULL;
-    s_log_scroll = s_cursor = s_page = 0;
+    pg3 = pg3_hdr = pg3_empty = NULL;
+    for (uint32_t i = 0; i < BUDDY_MSTATS_MAX; i++)
+        pg3_rows[i][0] = pg3_rows[i][1] = NULL;
+    s_log_scroll = 0; s_page = 0;
 }

@@ -38,11 +38,11 @@ extern "C" {
 /* ---------------------------------------------------------------------------
  * Geometry（像素坐标，ascii_persona_attach 坐标空间内）
  * --------------------------------------------------------------------------- */
-#define ASCII_CANVAS_W    184
-#define ASCII_CANVAS_H    120
+#define ASCII_CANVAS_W    144
+#define ASCII_CANVAS_H    110
 #define ASCII_CHAR_W      8    /* Terminus Bold 14 monospace 近似 char 宽        */
 #define ASCII_CHAR_H      14   /* 行高                                           */
-#define ASCII_X_CENTER    (ASCII_CANVAS_W / 2)  /* 92                            */
+#define ASCII_X_CENTER    (ASCII_CANVAS_W / 2)  /* 72                            */
 #define ASCII_Y_BASE      36   /* 主体 sprite 顶部 y                             */
 #define ASCII_Y_OVERLAY   18   /* overlay 参考 y（sprite 上方）                   */
 

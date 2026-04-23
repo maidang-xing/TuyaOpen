@@ -549,7 +549,8 @@ STATIC VOID_T __handle_time(cJSON *time_arr)
     }
 
     int64_t epoch_s = (int64_t)epoch->valuedouble;
-    int16_t tz_min = (int16_t)tz->valuedouble;
+    /* tz value is in seconds per REFERENCE.md; store as minutes internally */
+    int16_t tz_min = (int16_t)(tz->valuedouble / 60.0);
     uint64_t now_ms = tal_system_get_millisecond();
 
     if (s_state_mutex) {
@@ -681,31 +682,43 @@ STATIC VOID_T __handle_heartbeat(cJSON *root)
     /* model name */
     __copy_str(snap.model, sizeof(snap.model), cJSON_GetObjectItem(root, "model"));
 
-    /* sessions array: [{"id":..,"n":..,"m":..,"ti":..,"to":..,"r":bool}] */
+    /* sessions array: [{"id":..,"n":..,"m":..,"to":uint,"r":bool}] */
     snap.sessions_count = 0;
     cJSON *jsessions = cJSON_GetObjectItem(root, "sessions");
     if (cJSON_IsArray(jsessions)) {
         int n = cJSON_GetArraySize(jsessions);
-        if (n > BUDDY_SESSIONS_MAX) {
-            n = BUDDY_SESSIONS_MAX;
-        }
+        if (n > BUDDY_SESSIONS_MAX) n = BUDDY_SESSIONS_MAX;
         for (int i = 0; i < n; i++) {
             cJSON *js = cJSON_GetArrayItem(jsessions, i);
-            if (!cJSON_IsObject(js)) {
-                continue;
-            }
+            if (!cJSON_IsObject(js)) continue;
             buddy_session_t *sess = &snap.sessions[snap.sessions_count];
             memset(sess, 0, sizeof(*sess));
             __copy_str(sess->sid,   sizeof(sess->sid),   cJSON_GetObjectItem(js, "id"));
             __copy_str(sess->name,  sizeof(sess->name),  cJSON_GetObjectItem(js, "n"));
             __copy_str(sess->model, sizeof(sess->model), cJSON_GetObjectItem(js, "m"));
-            cJSON *jti = cJSON_GetObjectItem(js, "ti");
             cJSON *jto = cJSON_GetObjectItem(js, "to");
             cJSON *jr  = cJSON_GetObjectItem(js, "r");
-            if (cJSON_IsNumber(jti)) sess->tokens_in  = (uint32_t)jti->valuedouble;
             if (cJSON_IsNumber(jto)) sess->tokens_out = (uint32_t)jto->valuedouble;
             sess->is_running = cJSON_IsTrue(jr) ? TRUE : FALSE;
             snap.sessions_count++;
+        }
+    }
+
+    /* mstats array: [{"m":..,"to":uint}] */
+    snap.mstats_count = 0;
+    cJSON *jmstats = cJSON_GetObjectItem(root, "mstats");
+    if (cJSON_IsArray(jmstats)) {
+        int n = cJSON_GetArraySize(jmstats);
+        if (n > BUDDY_MSTATS_MAX) n = BUDDY_MSTATS_MAX;
+        for (int i = 0; i < n; i++) {
+            cJSON *jm = cJSON_GetArrayItem(jmstats, i);
+            if (!cJSON_IsObject(jm)) continue;
+            buddy_mstat_t *ms = &snap.mstats[snap.mstats_count];
+            memset(ms, 0, sizeof(*ms));
+            __copy_str(ms->model, sizeof(ms->model), cJSON_GetObjectItem(jm, "m"));
+            cJSON *jto = cJSON_GetObjectItem(jm, "to");
+            if (cJSON_IsNumber(jto)) ms->tokens_out = (uint32_t)jto->valuedouble;
+            snap.mstats_count++;
         }
     }
 

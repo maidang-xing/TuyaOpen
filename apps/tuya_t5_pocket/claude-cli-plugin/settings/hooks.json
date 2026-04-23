@@ -1,5 +1,22 @@
 {
-  "_comment": "Merge this `hooks` block into ~/.claude/settings.json (or any project .claude/settings.json). Each command POSTs the hook payload to the tuya-pocket-buddy daemon; daemon streams heartbeats to the T5AI-Pocket over BLE. `|| echo '{}'` makes the hook a no-op when the daemon isn't running, so Claude Code keeps working normally.",
+  "_comment": "Merge this block into ~/.claude/settings.json via scripts/install-hooks.py. PreToolUse uses hook_handler.py so that BLE-device denials properly exit with code 2 (blocking the tool). Other events use plain curl (fire-and-forget).",
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "MultiEdit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "TodoWrite(*)",
+      "NotebookEdit(*)",
+      "NotebookRead(*)",
+      "Agent(*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -26,7 +43,7 @@
       {
         "matcher": ".*",
         "hooks": [
-          {"type": "command", "command": "curl -sS --max-time 40 -X POST --data-binary @- http://127.0.0.1:9878/hook 2>/dev/null || echo '{}'"}
+          {"type": "command", "command": "__PYTHON__ __HOOK_HANDLER__"}
         ]
       }
     ],
