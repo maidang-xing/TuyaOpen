@@ -122,6 +122,7 @@ class BleClient:
         self.tx_queue: asyncio.Queue[bytes] = asyncio.Queue()
         self._stop_event = asyncio.Event()
         self._task: asyncio.Task[None] | None = None
+        self._connected: bool = False
 
     # ------------------------------------------------------------------ public API
 
@@ -143,6 +144,10 @@ class BleClient:
         """Queue a newline-terminated frame for transmission."""
         for chunk in tx_chunks(frame, mtu=self._mtu):
             await self.tx_queue.put(chunk)
+
+    def is_connected(self) -> bool:
+        """Return True if a GATT connection is currently active."""
+        return self._connected
 
     def on_notify(self, chunk: bytes) -> None:
         """Feed raw TX-notify bytes into the reassembler."""
@@ -195,6 +200,7 @@ class BleClient:
 
         await client.start_notify(NUS_TX_UUID, _cb)
         log.info("ble: connected and subscribed to NUS TX")
+        self._connected = True
         try:
             while not self._stop_event.is_set() and client.is_connected:
                 try:
@@ -205,6 +211,7 @@ class BleClient:
                     continue
                 await client.write_gatt_char(NUS_RX_UUID, chunk, response=False)
         finally:
+            self._connected = False
             try:
                 await client.stop_notify(NUS_TX_UUID)
             except Exception:  # pragma: no cover

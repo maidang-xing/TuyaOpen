@@ -42,6 +42,11 @@ extern "C" {
 /* 人格注册表长度；与 persona_registry 中的条目一一对应。 */
 #define BUDDY_PERSONA_COUNT   18
 
+/* Sessions list — 来自心跳 "sessions" 数组 */
+#define BUDDY_SESSIONS_MAX       6
+#define BUDDY_SESSION_NAME_LEN   28   /* 会话名字符上限（字节） */
+#define BUDDY_MODEL_LEN          22   /* 模型名字符上限（字节） */
+
 /* ---------------------------------------------------------------------------
  * Type definitions
  * --------------------------------------------------------------------------- */
@@ -97,6 +102,26 @@ typedef struct {
 } buddy_entry_t;
 
 /**
+ * @brief 单个 Claude Code 会话快照（来自心跳 sessions[] 数组）。
+ *
+ * 字段 key 映射（JSON 短名 → 结构体字段）：
+ *   "id" → sid      短会话 ID（截取前 11 字符）
+ *   "n"  → name     会话名（来自第一条用户 prompt，已截断）
+ *   "m"  → model    模型短名（如 "sonnet-4-6"）
+ *   "ti" → tokens_in   输入 token 累计
+ *   "to" → tokens_out  输出 token 累计
+ *   "r"  → is_running  当前是否正在生成
+ */
+typedef struct {
+    char     sid[12];                           /* session id 前 11 字符 + NUL */
+    char     name[BUDDY_SESSION_NAME_LEN + 1];  /* 会话名 */
+    char     model[BUDDY_MODEL_LEN + 1];        /* 模型名 */
+    uint32_t tokens_in;                         /* 输入 token */
+    uint32_t tokens_out;                        /* 输出 token */
+    bool     is_running;                        /* 是否正在生成 */
+} buddy_session_t;
+
+/**
  * @brief UI 当前知道的所有 Claude 状态快照。
  *
  * 所有字符数组均为 UTF-8、NUL 终止且长度受限。尚未汇报的字段留为 0 /
@@ -133,6 +158,11 @@ typedef struct {
     int64_t  wall_epoch_s;          /* 收到帧时的 epoch 秒                          */
     int16_t  wall_tz_min;           /* 时区偏移（UTC 东向分钟，带符号）               */
     uint64_t wall_local_ms_at_rx;   /* 收到帧时的 tal_system_get_millisecond()      */
+
+    /* M2-UI 新增：模型名 + 会话列表（来自心跳 "model" / "sessions" 字段）。 */
+    char            model[BUDDY_MODEL_LEN + 1];     /* 当前模型名（如 "sonnet-4-6"） */
+    buddy_session_t sessions[BUDDY_SESSIONS_MAX];   /* 会话快照数组（最多 6 条）     */
+    uint8_t         sessions_count;                 /* 本次心跳收到的会话数          */
 
     /* M1-UI 派生字段；仅由 UI 层写入，不影响协议。 */
     uint8_t                persona_id;      /* 当前 species 索引，0..BUDDY_PERSONA_COUNT-1 */

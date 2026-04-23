@@ -3,6 +3,8 @@ daemon/.venv-*/
 daemon/**/__pycache__/
 daemon/*.egg-info/
 daemon/**/*.egg-info/
+daemon/build/
+daemon/dist/
 daemon/.pytest_cache/
 daemon/.mypy_cache/
 daemon/.ruff_cache/

@@ -48,6 +48,11 @@ def _dump(obj: dict[str, Any]) -> bytes:
     return line
 
 
+SESSION_ID_SHORT = 11    # keep first 11 chars of session_id as "id"
+SESSION_NAME_MAX = 28   # match BUDDY_SESSION_NAME_LEN
+MODEL_MAX        = 22   # match BUDDY_MODEL_LEN
+
+
 def heartbeat(
     total: int,
     running: int,
@@ -57,15 +62,16 @@ def heartbeat(
     msg: str,
     entries: list[str] | None = None,
     prompt: dict[str, Any] | None = None,
+    model: str | None = None,
+    sessions: list[dict[str, Any]] | None = None,
 ) -> bytes:
     """Encode a heartbeat snapshot (peer → device) per §3.1.
 
-    ``entries`` entries are truncated to 80 bytes UTF-8 safely.
-
-    ``prompt`` is optional. If provided without an ``id`` one is generated
-    from ``secrets.token_hex(10)`` (20 hex characters). ``tool`` and
-    ``hint`` fields pass through verbatim (device-side truncation rules
-    still apply).
+    New optional fields (M2):
+      ``model``    — current Claude model short name (e.g. "sonnet-4-6").
+      ``sessions`` — list of session dicts with short keys:
+                     ``id``, ``n`` (name), ``m`` (model),
+                     ``ti`` (tokens_in), ``to`` (tokens_out), ``r`` (running).
     """
     obj: dict[str, Any] = {
         "total": int(total),
@@ -84,6 +90,20 @@ def heartbeat(
             "tool": prompt.get("tool", ""),
             "hint": prompt.get("hint", ""),
         }
+    if model:
+        obj["model"] = _truncate_utf8(model, MODEL_MAX)
+    if sessions:
+        obj["sessions"] = [
+            {
+                "id": _truncate_utf8(str(s.get("id", ""))[:SESSION_ID_SHORT], SESSION_ID_SHORT),
+                "n":  _truncate_utf8(str(s.get("n",  "")), SESSION_NAME_MAX),
+                "m":  _truncate_utf8(str(s.get("m",  "")), MODEL_MAX),
+                "ti": int(s.get("ti", 0)),
+                "to": int(s.get("to", 0)),
+                "r":  bool(s.get("r",  False)),
+            }
+            for s in sessions
+        ]
     return _dump(obj)
 
 

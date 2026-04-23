@@ -20,6 +20,8 @@ import os
 import signal
 import sys
 
+import time
+
 from . import wire
 from .ble_client import SCAN_DURATION_S, BleClient, pick_candidate
 from .config import (
@@ -32,6 +34,9 @@ from .config import (
 from .hook_router import Router, State
 from .hook_server import DEFAULT_PORT, run_server
 from .permissions import PermissionBridge
+
+# How often to send a keepalive heartbeat (seconds).
+HEARTBEAT_INTERVAL_S: float = 10.0
 
 log = logging.getLogger("tuya_pocket_buddy")
 
@@ -67,6 +72,24 @@ async def _rx_pump(
             log.debug("rx: %s %s", kind, payload.get("cmd"))
 
 
+async def _heartbeat_loop(
+    ble: BleClient, router: Router, stop_event: asyncio.Event
+) -> None:
+    """Periodically send time-sync + heartbeat to keep the device in sync."""
+    while not stop_event.is_set():
+        await asyncio.sleep(HEARTBEAT_INTERVAL_S)
+        if stop_event.is_set():
+            break
+        if not ble.is_connected():
+            continue
+        try:
+            tz_offset_min = -int(time.timezone / 60)
+            await ble.enqueue_tx(wire.time_sync(int(time.time()), tz_offset_min))
+            await router.tick()
+        except Exception as exc:  # noqa: BLE001
+            log.debug("heartbeat: send failed: %s", exc)
+
+
 async def _run_async(cfg: DaemonConfig) -> int:
     setup_logging(cfg.log_path)
     log.info("daemon: starting; config=%s", config_as_dict(cfg))
@@ -94,16 +117,27 @@ async def _run_async(cfg: DaemonConfig) -> int:
     runner = await run_server(router, port=cfg.port)
     await ble.start()
     rx_task = asyncio.create_task(_rx_pump(ble, permissions))
+    hb_task = asyncio.create_task(_heartbeat_loop(ble, router, stop_event))
+
+    # Send initial time sync as soon as possible.
+    try:
+        tz_offset_min = -int(time.timezone / 60)
+        await ble.enqueue_tx(wire.time_sync(int(time.time()), tz_offset_min))
+        await router.tick()
+    except Exception as exc:  # noqa: BLE001
+        log.debug("initial heartbeat failed: %s", exc)
 
     try:
         await stop_event.wait()
     finally:
         log.info("daemon: shutting down")
+        hb_task.cancel()
         rx_task.cancel()
-        try:
-            await rx_task
-        except asyncio.CancelledError:
-            pass
+        for task in (hb_task, rx_task):
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         await ble.stop()
         await runner.cleanup()
         _remove_pid(cfg)
