@@ -85,6 +85,9 @@ class State:
     waiting: int = 0
     tokens: int = 0           # cumulative output tokens (REFERENCE.md)
     tokens_today: int = 0     # output tokens since local midnight
+    tokens_in: int = 0        # cumulative input tokens
+    tokens_in_today: int = 0  # input tokens since local midnight
+    cache_read: int = 0       # cumulative cache_read_input_tokens
     msg: str = ""
     model: str = field(default_factory=_detect_model)
     entries: deque[str] = field(
@@ -171,6 +174,9 @@ class Router:
             waiting=s.waiting,
             tokens=s.tokens,
             tokens_today=s.tokens_today,
+            tokens_in=s.tokens_in,
+            tokens_in_today=s.tokens_in_today,
+            cache_read=s.cache_read,
             msg=s.msg,
             entries=list(s.entries) if s.entries else None,
             prompt=prompt,
@@ -296,19 +302,42 @@ class Router:
         s.running = 0
         s.msg = "session ended"
 
-        # Track OUTPUT tokens only (matches REFERENCE.md definition)
-        usage = payload.get("usage") or {}
-        if isinstance(usage, dict):
-            to = int(usage.get("output_tokens", 0))
-            if to > 0:
-                s.tokens += to
-                s.tokens_today += to
-                if sid and sid in s.session_map:
-                    s.session_map[sid].tokens_out += to
-                m_key = (
-                    s.session_map[sid].model if (sid and sid in s.session_map) else ""
-                ) or s.model or "unknown"
-                s.model_usage[m_key] = s.model_usage.get(m_key, 0) + to
+        # Claude Code may put usage at top-level, under "usage", or inside
+        # the final assistant message.  Try all known locations.
+        usage: dict[str, Any] = {}
+        for candidate in (
+            payload.get("usage"),
+            (payload.get("message") or {}).get("usage"),
+            next(
+                (
+                    e.get("usage")
+                    for e in reversed(payload.get("transcript") or [])
+                    if isinstance(e, dict) and e.get("usage")
+                ),
+                None,
+            ),
+        ):
+            if isinstance(candidate, dict) and candidate:
+                usage = candidate
+                break
+
+        to = int(usage.get("output_tokens", 0))
+        ti = int(usage.get("input_tokens", 0))
+        cr = int(usage.get("cache_read_input_tokens", 0))
+        if to > 0:
+            s.tokens += to
+            s.tokens_today += to
+            if sid and sid in s.session_map:
+                s.session_map[sid].tokens_out += to
+            m_key = (
+                s.session_map[sid].model if (sid and sid in s.session_map) else ""
+            ) or s.model or "unknown"
+            s.model_usage[m_key] = s.model_usage.get(m_key, 0) + to
+        if ti > 0:
+            s.tokens_in += ti
+            s.tokens_in_today += ti
+        if cr > 0:
+            s.cache_read += cr
 
         if sid and sid in s.session_map:
             s.session_map[sid].is_running = False

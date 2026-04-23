@@ -85,6 +85,9 @@ class State:
     waiting: int = 0
     tokens: int = 0           # cumulative output tokens (REFERENCE.md)
     tokens_today: int = 0     # output tokens since local midnight
+    tokens_in: int = 0        # cumulative input tokens
+    tokens_in_today: int = 0  # input tokens since local midnight
+    cache_read: int = 0       # cumulative cache_read_input_tokens
     msg: str = ""
     model: str = field(default_factory=_detect_model)
     entries: deque[str] = field(
@@ -137,9 +140,12 @@ def _short_hint(payload: dict[str, Any]) -> str:
     for key in ("command", "file_path", "path", "url", "pattern", "query"):
         value = tool_input.get(key)
         if isinstance(value, str) and value:
-            return value[:PROMPT_HINT_MAX_CHARS]
+            # Strip newlines so the hint stays on one line on the device display
+            single = value.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+            return single[:PROMPT_HINT_MAX_CHARS]
     try:
-        return json.dumps(tool_input, ensure_ascii=False)[:PROMPT_HINT_MAX_CHARS]
+        raw = json.dumps(tool_input, ensure_ascii=False)
+        return raw.replace("\n", " ")[:PROMPT_HINT_MAX_CHARS]
     except Exception:
         return ""
 
@@ -168,6 +174,9 @@ class Router:
             waiting=s.waiting,
             tokens=s.tokens,
             tokens_today=s.tokens_today,
+            tokens_in=s.tokens_in,
+            tokens_in_today=s.tokens_in_today,
+            cache_read=s.cache_read,
             msg=s.msg,
             entries=list(s.entries) if s.entries else None,
             prompt=prompt,
@@ -191,36 +200,61 @@ class Router:
     # --- Event handlers ------------------------------------------------------
 
     async def _on_session_start(self, payload: dict[str, Any]) -> dict[str, Any]:
+        import secrets as _sec
         s = self._state
         sid = str(payload.get("session_id") or "")
+        # Fallback: generate a stable enough ID so the session is always tracked
+        if not sid:
+            sid = "s-" + _sec.token_hex(4)
         s.active = True
         s.total += 1
         s.msg = "session started"
         if not s.model:
             s.model = _detect_model()
-        if sid:
-            if len(s.session_map) >= 6:
-                oldest = min(
-                    (v for v in s.session_map.values() if not v.is_running),
-                    key=lambda v: v.started_at,
-                    default=None,
-                )
-                if oldest:
-                    del s.session_map[oldest.session_id]
-            s.session_map[sid] = SessionInfo(session_id=sid, model=s.model, is_running=True)
+        if len(s.session_map) >= 6:
+            oldest = min(
+                (v for v in s.session_map.values() if not v.is_running),
+                key=lambda v: v.started_at,
+                default=None,
+            )
+            if oldest:
+                del s.session_map[oldest.session_id]
+        s.session_map[sid] = SessionInfo(session_id=sid, model=s.model, is_running=True)
         if s.owner_name:
             await self._tx.send(wire.owner(s.owner_name))
         await self._emit_heartbeat()
         return {}
 
     async def _on_user_prompt_submit(self, payload: dict[str, Any]) -> dict[str, Any]:
+        import secrets as _sec
         s = self._state
         sid = str(payload.get("session_id") or "")
         s.waiting += 1
         s.msg = "prompt received"
+
         prompt_text = str(payload.get("prompt") or "").strip()
-        if sid and sid in s.session_map and not s.session_map[sid].name:
-            s.session_map[sid].name = prompt_text.replace("\n", " ")[:wire.SESSION_NAME_MAX]
+
+        # Create session entry if missing (SessionStart may have been missed)
+        if sid and sid not in s.session_map:
+            if not s.model:
+                s.model = _detect_model()
+            s.session_map[sid] = SessionInfo(
+                session_id=sid, model=s.model, is_running=True
+            )
+            s.total = max(s.total, len(s.session_map))
+        elif not sid:
+            # No session_id at all — still record a session so UI shows something
+            sid = "s-" + _sec.token_hex(4)
+            s.session_map[sid] = SessionInfo(
+                session_id=sid, model=s.model or _detect_model(), is_running=True
+            )
+            s.total = max(s.total, len(s.session_map))
+
+        # Capture first prompt as session name
+        if sid in s.session_map and not s.session_map[sid].name and prompt_text:
+            clean = prompt_text.replace("\n", " ")[:wire.SESSION_NAME_MAX]
+            s.session_map[sid].name = clean
+
         await self._emit_heartbeat()
         return {}
 
@@ -268,19 +302,42 @@ class Router:
         s.running = 0
         s.msg = "session ended"
 
-        # Track OUTPUT tokens only (matches REFERENCE.md definition)
-        usage = payload.get("usage") or {}
-        if isinstance(usage, dict):
-            to = int(usage.get("output_tokens", 0))
-            if to > 0:
-                s.tokens += to
-                s.tokens_today += to
-                if sid and sid in s.session_map:
-                    s.session_map[sid].tokens_out += to
-                m_key = (
-                    s.session_map[sid].model if (sid and sid in s.session_map) else ""
-                ) or s.model or "unknown"
-                s.model_usage[m_key] = s.model_usage.get(m_key, 0) + to
+        # Claude Code may put usage at top-level, under "usage", or inside
+        # the final assistant message.  Try all known locations.
+        usage: dict[str, Any] = {}
+        for candidate in (
+            payload.get("usage"),
+            (payload.get("message") or {}).get("usage"),
+            next(
+                (
+                    e.get("usage")
+                    for e in reversed(payload.get("transcript") or [])
+                    if isinstance(e, dict) and e.get("usage")
+                ),
+                None,
+            ),
+        ):
+            if isinstance(candidate, dict) and candidate:
+                usage = candidate
+                break
+
+        to = int(usage.get("output_tokens", 0))
+        ti = int(usage.get("input_tokens", 0))
+        cr = int(usage.get("cache_read_input_tokens", 0))
+        if to > 0:
+            s.tokens += to
+            s.tokens_today += to
+            if sid and sid in s.session_map:
+                s.session_map[sid].tokens_out += to
+            m_key = (
+                s.session_map[sid].model if (sid and sid in s.session_map) else ""
+            ) or s.model or "unknown"
+            s.model_usage[m_key] = s.model_usage.get(m_key, 0) + to
+        if ti > 0:
+            s.tokens_in += ti
+            s.tokens_in_today += ti
+        if cr > 0:
+            s.cache_read += cr
 
         if sid and sid in s.session_map:
             s.session_map[sid].is_running = False

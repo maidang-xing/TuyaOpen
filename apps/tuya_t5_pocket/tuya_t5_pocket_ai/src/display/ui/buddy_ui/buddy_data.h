@@ -145,8 +145,11 @@ typedef struct {
     uint8_t  sessions_total;        /* "total"   字段                             */
     uint8_t  sessions_running;      /* "running" 字段                             */
     uint8_t  sessions_waiting;      /* "waiting" 字段                             */
-    uint32_t tokens;                /* 桌面端累计 token                           */
-    uint32_t tokens_today;          /* 本日 token                                 */
+    uint32_t tokens;                /* 桌面端累计 output token                    */
+    uint32_t tokens_today;          /* 本日 output token                          */
+    uint32_t tokens_in;             /* 累计 input token                           */
+    uint32_t tokens_in_today;       /* 本日 input token                           */
+    uint32_t cache_read;            /* 累计 cache_read_input_tokens               */
 
     char     msg[64];               /* 自由文本状态（"Working on..."）             */
     char     owner_name[32];        /* {"cmd":"owner"} 设置                        */

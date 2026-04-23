@@ -43,8 +43,8 @@ extern "C" {
 #define ASCII_CHAR_W      8    /* Terminus Bold 14 monospace 近似 char 宽        */
 #define ASCII_CHAR_H      14   /* 行高                                           */
 #define ASCII_X_CENTER    (ASCII_CANVAS_W / 2)  /* 72                            */
-#define ASCII_Y_BASE      36   /* 主体 sprite 顶部 y                             */
-#define ASCII_Y_OVERLAY   18   /* overlay 参考 y（sprite 上方）                   */
+#define ASCII_Y_BASE      20   /* 主体 sprite 顶部 y（垂直居中：(110-70)/2=20）   */
+#define ASCII_Y_OVERLAY   2    /* overlay 参考 y（sprite 上方 18px 余量）          */
 
 /* 画笔兼容常量（transformer 保留原 cpp 使用，但本实现忽略颜色）。 */
 #define BUDDY_X_CENTER    ASCII_X_CENTER

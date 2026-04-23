@@ -42,11 +42,11 @@ def _venv_python(plugin_root: Path) -> str:
     else:
         home = Path.home()
         venv = home / ".tuya-pocket-buddy" / "venv" / "bin" / "python3"
-    return str(venv)
+    return str(venv).replace("\\", "/")
 
 
 def _hook_handler_path(plugin_root: Path) -> str:
-    return str((plugin_root / "scripts" / "hook_handler.py").resolve())
+    return str((plugin_root / "scripts" / "hook_handler.py").resolve()).replace("\\", "/")
 
 
 def _load_plugin_doc(plugin_root: Path) -> dict[str, Any]:
@@ -114,6 +114,20 @@ def _merge(
             e for e in list(existing.get(event) or [])
             if not (isinstance(e, dict) and e.get(_MARKER_KEY))
         ]
+        # For PreToolUse: also drop any unmanaged curl-based entries that
+        # were left by previous installs — they cause double-fire and
+        # trigger the permission-bridge supersede bug (result:deny).
+        if event == "PreToolUse":
+            existing_entries = [
+                e for e in existing_entries
+                if not (
+                    isinstance(e, dict)
+                    and any(
+                        "curl" in str(h.get("command", ""))
+                        for h in e.get("hooks", [])
+                    )
+                )
+            ]
         for entry in entries:
             tagged = copy.deepcopy(entry)
             if isinstance(tagged, dict):

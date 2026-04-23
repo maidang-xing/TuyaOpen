@@ -11,6 +11,7 @@
 #include "buddy_approval_screen.h"
 #include "buddy_ble.h"
 #include "buddy_data.h"
+#include "buddy_led.h"
 #include "lv_vendor.h"
 #include "screen_manager.h"
 #include "tal_api.h"
@@ -233,6 +234,9 @@ STATIC VOID_T __refresh_cursor(VOID_T)
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __send_and_back(const char *decision)
 {
+    /* Turn off the LED regardless of outcome */
+    (VOID_T)buddy_led_set(BUDDY_LED_STATE_OFF);
+
     if (!decision || !s_snap.has_prompt || !s_snap.prompt_id[0]) {
         screen_back();
         return;

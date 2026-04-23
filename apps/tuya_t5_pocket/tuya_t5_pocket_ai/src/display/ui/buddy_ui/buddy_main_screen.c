@@ -117,9 +117,10 @@
 STATIC lv_obj_t *ui_buddy_main_screen = NULL;
 
 /* header */
-STATIC lv_obj_t *lbl_title;
+STATIC lv_obj_t *lbl_model;
 STATIC lv_obj_t *lbl_clock;
 STATIC lv_obj_t *lbl_ble;
+STATIC lv_obj_t *lbl_stat_line;
 STATIC lv_obj_t *lbl_page_ind;
 
 /* persona name + level strip */
@@ -130,7 +131,8 @@ STATIC lv_obj_t *lbl_persona_level;
 STATIC lv_obj_t *pg0;
 STATIC lv_obj_t *pg0_msg;
 STATIC lv_obj_t *pg0_sessions_line;
-STATIC lv_obj_t *pg0_tokens_line;
+STATIC lv_obj_t *pg0_tokens_out_line;
+STATIC lv_obj_t *pg0_tokens_in_line;
 STATIC lv_obj_t *pg0_model_line;
 STATIC lv_obj_t *pg0_owner_line;
 STATIC lv_obj_t *pg0_entries[STATUS_ENTRIES];
@@ -220,6 +222,10 @@ VOID_T buddy_main_screen_update_state(const buddy_tama_state_t *state)
     s_state = *state;
     if (ui_buddy_main_screen) {
         if (s_state.has_prompt && !was_prompt) {
+            /* Set LED now — __derive_persona() is never reached when we
+             * switch screens, so we must drive the LED explicitly here. */
+            s_led_state = BUDDY_LED_STATE_BLINK_FAST;
+            (VOID_T)buddy_led_set(BUDDY_LED_STATE_BLINK_FAST);
             lv_vendor_disp_unlock();
             screen_load(&buddy_approval_screen);
             return;
@@ -284,29 +290,44 @@ STATIC VOID_T __build_header(lv_obj_t *parent)
     lv_obj_set_style_pad_all(bar, 0, 0);
     lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
 
-    lbl_title = lv_label_create(bar);
-    lv_label_set_text(lbl_title, "Claude Buddy");
-    lv_obj_set_style_text_font(lbl_title, FONT_M, 0);
-    lv_obj_set_style_text_color(lbl_title, C_INV_FG, 0);
-    lv_obj_align(lbl_title, LV_ALIGN_LEFT_MID, 6, 0);
+    /* Left: BLE status (6 chars) */
+    lbl_ble = lv_label_create(bar);
+    lv_label_set_text(lbl_ble, "BLE:-");
+    lv_obj_set_style_text_font(lbl_ble, FONT_S, 0);
+    lv_obj_set_style_text_color(lbl_ble, C_INV_FG, 0);
+    lv_obj_align(lbl_ble, LV_ALIGN_LEFT_MID, 4, 0);
 
+    /* Left+52: model name (up to 14 chars, truncated) */
+    lbl_model = lv_label_create(bar);
+    lv_label_set_long_mode(lbl_model, LV_LABEL_LONG_DOT);
+    lv_obj_set_size(lbl_model, 100, H_S);
+    lv_label_set_text(lbl_model, "?");
+    lv_obj_set_style_text_font(lbl_model, FONT_S, 0);
+    lv_obj_set_style_text_color(lbl_model, C_INV_FG, 0);
+    lv_obj_align(lbl_model, LV_ALIGN_LEFT_MID, 52, 0);
+
+    /* Center: clock */
     lbl_clock = lv_label_create(bar);
     lv_label_set_text(lbl_clock, "--:--");
     lv_obj_set_style_text_font(lbl_clock, FONT_S, 0);
     lv_obj_set_style_text_color(lbl_clock, C_INV_FG, 0);
     lv_obj_align(lbl_clock, LV_ALIGN_CENTER, 0, 0);
 
-    lbl_ble = lv_label_create(bar);
-    lv_label_set_text(lbl_ble, "BLE:-");
-    lv_obj_set_style_text_font(lbl_ble, FONT_S, 0);
-    lv_obj_set_style_text_color(lbl_ble, C_INV_FG, 0);
-    lv_obj_align(lbl_ble, LV_ALIGN_LEFT_MID, 130, 0);
+    /* Right-second: sessions + total tokens summary, e.g. "2s 1.2k" */
+    lbl_stat_line = lv_label_create(bar);
+    lv_label_set_long_mode(lbl_stat_line, LV_LABEL_LONG_CLIP);
+    lv_obj_set_size(lbl_stat_line, 72, H_S);
+    lv_label_set_text(lbl_stat_line, "0s 0");
+    lv_obj_set_style_text_font(lbl_stat_line, FONT_S, 0);
+    lv_obj_set_style_text_color(lbl_stat_line, C_INV_FG, 0);
+    lv_obj_align(lbl_stat_line, LV_ALIGN_RIGHT_MID, -42, 0);
 
+    /* Right: page indicator (4 chars + brackets = 6 chars) */
     lbl_page_ind = lv_label_create(bar);
-    lv_label_set_text(lbl_page_ind, "St");
+    lv_label_set_text(lbl_page_ind, "[St]");
     lv_obj_set_style_text_font(lbl_page_ind, FONT_S, 0);
     lv_obj_set_style_text_color(lbl_page_ind, C_INV_FG, 0);
-    lv_obj_align(lbl_page_ind, LV_ALIGN_RIGHT_MID, -4, 0);
+    lv_obj_align(lbl_page_ind, LV_ALIGN_RIGHT_MID, -2, 0);
 }
 
 /* ---------------------------------------------------------------------------
@@ -392,42 +413,33 @@ STATIC lv_obj_t *__make_sep(lv_obj_t *parent, int32_t y)
 /* --- Page 0: Status ---
  *
  * Layout in 238×148px (INFO_PAD=3):
- *   y=  0  msg (FONT_M, bold status line)
- *   y= 18  separator
- *   y= 21  sessions line  "3 sessions · 1 active · 0 waiting"
- *   y= 36  tokens line    "Today: 1.2k · Total: 56k"
- *   y= 51  model line     "Model: sonnet-4-6"
- *   y= 66  owner line     "Owner: alice"
- *   y= 81  separator
- *   y= 84  entry[0]  (FONT_M, latest, most prominent)
- *   y=101  entry[1]  (FONT_S)
- *   y=115  entry[2]  (FONT_S)
- *   y=129  entry[3]  (FONT_S)
+ *   y=  0  msg       (FONT_M)
+ *   y= 18  sep
+ *   y= 21  sessions  "3s  1 active  0 waiting"
+ *   y= 36  out line  "Out: 1.2k today  56k total"
+ *   y= 50  in line   "In:  5.4k today  Cache: 2.1k"
+ *   y= 64  model     "Model: sonnet[1m]"
+ *   y= 78  owner     "Owner: alice"
+ *   y= 94  sep
+ *   y= 97  entry[0]  (FONT_M)
+ *   y=115  entry[1]  (FONT_S)
+ *   y=130  entry[2]  (FONT_S)
  */
 STATIC VOID_T __build_page0(lv_obj_t *parent)
 {
     pg0 = __make_page(parent, FALSE);
     const int32_t W = INFO_W - INFO_PAD * 2;
 
-    /* y positions computed as: prev_y + prev_h + ROW_GAP
-     * msg: 0, h=16, ends=16 | sep=17 | sessions=20, h=14, ends=34
-     * tokens=35+16=35? no: sep at 17(h=1,ends=18), sessions at 20
-     * tokens: 20+14+3=37? wait let me be explicit:           */
-    pg0_msg           = __lbl(pg0, 0,  0, W, FONT_M);  /* y=0,  h=16, ends=16 */
-    __make_sep(pg0, 17);                                 /* y=17, h=1,  ends=18 */
-    pg0_sessions_line = __lbl(pg0, 0, 20, W, FONT_S);  /* y=20, h=14, ends=34 */
-    pg0_tokens_line   = __lbl(pg0, 0, 37, W, FONT_S);  /* y=37, h=14, ends=51 (34+3=37) */
-    pg0_model_line    = __lbl(pg0, 0, 54, W, FONT_S);  /* y=54, h=14, ends=68 (51+3=54) */
-    pg0_owner_line    = __lbl(pg0, 0, 71, W, FONT_S);  /* y=71, h=14, ends=85 (68+3=71) */
-    __make_sep(pg0, 87);                                 /* y=87, h=1,  ends=88 (85+2=87) */
+    pg0_msg            = __lbl(pg0, 0,  0, W, FONT_M);
+    __make_sep(pg0, 18);
+    pg0_sessions_line  = __lbl(pg0, 0, 21, W, FONT_S);
+    pg0_tokens_out_line= __lbl(pg0, 0, 36, W, FONT_S);
+    pg0_tokens_in_line = __lbl(pg0, 0, 50, W, FONT_S);
+    pg0_model_line     = __lbl(pg0, 0, 64, W, FONT_S);
+    pg0_owner_line     = __lbl(pg0, 0, 78, W, FONT_S);
+    __make_sep(pg0, 94);
 
-    /* Entry rows start at y=90. With explicit h and 1px gap between rows:
-     * entry[0] FONT_M h=16: y=90, ends=106
-     * entry[1] FONT_S h=14: y=108 (106+2), ends=122
-     * entry[2] FONT_S h=14: y=124 (122+2), ends=138
-     * entry[3] FONT_S h=14: y=140 (138+2), ends=154 → over 142 content limit, skip
-     * So 3 entries fit cleanly. STATUS_ENTRIES=5 keeps array for future; only 3 shown. */
-    static const int32_t ENTRY_Y[5] = {90, 108, 124, 124, 124};  /* [3][4] unused */
+    static const int32_t ENTRY_Y[5] = {97, 115, 130, 130, 130};
     for (uint32_t i = 0; i < STATUS_ENTRIES; i++) {
         const lv_font_t *f = (i == 0) ? FONT_M : FONT_S;
         pg0_entries[i] = __lbl(pg0, 0, ENTRY_Y[i], W, f);
@@ -552,14 +564,9 @@ STATIC VOID_T __switch_page(uint8_t p)
  * --------------------------------------------------------------------------- */
 STATIC buddy_led_state_e __led_from_persona(buddy_persona_state_e s)
 {
-    switch (s) {
-    case BUDDY_PERSONA_STATE_SLEEP:     return BUDDY_LED_STATE_OFF;
-    case BUDDY_PERSONA_STATE_IDLE:      return BUDDY_LED_STATE_ON_DIM;
-    case BUDDY_PERSONA_STATE_BUSY:      return BUDDY_LED_STATE_BLINK_SLOW;
-    case BUDDY_PERSONA_STATE_ATTENTION: return BUDDY_LED_STATE_BLINK_FAST;
-    case BUDDY_PERSONA_STATE_DIZZY:     return BUDDY_LED_STATE_BLINK_FAST;
-    default:                            return BUDDY_LED_STATE_FLASH_ONCE;
-    }
+    /* LED only blinks fast during approval; off at all other times. */
+    return (s == BUDDY_PERSONA_STATE_ATTENTION) ? BUDDY_LED_STATE_BLINK_FAST
+                                                : BUDDY_LED_STATE_OFF;
 }
 
 STATIC VOID_T __derive_persona(VOID_T)
@@ -602,10 +609,21 @@ STATIC VOID_T __refresh_header(VOID_T)
 {
     if (lbl_ble)
         lv_label_set_text(lbl_ble, s_state.ble_connected ? "BLE:OK" : "BLE:-");
+    if (lbl_model)
+        lv_label_set_text(lbl_model,
+            s_state.model[0] ? s_state.model : "?");
     if (lbl_clock) {
         char buf[6];
         __format_clock(&s_state, buf, sizeof(buf));
         lv_label_set_text(lbl_clock, buf);
+    }
+    if (lbl_stat_line) {
+        char tok[8];
+        __fmt_tok(s_state.tokens, tok, sizeof(tok));
+        char buf[16];
+        (VOID_T)snprintf(buf, sizeof(buf), "%us %s",
+                         (unsigned)s_state.sessions_total, tok);
+        lv_label_set_text(lbl_stat_line, buf);
     }
 }
 
@@ -637,7 +655,7 @@ STATIC VOID_T __refresh_persona_strip(VOID_T)
 STATIC VOID_T __refresh_page_ind(VOID_T)
 {
     if (!lbl_page_ind) return;
-    static const char *const NAMES[PAGE_COUNT] = {"St", "Se", "Lo", "Md"};
+    static const char *const NAMES[PAGE_COUNT] = {"[St]", "[Se]", "[Lo]", "[Md]"};
     lv_label_set_text(lbl_page_ind, NAMES[s_page]);
 }
 
@@ -646,48 +664,54 @@ STATIC VOID_T __refresh_page0(VOID_T)
     if (!pg0_msg) return;
     const int32_t W = INFO_W - INFO_PAD * 2;
 
-    /* Status message */
     lv_label_set_text(pg0_msg,
         s_state.msg[0] ? s_state.msg
         : (s_state.ble_connected ? "Ready." : "Waiting for Claude..."));
 
-    /* Sessions — compact but explicit */
     if (pg0_sessions_line) {
         if (!s_state.ble_connected) {
             lv_label_set_text(pg0_sessions_line, "Not connected");
         } else {
             lv_label_set_text_fmt(pg0_sessions_line,
-                "%u sessions  %u active  %u waiting",
+                "%us  %ur  %uw",
                 (unsigned)s_state.sessions_total,
                 (unsigned)s_state.sessions_running,
                 (unsigned)s_state.sessions_waiting);
         }
     }
 
-    /* Tokens — explicit labels */
-    if (pg0_tokens_line) {
+    if (pg0_tokens_out_line) {
         char td[10], tt[10];
         __fmt_tok(s_state.tokens_today, td, sizeof(td));
         __fmt_tok(s_state.tokens, tt, sizeof(tt));
-        lv_label_set_text_fmt(pg0_tokens_line,
-            "Today: %s  Total: %s", td, tt);
+        lv_label_set_text_fmt(pg0_tokens_out_line,
+            "Out: %s today  %s total", td, tt);
     }
 
-    /* Model */
+    if (pg0_tokens_in_line) {
+        char ti[10], cr[10];
+        __fmt_tok(s_state.tokens_in_today, ti, sizeof(ti));
+        __fmt_tok(s_state.cache_read, cr, sizeof(cr));
+        if (s_state.tokens_in_today || s_state.cache_read) {
+            lv_label_set_text_fmt(pg0_tokens_in_line,
+                "In:  %s today  Cache: %s", ti, cr);
+        } else {
+            lv_label_set_text(pg0_tokens_in_line, "In:  --  Cache: --");
+        }
+    }
+
     if (pg0_model_line)
         lv_label_set_text_fmt(pg0_model_line, "Model: %s",
             s_state.model[0] ? s_state.model : "unknown");
 
-    /* Owner */
     if (pg0_owner_line)
         lv_label_set_text_fmt(pg0_owner_line, "Owner: %s",
             s_state.owner_name[0] ? s_state.owner_name : "-");
 
-    /* Recent entries — show up to 3 (entries 3-4 share the same slot, hidden) */
     uint8_t count = s_state.entries_count;
     uint8_t head  = s_state.entries_head;
-    static const int32_t ENTRY_Y[5] = {90, 108, 124, 124, 124};
-    const uint32_t VISIBLE = 3;  /* only 3 fit cleanly */
+    static const int32_t ENTRY_Y[5] = {97, 115, 130, 130, 130};
+    const uint32_t VISIBLE = 3;
     for (uint32_t i = 0; i < STATUS_ENTRIES; i++) {
         if (!pg0_entries[i]) continue;
         if (i >= VISIBLE || i >= (uint32_t)count) {
@@ -969,9 +993,9 @@ STATIC VOID_T __deinit(VOID_T)
         lv_group_remove_obj(ui_buddy_main_screen);
     }
 
-    lbl_title = lbl_clock = lbl_ble = lbl_page_ind = NULL;
+    lbl_model = lbl_clock = lbl_ble = lbl_stat_line = lbl_page_ind = NULL;
     lbl_persona_name = lbl_persona_level = NULL;
-    pg0 = pg0_msg = pg0_sessions_line = pg0_tokens_line = NULL;
+    pg0 = pg0_msg = pg0_sessions_line = pg0_tokens_out_line = pg0_tokens_in_line = NULL;
     pg0_model_line = pg0_owner_line = NULL;
     for (uint32_t i = 0; i < STATUS_ENTRIES; i++) pg0_entries[i] = NULL;
     pg1 = pg1_hdr = pg1_empty = NULL;

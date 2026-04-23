@@ -60,20 +60,16 @@ def heartbeat(
     tokens: int,
     tokens_today: int,
     msg: str,
+    tokens_in: int = 0,
+    tokens_in_today: int = 0,
+    cache_read: int = 0,
     entries: list[str] | None = None,
     prompt: dict[str, Any] | None = None,
     model: str | None = None,
     sessions: list[dict[str, Any]] | None = None,
     mstats: list[dict[str, Any]] | None = None,
 ) -> bytes:
-    """Encode a heartbeat snapshot (peer → device) per §3.1.
-
-    New optional fields (M2):
-      ``model``    — current Claude model short name (e.g. "sonnet-4-6").
-      ``sessions`` — list of session dicts with short keys:
-                     ``id``, ``n`` (name), ``m`` (model),
-                     ``ti`` (tokens_in), ``to`` (tokens_out), ``r`` (running).
-    """
+    """Encode a heartbeat snapshot (peer → device) per §3.1."""
     obj: dict[str, Any] = {
         "total": int(total),
         "running": int(running),
@@ -82,6 +78,12 @@ def heartbeat(
         "tokens_today": int(tokens_today),
         "msg": msg,
     }
+    if tokens_in:
+        obj["tokens_in"] = int(tokens_in)
+    if tokens_in_today:
+        obj["tokens_in_today"] = int(tokens_in_today)
+    if cache_read:
+        obj["cache_read"] = int(cache_read)
     if entries is not None:
         obj["entries"] = [_truncate_utf8(e, ENTRY_MAX_BYTES) for e in entries]
     if prompt is not None:
