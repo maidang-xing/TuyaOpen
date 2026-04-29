@@ -42,21 +42,36 @@ log = logging.getLogger("tuya_pocket_buddy")
 
 
 class _BleTxAdapter:
-    """Adapter that exposes :meth:`BleClient.enqueue_tx` as a TxSink."""
+    """Adapter that exposes :meth:`BleClient.enqueue_tx` as a TxSink.
+
+    Large frames are transparently split into application-level chunk
+    envelopes via :func:`wire.chunk_encode` before being handed to the
+    BLE-level fragmenter.
+    """
 
     def __init__(self, ble: BleClient) -> None:
         self._ble = ble
 
     async def send(self, line: bytes) -> None:
-        await self._ble.enqueue_tx(line)
+        for chunk_line in wire.chunk_encode(line):
+            await self._ble.enqueue_tx(chunk_line)
 
 
 async def _rx_pump(
-    ble: BleClient, permissions: PermissionBridge
+    ble: BleClient, permissions: PermissionBridge, router: Router
 ) -> None:
-    """Forward inbound RX lines to the permission bridge / logger."""
+    """Forward inbound RX lines to the permission bridge / router / logger.
+
+    Incoming lines are first fed through a :class:`wire.ChunkReassembler`
+    so that application-level chunk envelopes are transparently reassembled
+    before dispatch.
+    """
+    reassembler = wire.ChunkReassembler()
     while True:
-        line = await ble.rx_queue.get()
+        raw_line = await ble.rx_queue.get()
+        line = reassembler.feed(raw_line)
+        if line is None:
+            continue
         try:
             kind, payload = wire.parse_frame(line)
         except ValueError:
@@ -64,6 +79,18 @@ async def _rx_pump(
             continue
         if kind == "permission":
             await permissions.handle_permission(payload)
+        elif kind == "asr":
+            try:
+                await router.handle_asr(
+                    payload.get("asr", ""), payload.get("sid", "")
+                )
+            except Exception as exc:  # noqa: BLE001
+                log.debug("rx: asr handler failed: %s", exc)
+        elif kind == "cmd_hb_req":
+            try:
+                await router.handle_hb_request(payload.get("page", ""))
+            except Exception as exc:  # noqa: BLE001
+                log.debug("rx: hb_req handler failed: %s", exc)
         elif kind == "ack":
             log.debug("rx: ack %s", payload.get("ack"))
         elif kind == "invalid":
@@ -84,7 +111,8 @@ async def _heartbeat_loop(
             continue
         try:
             tz_sec = -int(time.timezone)   # UTC offset in seconds (REFERENCE.md)
-            await ble.enqueue_tx(wire.time_sync(int(time.time()), tz_sec))
+            for c in wire.chunk_encode(wire.time_sync(int(time.time()), tz_sec)):
+                await ble.enqueue_tx(c)
             await router.tick()
         except Exception as exc:  # noqa: BLE001
             log.debug("heartbeat: send failed: %s", exc)
@@ -116,13 +144,14 @@ async def _run_async(cfg: DaemonConfig) -> int:
 
     runner = await run_server(router, port=cfg.port)
     await ble.start()
-    rx_task = asyncio.create_task(_rx_pump(ble, permissions))
+    rx_task = asyncio.create_task(_rx_pump(ble, permissions, router))
     hb_task = asyncio.create_task(_heartbeat_loop(ble, router, stop_event))
 
     # Send initial time sync as soon as possible.
     try:
-        tz_offset_min = -int(time.timezone / 60)
-        await ble.enqueue_tx(wire.time_sync(int(time.time()), tz_offset_min))
+        tz_sec = -int(time.timezone)   # UTC offset in seconds per REFERENCE.md
+        for c in wire.chunk_encode(wire.time_sync(int(time.time()), tz_sec)):
+            await ble.enqueue_tx(c)
         await router.tick()
     except Exception as exc:  # noqa: BLE001
         log.debug("initial heartbeat failed: %s", exc)

@@ -14,6 +14,13 @@ M3 additions:
   - JSONL reader: parses ~/.claude/projects/*/<session_id>.jsonl to get
     per-call token usage (mirrors what ``/status`` shows in the CLI).
 
+M4 additions:
+  - Per-session project name (derived from cwd last path component).
+  - Per-session local_entries: last 4 tool calls for session detail view.
+  - Daily token history (28 days) from stats-cache.json dailyModelTokens.
+  - Total / today cost (micro-USD) from stats-cache.json modelUsage.costUSD.
+  - Claude version from ~/.claude/settings.json.
+
 Protocol note:
   tokens / tokens_today track OUTPUT tokens only, matching REFERENCE.md.
 """
@@ -23,9 +30,12 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
+import subprocess
 import time
 from collections import deque
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -36,6 +46,13 @@ log = logging.getLogger(__name__)
 
 ENTRIES_RING_CAP: int = 8
 PROMPT_HINT_MAX_CHARS: int = 60
+
+# How many sessions to show in total (live + scanned)
+SESSIONS_PAYLOAD_MAX: int = 12
+# Max sessions to scan per project dir (limits I/O per tick)
+SESSIONS_SCAN_PER_PROJECT: int = 4
+# Head bytes to read for session name (first user prompt)
+_JSONL_HEAD_BYTES: int = 4 * 1024
 
 
 class TxSink(Protocol):
@@ -80,8 +97,329 @@ def _model_ctx_size(model: str) -> int:
 _JSONL_TAIL_BYTES = 16 * 1024  # read last 16 KB to find latest usage
 
 
+def _read_stats_cache() -> dict[str, Any]:
+    """Read ~/.claude/stats-cache.json — Claude Code's persisted usage totals.
+
+    Returns the full parsed JSON dict, or {} if unavailable.
+    """
+    path = Path.home() / ".claude" / "stats-cache.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    return {}
+
+
+def _aggregate_stats_cache() -> dict[str, int]:
+    """Sum all models in stats-cache and return totals as a flat dict."""
+    totals: dict[str, int] = {
+        "output_tokens": 0,
+        "input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+    }
+    cache = _read_stats_cache()
+    for model_data in (cache.get("modelUsage") or {}).values():
+        if not isinstance(model_data, dict):
+            continue
+        totals["output_tokens"]              += int(model_data.get("outputTokens", 0))
+        totals["input_tokens"]               += int(model_data.get("inputTokens", 0))
+        totals["cache_read_input_tokens"]    += int(model_data.get("cacheReadInputTokens", 0))
+        totals["cache_creation_input_tokens"]+= int(model_data.get("cacheCreationInputTokens", 0))
+    return totals
+
+
+def _read_cost_totals() -> tuple[int, int]:
+    """Return (cost_total_ucc, cost_today_ucc) in micro-USD from stats-cache.
+
+    cost_today_ucc is derived from dailyModelTokens if today matches
+    lastComputedDate; otherwise 0.
+    """
+    cache = _read_stats_cache()
+    model_usage = cache.get("modelUsage") or {}
+    total_usd = sum(
+        float(m.get("costUSD", 0.0))
+        for m in model_usage.values()
+        if isinstance(m, dict)
+    )
+    cost_total_ucc = int(total_usd * 1_000_000)
+
+    # For today's cost, check if lastComputedDate matches today and use the
+    # most recent dailyModelTokens entry.
+    cost_today_ucc = 0
+    today_str = date.today().isoformat()
+    last_date = cache.get("lastComputedDate", "")
+    if last_date == today_str:
+        daily_list = cache.get("dailyModelTokens") or []
+        if daily_list and isinstance(daily_list[-1], dict):
+            latest = daily_list[-1]
+            if latest.get("date", "") == today_str:
+                tokens_by_model = latest.get("tokensByModel") or {}
+                # Approximate cost: $15/MTok output for average estimate.
+                # This is a rough estimate; exact cost requires per-model pricing.
+                today_tokens = sum(
+                    int(v) for v in tokens_by_model.values()
+                    if isinstance(v, (int, float))
+                )
+                cost_today_ucc = int(today_tokens * 15)
+
+    return cost_total_ucc, cost_today_ucc
+
+
+def _read_today_tokens() -> int:
+    """Return total output tokens consumed today from dailyModelTokens.
+
+    Sums all models in the entry whose ``date`` matches today.  Returns 0
+    if the cache is stale or the entry is missing.
+    """
+    today_str = date.today().isoformat()
+    cache = _read_stats_cache()
+    for entry in reversed(cache.get("dailyModelTokens") or []):
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("date") == today_str:
+            tokens_by_model = entry.get("tokensByModel") or {}
+            return sum(
+                int(v) for v in tokens_by_model.values()
+                if isinstance(v, (int, float))
+            )
+    return 0
+
+
+def _read_daily_tokens(days: int = 28) -> list[int]:
+    """Return last ``days`` daily output token totals, index 0 = today.
+
+    Reads dailyModelTokens from stats-cache.json and sums all models per day.
+    Missing days are filled with 0.
+    """
+    cache = _read_stats_cache()
+    daily_list = cache.get("dailyModelTokens") or []
+
+    # Build a mapping date_str -> total_tokens from the cache
+    date_map: dict[str, int] = {}
+    for entry in daily_list:
+        if not isinstance(entry, dict):
+            continue
+        d = entry.get("date", "")
+        if not d:
+            continue
+        tokens_by_model = entry.get("tokensByModel") or {}
+        total = sum(
+            int(v) for v in tokens_by_model.values()
+            if isinstance(v, (int, float))
+        )
+        date_map[d] = total
+
+    # Generate last `days` dates, today first
+    result: list[int] = []
+    today = date.today()
+    for i in range(days):
+        d = (today - timedelta(days=i)).isoformat()
+        result.append(date_map.get(d, 0))
+    return result
+
+
+def _detect_claude_version() -> str:
+    """Detect Claude Code version from CLI or settings.json.
+
+    ``claude --version`` prints e.g. "2.1.121 (Claude Code)".
+    The settings.json ``version`` field is a schema integer (not the app
+    version) so we skip it and go straight to the CLI.
+    """
+    try:
+        result = subprocess.run(
+            ["claude", "--version"],
+            capture_output=True, text=True, timeout=5,
+        )
+        line = (result.stdout or "").strip().split("\n")[0]
+        if line:
+            return line[:wire.VERSION_MAX]
+    except Exception:
+        pass
+    return ""
+
+
+def _project_from_cwd(cwd: str) -> str:
+    """Extract a short project name from the working directory path."""
+    if not cwd:
+        return ""
+    # Take the last non-empty path component
+    parts = cwd.replace("\\", "/").rstrip("/").split("/")
+    name = next((p for p in reversed(parts) if p), "")
+    return name[:wire.SESSION_PROJECT_MAX]
+
+
+def _project_from_dir_name(dir_name: str) -> str:
+    """Derive a human-readable project name from a .claude/projects/ dir name.
+
+    Claude Code mangles the CWD into a directory name by replacing path
+    separators with "-" and the drive colon-separator with "--".
+    Example: "D:\\tuya_proj\\TuyaOpen" → "D--tuya-proj-TuyaOpen"
+
+    Strategy: find the last CamelCase word (usually the project folder name),
+    otherwise fall back to the last hyphen-separated segment.
+    """
+    # Strip drive letter prefix (before first "--")
+    after_drive = dir_name.split("--", 1)[-1] if "--" in dir_name else dir_name
+    # Prefer last CamelCase word (e.g. "TuyaOpen", "DuckyClaw")
+    camel_words = re.findall(r"[A-Z][a-zA-Z0-9]+", after_drive)
+    if camel_words:
+        return camel_words[-1][:wire.SESSION_PROJECT_MAX]
+    # Fallback: last segment after the last hyphen
+    parts = after_drive.rsplit("-", 1)
+    return parts[-1][:wire.SESSION_PROJECT_MAX] if parts[-1] else after_drive[:wire.SESSION_PROJECT_MAX]
+
+
+def _read_session_name_from_jsonl(jsonl_path: Path) -> str:
+    """Return the first real user prompt text from a JSONL session file.
+
+    Reads the first _JSONL_HEAD_BYTES to keep this fast on large files.
+    Skips system-injected context messages (those starting with '<').
+    """
+    try:
+        with jsonl_path.open("rb") as fh:
+            chunk = fh.read(_JSONL_HEAD_BYTES)
+        for raw in chunk.split(b"\n"):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                entry = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("type") != "user":
+                continue
+            msg = entry.get("message") or {}
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                text = content.strip()
+                # Skip system-injected context messages (XML-like tags)
+                if text and not text.startswith("<"):
+                    return text.replace("\n", " ")[:wire.SESSION_NAME_MAX]
+            elif isinstance(content, list):
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    if block.get("type") != "text":
+                        continue
+                    text = (block.get("text") or "").strip()
+                    # Skip system context blocks
+                    if text and not text.startswith("<"):
+                        return text.replace("\n", " ")[:wire.SESSION_NAME_MAX]
+    except OSError:
+        pass
+    return ""
+
+
+def _read_session_last_output_tokens(jsonl_path: Path) -> int:
+    """Return output_tokens from the last assistant message in the JSONL."""
+    try:
+        with jsonl_path.open("rb") as fh:
+            fh.seek(0, 2)
+            size = fh.tell()
+            fh.seek(max(0, size - _JSONL_TAIL_BYTES))
+            chunk = fh.read()
+        for raw in reversed(chunk.split(b"\n")):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                entry = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("type") == "assistant":
+                msg = entry.get("message") or {}
+                usage = msg.get("usage") or {}
+                to = usage.get("output_tokens", 0)
+                if to:
+                    return int(to)
+    except OSError:
+        pass
+    return 0
+
+
+def _scan_claude_sessions(
+    exclude_ids: set[str],
+    max_n: int = SESSIONS_PAYLOAD_MAX,
+) -> list[dict[str, Any]]:
+    """Scan ~/.claude/projects/ for recent sessions not in exclude_ids.
+
+    Returns up to max_n session dicts sorted by file mtime (most recent first).
+    Each dict matches the sessions[] heartbeat format.
+
+    Reads only _JSONL_HEAD_BYTES + tail of each file for efficiency.
+    Limits to SESSIONS_SCAN_PER_PROJECT files per project directory.
+    """
+    projects_dir = Path.home() / ".claude" / "projects"
+    if not projects_dir.is_dir():
+        return []
+
+    found: list[tuple[float, dict[str, Any]]] = []
+
+    try:
+        proj_dirs = sorted(
+            (p for p in projects_dir.iterdir() if p.is_dir()),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return []
+
+    for proj_dir in proj_dirs:
+        project_name = _project_from_dir_name(proj_dir.name)
+        try:
+            jsonl_files = sorted(
+                proj_dir.glob("*.jsonl"),
+                key=lambda f: f.stat().st_mtime,
+                reverse=True,
+            )
+        except OSError:
+            continue
+
+        count = 0
+        for jsonl_file in jsonl_files:
+            if count >= SESSIONS_SCAN_PER_PROJECT:
+                break
+            session_id = jsonl_file.stem
+            # Skip non-UUID-looking filenames
+            if len(session_id) < 8 or " " in session_id:
+                count += 1
+                continue
+            # Skip sessions already tracked live by hooks
+            if session_id in exclude_ids or session_id[:11] in exclude_ids:
+                count += 1
+                continue
+            try:
+                mtime = jsonl_file.stat().st_mtime
+                name = _read_session_name_from_jsonl(jsonl_file)
+                tokens_out = _read_session_last_output_tokens(jsonl_file)
+                found.append((mtime, {
+                    "id": session_id[:11],
+                    "n":  name or "",
+                    "m":  "",
+                    "to": tokens_out,
+                    "r":  False,
+                    "p":  project_name,
+                }))
+            except Exception:
+                pass
+            count += 1
+
+        # Early-exit if we already have plenty of candidates
+        if len(found) >= max_n * 3:
+            break
+
+    found.sort(key=lambda t: t[0], reverse=True)
+    return [d for _, d in found[:max_n]]
+
+
 def _find_session_jsonl(session_id: str) -> Path | None:
-    """Locate ~/.claude/projects/*/<session_id>.jsonl, if it exists."""
+    """Locate ~/.claude/projects/*/<session_id>.jsonl, if it exists.
+
+    Supports both full UUIDs and 11-char short-id prefix matching.
+    """
     if not session_id:
         return None
     projects_dir = Path.home() / ".claude" / "projects"
@@ -90,9 +428,21 @@ def _find_session_jsonl(session_id: str) -> Path | None:
     for proj_dir in projects_dir.iterdir():
         if not proj_dir.is_dir():
             continue
+        # Try exact match first.
         candidate = proj_dir / f"{session_id}.jsonl"
         if candidate.is_file():
             return candidate
+    # Prefix match (11-char short id).
+    if len(session_id) < 36:
+        for proj_dir in projects_dir.iterdir():
+            if not proj_dir.is_dir():
+                continue
+            try:
+                for f in proj_dir.iterdir():
+                    if f.suffix == ".jsonl" and f.stem.startswith(session_id):
+                        return f
+            except OSError:
+                continue
     return None
 
 
@@ -101,6 +451,8 @@ def _read_last_usage(session_id: str) -> dict[str, Any] | None:
     session JSONL, or None if unavailable.
 
     Reads only the last _JSONL_TAIL_BYTES so large files are cheap.
+    This gives us the CURRENT context window size (total input tokens for
+    the most recent API call = what /status shows as "context used").
     """
     jsonl = _find_session_jsonl(session_id)
     if jsonl is None:
@@ -143,6 +495,8 @@ class SessionInfo:
     tokens_out: int = 0       # output tokens only (REFERENCE.md)
     is_running: bool = False
     started_at: float = field(default_factory=time.time)
+    project: str = ""                              # cwd last component (M4)
+    local_entries: list[str] = field(default_factory=list)  # last 4 tool entries (M4)
 
 
 # ---------------------------------------------------------------------------
@@ -170,8 +524,14 @@ class State:
         default_factory=lambda: deque(maxlen=ENTRIES_RING_CAP)
     )
     session_map: dict[str, SessionInfo] = field(default_factory=dict)
-    # model_name -> [tokens_out]  (output tokens per model)
     model_usage: dict[str, int] = field(default_factory=dict)
+    # M4: extended stats
+    claude_version: str = ""
+    cost_today_ucc: int = 0
+    cost_total_ucc: int = 0
+    daily_tokens: list[int] = field(default_factory=lambda: [0] * 28)
+    # M5: sessions scanned from ~/.claude/projects/ (filled by tick())
+    scanned_sessions: list[dict[str, Any]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -179,23 +539,46 @@ class State:
 # ---------------------------------------------------------------------------
 
 def _sessions_payload(state: State) -> list[dict[str, Any]] | None:
-    """Build sessions list: running first, then by start time. Max 6."""
-    if not state.session_map:
-        return None
-    sessions = sorted(
+    """Build sessions list: live hook-tracked first, then .claude/ scanned.
+
+    Total capped at SESSIONS_PAYLOAD_MAX (12). Running sessions always first.
+    Scanned sessions fill the remaining slots, deduplicated by 11-char ID prefix.
+    """
+    result: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+
+    # 1. Live sessions from hook tracking (running first)
+    live = sorted(
         state.session_map.values(),
         key=lambda s: (not s.is_running, s.started_at),
-    )[:6]
-    return [
-        {
-            "id": s.session_id[:11],
+    )
+    for s in live:
+        if len(result) >= SESSIONS_PAYLOAD_MAX:
+            break
+        sid11 = s.session_id[:11]
+        seen_ids.add(sid11)
+        seen_ids.add(s.session_id)
+        result.append({
+            "id": sid11,
             "n":  s.name[:wire.SESSION_NAME_MAX],
             "m":  (s.model or state.model)[:wire.MODEL_MAX],
             "to": s.tokens_out,
             "r":  s.is_running,
-        }
-        for s in sessions
-    ]
+            **( {"p": s.project[:wire.SESSION_PROJECT_MAX]} if s.project else {} ),
+            **( {"e": s.local_entries[-4:]} if s.local_entries else {} ),
+        })
+
+    # 2. Scanned historical sessions to fill remaining slots
+    for scanned in state.scanned_sessions:
+        if len(result) >= SESSIONS_PAYLOAD_MAX:
+            break
+        sid = scanned.get("id", "")
+        if sid in seen_ids:
+            continue
+        seen_ids.add(sid)
+        result.append(scanned)
+
+    return result if result else None
 
 
 def _mstats_payload(state: State) -> list[dict[str, Any]] | None:
@@ -257,6 +640,7 @@ class Router:
         self._state = state
         self._tx = tx
         self._perm = permissions
+        self._tick_count: int = 0
 
     async def _emit_heartbeat(self, prompt: dict[str, Any] | None = None) -> None:
         s = self._state
@@ -278,11 +662,162 @@ class Router:
             model=s.model or None,
             sessions=_sessions_payload(s),
             mstats=_mstats_payload(s),
+            claude_ver=s.claude_version or None,
+            cost_today_ucc=s.cost_today_ucc,
+            cost_total_ucc=s.cost_total_ucc,
+            daily_tokens=s.daily_tokens if any(s.daily_tokens) else None,
         )
         await self._tx.send(frame)
 
     async def tick(self) -> None:
-        """Keepalive heartbeat from the periodic heartbeat task."""
+        """Keepalive heartbeat (every 10 s).
+
+        Refreshes ctx_used from JSONL for every running session, and every
+        ~60 s also re-reads stats-cache.json to pick up cumulative totals
+        from sessions that ended while we weren't watching (e.g. after a
+        daemon restart). Also refreshes M4 extended stats (daily tokens,
+        cost, Claude version) on the same ~60s cadence.
+        """
+        s = self._state
+        self._tick_count += 1
+
+        # Re-read cumulative totals from stats-cache every ~60 s (6 ticks).
+        if self._tick_count % 6 == 0:
+            cache = _aggregate_stats_cache()
+            if cache["output_tokens"] > s.tokens:
+                s.tokens = cache["output_tokens"]
+            if cache["cache_read_input_tokens"] > s.cache_read:
+                s.cache_read = cache["cache_read_input_tokens"]
+            if cache["cache_creation_input_tokens"] > s.cache_write:
+                s.cache_write = cache["cache_creation_input_tokens"]
+            today_tok = _read_today_tokens()
+            if today_tok > s.tokens_today:
+                s.tokens_today = today_tok
+            log.debug("tick: refreshed stats-cache: out=%d today=%d r=%d w=%d",
+                      s.tokens, s.tokens_today, s.cache_read, s.cache_write)
+
+            # M4: refresh extended stats
+            s.cost_total_ucc, s.cost_today_ucc = _read_cost_totals()
+            s.daily_tokens = _read_daily_tokens(28)
+            if not s.claude_version:
+                s.claude_version = _detect_claude_version()
+
+            # M5: scan .claude/projects/ for historical sessions
+            live_ids: set[str] = set(s.session_map.keys())
+            for sid in list(s.session_map.keys()):
+                live_ids.add(sid[:11])
+            s.scanned_sessions = _scan_claude_sessions(
+                exclude_ids=live_ids,
+                max_n=SESSIONS_PAYLOAD_MAX,
+            )
+            log.debug("tick: scanned %d historical sessions", len(s.scanned_sessions))
+
+        # Refresh ctx_used from JSONL for every running session.
+        for sid, info in s.session_map.items():
+            if info.is_running:
+                usage = _read_last_usage(sid)
+                if usage:
+                    _apply_jsonl_usage(s, usage)
+
+        await self._emit_heartbeat()
+
+    async def handle_hb_request(self, page: str = "") -> None:
+        """Device-pull request for a fresh heartbeat snapshot.
+
+        Tuya firmware sends ``{"cmd":"hb_req","page":"<name>"}`` whenever
+        the user switches to a screen that needs server-side data, so the
+        UI doesn't have to wait up to 10 s for the next keepalive push.
+
+        ``page`` is advisory; we currently emit the full snapshot for any
+        page since the marginal cost of extra fields is negligible compared
+        with one BLE write. Future optimisation could send page-targeted
+        partials (chart-only / pie-only) once the firmware learns to
+        accept them.
+
+        Compatibility: the official Anthropic Claude Desktop never sends
+        ``cmd:hb_req`` from the device, so this is a Tuya-only extension
+        invisible to non-Tuya peers (REFERENCE.md §3.4 lists ``hb_req``
+        as an optional command that desktop apps may ignore).
+        """
+        log.debug("rx: hb_req page=%s", page or "<none>")
+        await self._emit_heartbeat()
+
+    async def handle_asr(self, text: str, sid: str) -> None:
+        """Route a device-originated ASR transcript to the matching session.
+
+        ``sid`` is the 11-char short id used by the firmware UI; we resolve it
+        back to the full session id by prefix-matching ``state.session_map``
+        (live sessions) or by scanning ``~/.claude/projects/`` for JSONL files.
+
+        Injection: launches ``claude --resume <full_sid> -p "text" --print``
+        as a detached subprocess so the ASR text becomes a real user message
+        in the target Claude Code session.  Falls back to persistence-only
+        when the full session id cannot be resolved.
+
+        Persistence: also appends a JSON Lines record to
+        ``~/.claude/buddy-asr/<sid>.jsonl`` for audit/replay.
+
+        Never raises: subprocess and I/O errors are logged at debug level and
+        swallowed so a flaky home directory cannot stall the BLE RX pump.
+        """
+        if not text:
+            return
+        s = self._state
+        # Resolve short sid → full sid via live session map.
+        full_sid = ""
+        if sid:
+            for key in s.session_map.keys():
+                if key.startswith(sid):
+                    full_sid = key
+                    break
+        # If not found in live sessions, try scanning JSONL files.
+        if not full_sid and sid:
+            found = _find_session_jsonl(sid)
+            if found is not None:
+                full_sid = found.stem
+        target = full_sid or (sid or "unknown")
+
+        # Reflect the latest transcript in the heartbeat msg field.
+        s.msg = ("asr: " + text)[:wire.ENTRY_MAX_BYTES]
+        if full_sid and full_sid in s.session_map:
+            entry = f"{time.strftime('%H:%M', time.localtime())} ASR {text}"
+            info = s.session_map[full_sid]
+            info.local_entries.append(entry[:wire.SESSION_ENTRY_MAX])
+            if len(info.local_entries) > 4:
+                info.local_entries = info.local_entries[-4:]
+            s.entries.append(entry[:wire.ENTRY_MAX_BYTES])
+
+        # Persist transcript to ~/.claude/buddy-asr/
+        try:
+            asr_dir = Path.home() / ".claude" / "buddy-asr"
+            asr_dir.mkdir(parents=True, exist_ok=True)
+            safe = re.sub(r"[^A-Za-z0-9._-]", "_", target)[:64] or "unknown"
+            out_path = asr_dir / f"{safe}.jsonl"
+            record = json.dumps(
+                {"ts": int(time.time()), "text": text, "sid": target},
+                ensure_ascii=False,
+            )
+            with out_path.open("a", encoding="utf-8") as fh:
+                fh.write(record + "\n")
+        except OSError as exc:
+            log.debug("asr: failed to persist transcript: %s", exc)
+
+        # Inject ASR text into the Claude session via CLI subprocess.
+        if full_sid:
+            try:
+                log.info("asr: injecting into session %s: %s",
+                         full_sid[:11], text[:60])
+                subprocess.Popen(
+                    ["claude", "--resume", full_sid, "-p", text, "--print"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    stdin=subprocess.DEVNULL,
+                )
+            except Exception as exc:
+                log.debug("asr: subprocess launch failed: %s", exc)
+        else:
+            log.debug("asr: no full session id resolved for sid=%s", sid)
+
         await self._emit_heartbeat()
 
     async def route(self, event: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -298,7 +833,6 @@ class Router:
         import secrets as _sec
         s = self._state
         sid = str(payload.get("session_id") or "")
-        # Fallback: generate a stable enough ID so the session is always tracked
         if not sid:
             sid = "s-" + _sec.token_hex(4)
         s.active = True
@@ -306,6 +840,49 @@ class Router:
         s.msg = "session started"
         if not s.model:
             s.model = _detect_model()
+
+        # Seed cumulative totals from stats-cache.json on first session so
+        # we reflect all historical usage, not just what the daemon has seen.
+        if s.total == 1:
+            cache = _aggregate_stats_cache()
+            if cache["output_tokens"] > s.tokens:
+                s.tokens = cache["output_tokens"]
+            today_tok = _read_today_tokens()
+            if today_tok > s.tokens_today:
+                s.tokens_today = today_tok
+            if cache["cache_read_input_tokens"] > s.cache_read:
+                s.cache_read = cache["cache_read_input_tokens"]
+            if cache["cache_creation_input_tokens"] > s.cache_write:
+                s.cache_write = cache["cache_creation_input_tokens"]
+            s.ctx_total = _model_ctx_size(s.model)
+            log.debug("seeded from stats-cache: out=%d cache_r=%d cache_w=%d",
+                      s.tokens, s.cache_read, s.cache_write)
+            # M4: seed extended stats on first session
+            s.cost_total_ucc, s.cost_today_ucc = _read_cost_totals()
+            s.daily_tokens = _read_daily_tokens(28)
+            if not s.claude_version:
+                s.claude_version = _detect_claude_version()
+            # Seed per-model usage from stats-cache so pie chart shows data immediately
+            cache = _read_stats_cache()
+            model_usage_raw = cache.get("modelUsage") or {}
+            for mname, mdata in model_usage_raw.items():
+                if not isinstance(mdata, dict):
+                    continue
+                out_tok = int(mdata.get("outputTokens", 0))
+                if out_tok > 0:
+                    short_name = mname[:wire.MODEL_MAX]
+                    s.model_usage[short_name] = (
+                        s.model_usage.get(short_name, 0) + out_tok
+                    )
+            log.debug("seeded model_usage from stats-cache: %d models",
+                      len(s.model_usage))
+            # M5: initial scan for historical sessions on first session start
+            s.scanned_sessions = _scan_claude_sessions(
+                exclude_ids={sid, sid[:11]},
+                max_n=SESSIONS_PAYLOAD_MAX,
+            )
+            log.debug("seeded %d historical sessions from .claude/", len(s.scanned_sessions))
+
         if len(s.session_map) >= 6:
             oldest = min(
                 (v for v in s.session_map.values() if not v.is_running),
@@ -314,7 +891,14 @@ class Router:
             )
             if oldest:
                 del s.session_map[oldest.session_id]
-        s.session_map[sid] = SessionInfo(session_id=sid, model=s.model, is_running=True)
+
+        # M4: derive project name from cwd
+        cwd = str(payload.get("cwd") or "")
+        project = _project_from_cwd(cwd)
+
+        s.session_map[sid] = SessionInfo(
+            session_id=sid, model=s.model, is_running=True, project=project
+        )
         if s.owner_name:
             await self._tx.send(wire.owner(s.owner_name))
         await self._emit_heartbeat()
@@ -385,8 +969,15 @@ class Router:
         s = self._state
         sid = str(payload.get("session_id") or "")
         tool_name = str(payload.get("tool_name") or "tool")
-        s.entries.append(_format_entry(tool_name, payload))
+        entry = _format_entry(tool_name, payload)
+        s.entries.append(entry)
         s.msg = f"done: {tool_name}"
+        # M4: append to per-session local entries (keep last 4)
+        if sid and sid in s.session_map:
+            info = s.session_map[sid]
+            info.local_entries.append(entry)
+            if len(info.local_entries) > 4:
+                info.local_entries = info.local_entries[-4:]
         # Refresh context window stats from JSONL after each tool use.
         usage = _read_last_usage(sid)
         if usage:

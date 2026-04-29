@@ -1,0 +1,247 @@
+« [04-28 11:17:16 ty D][ai_chat_main.c:254] ai chat button event: 0
+[04-28 11:17:17 ty D][ai_chat_main.c:254] ai chat button event: 5
+[04-28 11:17:17 ty D][ai_mode_hold.c:280] mode hold state change form IDLE to LISTEN
+[04-28 11:17:17 ty N][ai_audio_input.c:407] audio input -> mode is 0, wakeup set to 1, vad flag is 2!
+[04-28 11:17:17 ty D][ai_audio_input.c:143] audio input -> vad stat change to flag 1
+[04-28 11:17:17 ty D][ai_mode_hold.c:251] [====ai_hold] vad: [1]
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1443] set scode:
+[04-28 11:17:17 ty D][tuya_ai_input.c:264] ai input start, state:1
+[04-28 11:17:17 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 34
+[04-28 11:17:17 ty D][tuya_ai_input.c:346] recv queue state 1
+[04-28 11:17:17 ty N][tuya_ai_agent.c:623] set session active, scode:, sid:8e2d3dfe-d6bc-4f53-8018-783e-86161f03
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1418] [upload event] type:0
+[04-28 11:17:17 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 249, sequence 43
+[04-28 11:17:17 ty D][tuya_ai_event.c:57] send event rt:0, type:0
+[04-28 11:17:17 ty N][tuya_ai_event.c:88] event id is 3aab9564-a954-4e52-8e39
+[04-28 11:17:17 ty D][tuya_ai_input.c:377] start lazy queue sync
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 1, total_len:2560, id:1
+[04-28 11:17:17 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2713, sequence 44
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:17 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 45
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:17 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 46
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:5120 flag 2, total_len:5120, id:1
+[04-28 11:17:17 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 5225, sequence 47
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:17 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 48
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:17 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 49
+[04-28 11:17:17 ty D][tuya_ai_agent.c:136] [====ai event cb====] type:0, sid:8e2d3dfe-d6bc-4f53-8018-783e-86161f03, eid:3aab9564-a954-4e52-8e39
+[04-28 11:17:17 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:17 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 50
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 51
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 52
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 53
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 54
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 55
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 56
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 57
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 58
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:5120 flag 2, total_len:5120, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 5225, sequence 59
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 60
+[04-28 11:17:18 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:18 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 61
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 62
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 63
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 64
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 65
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 66
+[04-28 11:17:19 ty D][mqtt_service.c:326] recv message TopicName:smart/device/in/6c0bd4387a3e1fa5bcsfp1, payload len:243
+[04-28 11:17:19 ty D][mqc_app.c:44] mqc app handler protocol:9000
+[04-28 11:17:19 ty D][tuya_ai_agent.c:136] [====ai event cb====] type:4, sid:(null), eid:d9dac2ad-7f5b-44eb-8fad
+[04-28 11:17:19 ty D][ai_agent.c:59] ai agent -> recv event type: 4
+[04-28 11:17:19 ty D][ai_audio_player.c:439] audio player -> stop all player
+[04-28 11:17:19 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 18
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 67
+[04-28 11:17:19 ty D][tuya_ai_agent.c:136] [====ai event cb====] type:4, sid:8e2d3dfe-d6bc-4f53-8018-783e-86161f03, eid:d9dac2ad-7f5b-44eb-8fad
+[04-28 11:17:19 ty D][tuya_ai_agent.c:147] Interrupt event ignored, last:1777346239530, cur:1777346239530
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 68
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 69
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:2560 flag 2, total_len:2560, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 2665, sequence 70
+[04-28 11:17:19 ty D][ai_chat_main.c:254] ai chat button event: 1
+[04-28 11:17:19 ty D][ai_mode_hold.c:285] mode hold state change form LISTEN to UPLOAD
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:5120 flag 2, total_len:5120, id:1
+[04-28 11:17:19 ty N][ai_audio_input.c:407] audio input -> mode is 0, wakeup set to 0, vad flag is 1!
+[04-28 11:17:19 ty D][ai_audio_input.c:143] audio input -> vad stat change to flag 2
+[04-28 11:17:19 ty D][tuya_ai_input.c:288] ai input stop, state:4
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 5225, sequence 71
+[04-28 11:17:19 ty D][tuya_ai_input.c:346] recv queue state 4
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1280] [ptype 31 upload stream] len:0 flag 3, total_len:0, id:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 105, sequence 72
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1418] [upload event] type:1
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 185, sequence 73
+[04-28 11:17:19 ty D][tuya_ai_event.c:57] send event rt:0, type:1
+[04-28 11:17:19 ty D][tuya_ai_agent.c:1418] [upload event] type:2
+[04-28 11:17:19 ty D][tuya_ai_protocol.c:2794] send success, total bytes sent: 185, sequence 74
+[04-28 11:17:19 ty D][tuya_ai_event.c:57] send event rt:0, type:2
+[04-28 11:17:19 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 34
+[04-28 11:17:21 ty D][buddy_ble.c:925] buddy_ble RX {"time":[1777346239,28800]}
+[04-28 11:17:21 ty D][buddy_ble.c:648] buddy_ble time sync ok epoch=1777346239 tz=480
+[04-28 11:17:21 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1a","_n":1,"_t":4,"_d":"{\"total\":1,\"running\":0,\"waiting\":0,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"asr: 桌面上新建一个文件。\",\"...(len=484)
+[04-28 11:17:21 ty D][buddy_ble.c:887] buddy_ble chunk 1a 1/4 (+400 B)
+[04-28 11:17:21 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:21 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1a","_n":2,"_t":4,"_d":"个文件。\"]},{\"id\":\"0689d897-aa\",\"n\":\"Create an Agent with subagen\",\"m\":\"\",\"to\":7,\"r\":false,\"p\":\"Windows\"...(len=515)
+[04-28 11:17:21 ty D][buddy_ble.c:887] buddy_ble chunk 1a 2/4 (+400 B)
+[04-28 11:17:21 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1a","_n":3,"_t":4,"_d":"d\":\"8bc39117-7e\",\"n\":\"Starts the daemon detached. \",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"d55098d...(len=528)
+[04-28 11:17:21 ty D][buddy_ble.c:887] buddy_ble chunk 1a 3/4 (+400 B)
+[04-28 11:17:21 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1a","_n":4,"_t":4,"_d":"false,\"p\":\"DuckyClaw\"},{\"id\":\"20a7bb02-1a\",\"n\":\"Starts the daemon detached. \",\"m\":\"\",\"to\":15,\"r\":false,\"p\":...(len=389)
+[04-28 11:17:21 ty D][buddy_ble.c:887] buddy_ble chunk 1a 4/4 (+310 B)
+[04-28 11:17:21 ty D][buddy_ble.c:902] buddy_ble chunk reassembled 1510 B
+[04-28 11:17:21 ty D][buddy_ble.c:923] buddy_ble RX {"total":1,"running":0,"waiting":0,"tokens":1450160,"tokens_today":0,"msg":"asr: 桌面上新建一个文件。","cache_read":190645972,"cache_write":19270890,"...(len=1510)
+[04-28 11:17:22 ty D][tuya_health.c:75] feed watchdog
+[04-28 11:17:30 ty D][tuya_ai_agent.c:416] ASR text: 桌面上新建一个文件。
+[04-28 11:17:30 ty N][ai_skill.c:118] text -> ASR result: 桌面上新建一个文件。
+[04-28 11:17:30 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 1
+[04-28 11:17:30 ty D][ai_mode_hold.c:216] mode hold state change form UPLOAD to THINK
+[04-28 11:17:30 ty I][tkl_bluetooth.c:205] send notify ok
+[04-28 11:17:30 ty N][ai_skill.c:74] text -> skill code: emo
+[04-28 11:17:30 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 15
+[04-28 11:17:30 ty N][ai_chat_ui.c:103] emoji: 😐, name: NEUTRAL
+[04-28 11:17:30 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 34
+[04-28 11:17:30 ty D][ai_agent.c:100] ai agent -> audio codec type: 109
+[04-28 11:17:30 ty D][tuya_ai_output.c:265] [output] start. status:0
+[04-28 11:17:30 ty D][ai_agent.c:59] ai agent -> recv event type: 0
+[04-28 11:17:30 ty D][ai_audio_player.c:378] audio player -> tts stream start
+[04-28 11:17:30 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 4
+[04-28 11:17:30 ty D][ai_mode_hold.c:220] mode hold state change form THINK to SPEAK
+[04-28 11:17:30 ty D][svc_ai_player.c:492] ai player FG cmd START
+[04-28 11:17:30 ty D][svc_ai_player.c:105] start player FG value=null
+[04-28 11:17:30 ty D][ai_audio_player.c:156] audio player -> player tts event: 1
+[04-28 11:17:30 ty D][ai_audio_player.c:177] audio player -> playing start event
+[04-28 11:17:30 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 21
+[04-28 11:17:30 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 5
+[04-28 11:17:30 ty N][tdl_led_manage.c:267] led_set_status: 1
+[04-28 11:17:30 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 34
+[04-28 11:17:30 ty D][decoder_mp3.c:60] ID3 tag_size n/a
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1b","_n":1,"_t":4,"_d":"{\"total\":1,\"running\":0,\"waiting\":0,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"asr: 桌面上新建一个文件。\",\"...(len=482)
+[04-28 11:17:31 ty D][buddy_ble.c:887] buddy_ble chunk 1b 1/4 (+400 B)
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1b","_n":2,"_t":4,"_d":"r\":false,\"e\":[\"11:16 ASR 桌面上新建一个文件。\",\"11:17 ASR 桌面上新建一个文件。\"]},{\"id\":\"0689d897-a...(len=503)
+[04-28 11:17:31 ty D][buddy_ble.c:887] buddy_ble chunk 1b 2/4 (+400 B)
+[04-28 11:17:31 ty N][ai_skill.c:184] json-str {"content":"嘎～还是没办法完成在桌面上新建文件这个操作呢，","appendMode":"append","timeIndex":5950,"finish":false,"tags":[]}
+[04-28 11:17:31 ty N][ai_skill.c:209] text -> NLG eof: 0, content: 嘎～还是没办法完成在桌面上新建文件这个操作呢，, time: 1
+[04-28 11:17:31 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 11
+[04-28 11:17:31 ty N][ai_skill.c:184] json-str {"content":"","reasoningContent":"","appendMode":"append","finish":true}
+[04-28 11:17:31 ty N][ai_skill.c:209] text -> NLG eof: 1, content: , time: 1
+[04-28 11:17:31 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 13
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1b","_n":3,"_t":4,"_d":"246-5b\",\"n\":\"帮我分析一下这个apps\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"8bc39117-7e\",\"n\"...(len=528)
+[04-28 11:17:31 ty D][buddy_ble.c:887] buddy_ble chunk 1b 3/4 (+400 B)
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1b","_n":4,"_t":4,"_d":"\"TuyaOpen\"},{\"id\":\"d5ee8c16-0c\",\"n\":\"Starts the daemon detached. \",\"m\":\"\",\"to\":88,\"r\":false,\"p\":\"DuckyClaw\"...(len=493)
+[04-28 11:17:31 ty D][buddy_ble.c:887] buddy_ble chunk 1b 4/4 (+396 B)
+[04-28 11:17:31 ty D][buddy_ble.c:902] buddy_ble chunk reassembled 1596 B
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"total":1,"running":0,"waiting":0,"tokens":1450160,"tokens_today":0,"msg":"asr: 桌面上新建一个文件。","cache_read":190645972,"cache_write":19270890,"...(len=1596)
+[04-28 11:17:31 ty D][buddy_ble.c:925] buddy_ble RX {"time":[1777346249,28800]}
+[04-28 11:17:31 ty D][buddy_ble.c:648] buddy_ble time sync ok epoch=1777346249 tz=480
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1c","_n":1,"_t":4,"_d":"{\"total\":1,\"running\":0,\"waiting\":0,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"asr: 桌面上新建一个文件。\",\"...(len=482)
+tkl_system_malloc failed, size(8192)!
+[04-28 11:17:31 ty E][tal_system.c:96] 0x2186eb9 malloc failed:0x2000 free:0x1f98
+[04-28 11:17:31 ty E][buddy_ble.c:861] buddy_ble chunk rx oom
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1c","_n":2,"_t":4,"_d":"r\":false,\"e\":[\"11:16 ASR 桌面上新建一个文件。\",\"11:17 ASR 桌面上新建一个文件。\"]},{\"id\":\"0689d897-a...(len=503)
+tkl_system_malloc failed, size(8192)!
+[04-28 11:17:31 ty E][tal_system.c:96] 0x2186eb9 malloc failed:0x2000 free:0x1f60
+[04-28 11:17:31 ty E][buddy_ble.c:861] buddy_ble chunk rx oom
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1c","_n":3,"_t":4,"_d":"246-5b\",\"n\":\"帮我分析一下这个apps\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"8bc39117-7e\",\"n\"...(len=528)
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+tkl_system_malloc failed, size(8192)!
+[04-28 11:17:31 ty E][tal_system.c:96] 0x2186eb9 malloc failed:0x2000 free:0x1f10
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty E][buddy_ble.c:861] buddy_ble chunk rx oom
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:31 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1c","_n":4,"_t":4,"_d":"\"TuyaOpen\"},{\"id\":\"d5ee8c16-0c\",\"n\":\"Starts the daemon detached. \",\"m\":\"\",\"to\":88,\"r\":false,\"p\":\"DuckyClaw\"...(len=493)
+tkl_system_malloc failed, size(8192)!
+[04-28 11:17:31 ty E][tal_system.c:96] 0x2186eb9 malloc failed:0x2000 free:0x2070
+[04-28 11:17:31 ty E][buddy_ble.c:861] buddy_ble chunk rx oom
+[04-28 11:17:32 ty D][tuya_health.c:75] feed watchdog
+[04-28 11:17:35 ty N][ai_skill.c:184] json-str {"content":"好像没有找到能执行这个任务的设备呀。","appendMode":"append","timeIndex":4700,"finish":false,"tags":[]}
+[04-28 11:17:35 ty N][ai_skill.c:209] text -> NLG eof: 0, content: 好像没有找到能执行这个任务的设备呀。, time: 1
+[04-28 11:17:35 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 11
+[04-28 11:17:40 ty N][ai_skill.c:184] json-str {"content":"","reasoningContent":"","appendMode":"append","finish":true}
+[04-28 11:17:40 ty N][ai_skill.c:209] text -> NLG eof: 1, content: , time: 1
+[04-28 11:17:40 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 13
+[04-28 11:17:40 ty D][tuya_ai_agent.c:136] [====ai event cb====] type:1, sid:8e2d3dfe-d6bc-4f53-8018-783e-86161f03, eid:3aab9564-a954-4e52-8e39
+[04-28 11:17:40 ty D][tuya_ai_output.c:373] [output] stop. force:0 status:1
+[04-28 11:17:40 ty D][tuya_ai_output.c:156] [output] stop done
+[04-28 11:17:40 ty D][tuya_ai_agent.c:136] [====ai event cb====] type:1, sid:8e2d3dfe-d6bc-4f53-8018-783e-86161f03, eid:3aab9564-a954-4e52-8e39
+[04-28 11:17:40 ty D][tuya_ai_agent.c:136] [====ai event cb====] type:2, sid:8e2d3dfe-d6bc-4f53-8018-783e-86161f03, eid:3aab9564-a954-4e52-8e39
+[04-28 11:17:41 ty D][ai_agent.c:59] ai agent -> recv event type: 2
+[04-28 11:17:41 ty D][ai_audio_player.c:393] audio player -> tts stream stop
+[04-28 11:17:41 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 7
+[04-28 11:17:41 ty D][buddy_ble.c:925] buddy_ble RX {"time":[1777346259,28800]}
+[04-28 11:17:41 ty D][buddy_ble.c:648] buddy_ble time sync ok epoch=1777346259 tz=480
+[04-28 11:17:41 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1d","_n":1,"_t":4,"_d":"{\"total\":1,\"running\":0,\"waiting\":0,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"asr: 桌面上新建一个文件。\",\"...(len=482)
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty D][buddy_ble.c:887] buddy_ble chunk 1d 1/4 (+400 B)
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1d","_n":2,"_t":4,"_d":"r\":false,\"e\":[\"11:16 ASR 桌面上新建一个文件。\",\"11:17 ASR 桌面上新建一个文件。\"]},{\"id\":\"0689d897-a...(len=503)
+[04-28 11:17:41 ty D][buddy_ble.c:887] buddy_ble chunk 1d 2/4 (+400 B)
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty W][buddy_ble.c:444] buddy_ble rx schedule rt=-24
+[04-28 11:17:41 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1d","_n":3,"_t":4,"_d":"246-5b\",\"n\":\"帮我分析一下这个apps\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"8bc39117-7e\",\"n\"...(len=528)
+[04-28 11:17:41 ty D][buddy_ble.c:887] buddy_ble chunk 1d 3/4 (+400 B)
+[04-28 11:17:41 ty D][buddy_ble.c:923] buddy_ble RX {"_f":"1d","_n":4,"_t":4,"_d":"\"TuyaOpen\"},{\"id\":\"d5ee8c16-0c\",\"n\":\"Starts the daemon detached. \",\"m\":\"\",\"to\":88,\"r\":false,\"p\":\"DuckyClaw\"...(len=493)
+[04-28 11:17:41 ty D][buddy_ble.c:887] buddy_ble chunk 1d 4/4 (+396 B)
+[04-28 11:17:41 ty D][buddy_ble.c:902] buddy_ble chunk reassembled 1596 B
+[04-28 11:17:41 ty D][buddy_ble.c:923] buddy_ble RX {"total":1,"running":0,"waiting":0,"tokens":1450160,"tokens_today":0,"msg":"asr: 桌面上新建一个文件。","cache_read":190645972,"cache_write":19270890,"...(len=1596)
+[04-28 11:17:42 ty D][tuya_health.c:75] feed watchdog
+[04-28 11:17:42 ty N][svc_ai_player.c:244] ai player FG eof
+[04-28 11:17:42 ty D][svc_ai_player.c:133] stop player FG
+[04-28 11:17:42 ty D][svc_ai_playlist.c:52] playlist player state 0 index 0 count 0 loop 0 single 0
+[04-28 11:17:42 ty D][ai_audio_player.c:156] audio player -> player tts event: 0
+[04-28 11:17:42 ty D][ai_audio_player.c:163] audio player -> stop event
+[04-28 11:17:42 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 31
+[04-28 11:17:42 ty D][ai_mode_hold.c:225] mode hold state change form SPEAK to IDLE
+[04-28 11:17:42 ty N][tdl_led_manage.c:267] led_set_status: 0
+[04-28 11:17:42 ty D][ai_mode_hold.c:206] [====ai_hold] event type: 34

@@ -5,6 +5,7 @@ __pycache__
 .cache
 .clangd
 .cursor
+.claude
 .target_logging
 
 CMakeCache.txt

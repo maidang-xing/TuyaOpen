@@ -19,6 +19,10 @@
  */
 #include "buddy_ble.h"
 #include "buddy_main_screen.h"
+#include "buddy_approval_screen.h"
+#include "buddy_led.h"
+#include "screen_manager.h"
+#include "lv_vendor.h"
 
 #include "tal_api.h"
 #include "tal_bluetooth.h"
@@ -26,6 +30,7 @@
 #include "ble_mgr.h"
 #include "tuya_iot.h"
 #include "cJSON.h"
+#include "tal_workqueue.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,6 +65,17 @@
         0x9E, 0xCA, 0xDC, 0x24, 0x0E, 0xE5, 0xA9, 0xE0, 0x93, 0xF3, 0xA3, 0xB5, 0x01, 0x00, 0x40, 0x6E                 \
     }
 
+/* Application-level chunking: large JSON frames are split into smaller
+ * self-contained chunk envelopes so each BLE transfer is short and
+ * individually parseable. The receiver reassembles the pieces before
+ * processing. */
+#define CHUNK_THRESHOLD      480U   /* frames larger than this get split */
+#define CHUNK_RAW_SIZE       400U   /* raw payload bytes per chunk piece */
+#define CHUNK_MAX_COUNT      20U    /* max pieces per frame (~8 KB) */
+#define CHUNK_RX_CAP         8192U  /* reassembly buffer capacity */
+#define CHUNK_TIMEOUT_MS     5000U  /* discard incomplete frames after this */
+#define CHUNK_ENV_BUF_CAP    1024U  /* build buffer for one chunk envelope */
+
 /* ---------------------------------------------------------------------------
  * File scope variables
  * --------------------------------------------------------------------------- */
@@ -84,6 +100,32 @@ STATIC char s_owner_name[24] = {0};
 STATIC uint8_t *s_rx_buf = NULL;
 STATIC uint16_t s_rx_len = 0;
 STATIC MUTEX_HANDLE s_rx_mutex = NULL;
+STATIC WORKQUEUE_HANDLE s_rx_workq = NULL;
+
+/* Chunk TX rolling frame ID (wraps 0x00..0xFF). */
+STATIC uint8_t s_tx_frame_id = 0;
+
+/* Chunk RX reassembly state — only one frame in flight at a time.
+ * The reassembly buffer is statically allocated to avoid repeated
+ * tal_malloc/tal_free of 8 KB on a memory-constrained device. */
+typedef struct {
+    char     fid[4];       /* current frame "_f" value */
+    uint8_t  total;        /* expected chunk count */
+    uint8_t  next_n;       /* next expected sequence number (1-based) */
+    char    *buf;          /* points to s_chunk_rx_buf when active, NULL when idle */
+    uint32_t buf_len;      /* bytes accumulated so far */
+    uint32_t last_ms;      /* tick of last received chunk */
+} __chunk_rx_t;
+
+STATIC char s_chunk_rx_buf[CHUNK_RX_CAP];
+STATIC __chunk_rx_t s_chunk_rx = {0};
+
+/* Static snapshot buffer for __push_ui_state (avoids ~6 KB heap alloc per heartbeat). */
+STATIC buddy_tama_state_t s_ui_snap;
+
+/* Workqueue scheduling coalescing: prevents flooding the queue when
+ * BLE packets arrive faster than the workqueue processes them. */
+STATIC volatile BOOL_T s_rx_work_pending = FALSE;
 
 /* ---------------------------------------------------------------------------
  * Forward declarations
@@ -98,12 +140,16 @@ STATIC VOID_T __sniffer_cb(TAL_BLE_EVT_PARAMS_T *p_event);
 STATIC VOID_T __rx_accumulate(const uint8_t *data, uint16_t len);
 STATIC VOID_T __rx_dispatch_lines(VOID_T);
 STATIC VOID_T __handle_line(char *line);
+STATIC VOID_T __rx_process_work(void *data);
 STATIC VOID_T __handle_heartbeat(cJSON *root);
 STATIC VOID_T __handle_time(cJSON *time_arr);
 STATIC VOID_T __reset_entries(buddy_tama_state_t *snap);
 STATIC VOID_T __push_entry(buddy_tama_state_t *snap, int index, const char *text);
 STATIC VOID_T __send_ack(const char *ack, BOOL_T ok, int n);
 STATIC OPERATE_RET __send_raw(const char *payload, uint16_t length);
+STATIC OPERATE_RET __send_chunked(const char *payload, uint16_t length);
+STATIC VOID_T __rx_chunk_reset(VOID_T);
+STATIC VOID_T __rx_chunk_feed(cJSON *root);
 STATIC VOID_T __send_status(VOID_T);
 
 /* ---------------------------------------------------------------------------
@@ -135,9 +181,22 @@ STATIC VOID_T __reset_state(BOOL_T connected)
  */
 STATIC VOID_T __push_ui_state(VOID_T)
 {
-    buddy_tama_state_t snap;
-    buddy_ble_snapshot(&snap);
-    buddy_main_screen_update_state(&snap);
+    buddy_ble_snapshot(&s_ui_snap);
+    buddy_main_screen_update_state(&s_ui_snap);
+
+    static BOOL_T s_prev_has_prompt = FALSE;
+    BOOL_T now_has_prompt = s_ui_snap.has_prompt ? TRUE : FALSE;
+    if (now_has_prompt && !s_prev_has_prompt) {
+        Screen_t *cur = screen_get_now_screen();
+        if (cur != NULL && cur != &buddy_approval_screen
+            && cur != &buddy_main_screen) {
+            (VOID_T)buddy_led_set(BUDDY_LED_STATE_BLINK_FAST);
+            lv_vendor_disp_lock();
+            screen_load(&buddy_approval_screen);
+            lv_vendor_disp_unlock();
+        }
+    }
+    s_prev_has_prompt = now_has_prompt;
 }
 
 /**
@@ -181,6 +240,22 @@ BOOL_T buddy_ble_is_connected(VOID_T)
 BOOL_T buddy_ble_is_started(VOID_T)
 {
     return s_started;
+}
+
+/**
+ * @brief Public: cloud connectivity check.
+ *
+ * Uses the TuyaOS IoT client activation state as a lightweight WiFi proxy.
+ * An activated device (devid != "") means WiFi provisioning succeeded and
+ * cloud was reachable at least once in the device's lifetime.
+ *
+ * @return TRUE if the IoT client is active and the device is registered
+ */
+BOOL_T buddy_ble_cloud_is_connected(VOID_T)
+{
+    tuya_iot_client_t *iot = tuya_iot_client_get();
+    if (iot == NULL) return FALSE;
+    return (iot->activate.devid[0] != '\0') ? TRUE : FALSE;
 }
 
 /* ---------------------------------------------------------------------------
@@ -367,7 +442,16 @@ STATIC VOID_T __sniffer_cb(TAL_BLE_EVT_PARAMS_T *p_event)
         }
         __rx_accumulate(p_event->ble_event.write_report.report.p_data,
                         p_event->ble_event.write_report.report.len);
-        __rx_dispatch_lines();
+        if (s_rx_workq != NULL) {
+            if (!s_rx_work_pending) {
+                OPERATE_RET rt = tal_workqueue_schedule(s_rx_workq, __rx_process_work, NULL);
+                if (rt == OPRT_OK) {
+                    s_rx_work_pending = TRUE;
+                }
+            }
+        } else {
+            __rx_dispatch_lines();
+        }
     } break;
 
     default:
@@ -403,6 +487,13 @@ STATIC VOID_T __rx_accumulate(const uint8_t *data, uint16_t len)
     if (s_rx_mutex) {
         tal_mutex_unlock(s_rx_mutex);
     }
+}
+
+STATIC VOID_T __rx_process_work(void *data)
+{
+    (void)data;
+    s_rx_work_pending = FALSE;
+    __rx_dispatch_lines();
 }
 
 /**
@@ -526,7 +617,6 @@ STATIC VOID_T __push_entry(buddy_tama_state_t *snap, int index, const char *text
     if (snap->entries_count < BUDDY_ENTRIES_RING) {
         snap->entries_count = (uint8_t)(snap->entries_count + 1U);
     }
-    PR_DEBUG("%s entries: idx=%d text=%.80s", BUDDY_BLE_TAG, index, snap->entries[slot].text);
 }
 
 /**
@@ -565,6 +655,254 @@ STATIC VOID_T __handle_time(cJSON *time_arr)
     PR_DEBUG("%s time sync ok epoch=%lld tz=%d", BUDDY_BLE_TAG, (long long)epoch_s, (int)tz_min);
 }
 
+/* ---------------------------------------------------------------------------
+ * Application-level chunk TX / RX
+ * --------------------------------------------------------------------------- */
+/**
+ * @brief Ensure split position does not break a multi-byte UTF-8 sequence.
+ * @param[in] data   buffer
+ * @param[in] desired target split position
+ * @param[in] start  start of the current chunk (lower bound for back-up)
+ * @return adjusted position (always >= start)
+ */
+STATIC uint16_t __utf8_safe_end(const char *data, uint16_t desired, uint16_t start)
+{
+    uint16_t pos = desired;
+    while (pos > start && ((uint8_t)data[pos] & 0xC0) == 0x80) {
+        pos--;
+    }
+    return pos;
+}
+
+/**
+ * @brief Send a JSON line with application-level chunking for large payloads.
+ *
+ * If the payload is shorter than CHUNK_THRESHOLD the frame is sent as-is
+ * via __send_raw.  Otherwise the payload (minus trailing newline) is split
+ * into chunks whose _d values are JSON-escaped substrings.  Each chunk
+ * envelope is a complete newline-terminated JSON object that the receiver
+ * can parse independently.
+ *
+ * @param[in] payload  NUL-terminated JSON line (may include trailing \\n)
+ * @param[in] length   byte count (including \\n if present)
+ * @return OPRT_OK on success
+ */
+STATIC OPERATE_RET __send_chunked(const char *payload, uint16_t length)
+{
+    if (length <= (uint16_t)CHUNK_THRESHOLD) {
+        return __send_raw(payload, length);
+    }
+
+    /* Strip trailing newline for splitting. */
+    uint16_t data_len = length;
+    while (data_len > 0 && payload[data_len - 1] == '\n') {
+        data_len--;
+    }
+    if (data_len == 0) {
+        return OPRT_OK;
+    }
+
+    /* Pre-count chunks (respecting UTF-8 boundaries). */
+    uint16_t n_chunks = 0;
+    uint16_t pos = 0;
+    while (pos < data_len) {
+        uint16_t end = (uint16_t)(pos + CHUNK_RAW_SIZE);
+        if (end >= data_len) {
+            end = data_len;
+        } else {
+            end = __utf8_safe_end(payload, end, pos);
+            if (end <= pos) {
+                end = (uint16_t)(pos + 1);
+            }
+        }
+        n_chunks++;
+        pos = end;
+    }
+    if (n_chunks > (uint16_t)CHUNK_MAX_COUNT) {
+        PR_WARN("%s frame too large for app chunking (%u B, %u chunks)",
+                BUDDY_BLE_TAG, (unsigned)length, (unsigned)n_chunks);
+        return __send_raw(payload, length);
+    }
+
+    char fid[4];
+    (VOID_T)snprintf(fid, sizeof(fid), "%02x", (unsigned)(s_tx_frame_id & 0xFF));
+    s_tx_frame_id++;
+
+    char *env = (char *)tal_malloc(CHUNK_ENV_BUF_CAP);
+    if (env == NULL) {
+        return OPRT_MALLOC_FAILED;
+    }
+
+    pos = 0;
+    uint16_t seq = 1;
+    OPERATE_RET rt = OPRT_OK;
+
+    while (pos < data_len) {
+        uint16_t end = (uint16_t)(pos + CHUNK_RAW_SIZE);
+        if (end >= data_len) {
+            end = data_len;
+        } else {
+            end = __utf8_safe_end(payload, end, pos);
+            if (end <= pos) {
+                end = (uint16_t)(pos + 1);
+            }
+        }
+
+        /* Build envelope:  {"_f":"XX","_n":N,"_t":T,"_d":"..."}\n
+         * The _d value is JSON-escaped inline (only " and \ need escaping
+         * since the payload is valid JSON text without raw control chars). */
+        size_t off = 0;
+        int w = snprintf(env, CHUNK_ENV_BUF_CAP,
+                         "{\"_f\":\"%s\",\"_n\":%u,\"_t\":%u,\"_d\":\"",
+                         fid, (unsigned)seq, (unsigned)n_chunks);
+        if (w <= 0 || (size_t)w >= CHUNK_ENV_BUF_CAP) {
+            rt = OPRT_COM_ERROR;
+            break;
+        }
+        off = (size_t)w;
+
+        for (uint16_t i = pos; i < end && off + 8 < CHUNK_ENV_BUF_CAP; i++) {
+            unsigned char c = (unsigned char)payload[i];
+            if (c == '"') {
+                env[off++] = '\\';
+                env[off++] = '"';
+            } else if (c == '\\') {
+                env[off++] = '\\';
+                env[off++] = '\\';
+            } else if (c < 0x20) {
+                int m = snprintf(env + off, CHUNK_ENV_BUF_CAP - off,
+                                 "\\u%04x", (unsigned)c);
+                if (m > 0) {
+                    off += (size_t)m;
+                }
+            } else {
+                env[off++] = (char)c;
+            }
+        }
+
+        w = snprintf(env + off, CHUNK_ENV_BUF_CAP - off, "\"}\n");
+        if (w <= 0) {
+            rt = OPRT_COM_ERROR;
+            break;
+        }
+        off += (size_t)w;
+
+        rt = __send_raw(env, (uint16_t)off);
+        if (rt != OPRT_OK) {
+            break;
+        }
+
+        pos = end;
+        seq++;
+    }
+
+    tal_free(env);
+    return rt;
+}
+
+/**
+ * @brief Discard any partial chunk reassembly state.
+ * @return none
+ */
+STATIC VOID_T __rx_chunk_reset(VOID_T)
+{
+    s_chunk_rx.buf = NULL;
+    s_chunk_rx.buf_len = 0;
+    s_chunk_rx.total = 0;
+    s_chunk_rx.next_n = 0;
+    s_chunk_rx.last_ms = 0;
+    memset(s_chunk_rx.fid, 0, sizeof(s_chunk_rx.fid));
+}
+
+/**
+ * @brief Buffer an incoming chunk envelope and reassemble when complete.
+ *
+ * When all chunks of a frame arrive in order, the concatenated _d payloads
+ * are forwarded to __handle_line for normal JSON dispatch.  Out-of-order
+ * or timed-out chunks cause the whole frame to be discarded.
+ *
+ * @param[in] root  parsed cJSON object that has a "_f" key
+ * @return none
+ */
+STATIC VOID_T __rx_chunk_feed(cJSON *root)
+{
+    cJSON *jf = cJSON_GetObjectItem(root, "_f");
+    cJSON *jn = cJSON_GetObjectItem(root, "_n");
+    cJSON *jt = cJSON_GetObjectItem(root, "_t");
+    cJSON *jd = cJSON_GetObjectItem(root, "_d");
+
+    if (!cJSON_IsString(jf) || !cJSON_IsNumber(jn) ||
+        !cJSON_IsNumber(jt) || !cJSON_IsString(jd)) {
+        return;
+    }
+
+    const char *fid = jf->valuestring;
+    int n = jn->valueint;
+    int t = jt->valueint;
+    const char *d = jd->valuestring;
+
+    if (fid == NULL || d == NULL) {
+        return;
+    }
+    if (n < 1 || t < 1 || (uint32_t)t > CHUNK_MAX_COUNT || n > t) {
+        return;
+    }
+
+    uint32_t now_ms = (uint32_t)(tal_system_get_millisecond() & 0xFFFFFFFFU);
+
+    /* Timeout: discard stale partial frames. */
+    if (s_chunk_rx.buf != NULL &&
+        (now_ms - s_chunk_rx.last_ms) > CHUNK_TIMEOUT_MS) {
+        PR_DEBUG("%s chunk timeout, reset", BUDDY_BLE_TAG);
+        __rx_chunk_reset();
+    }
+
+    /* First chunk of a (possibly new) frame? */
+    if (n == 1 || s_chunk_rx.buf == NULL ||
+        strncmp(s_chunk_rx.fid, fid, sizeof(s_chunk_rx.fid) - 1) != 0) {
+        __rx_chunk_reset();
+        strncpy(s_chunk_rx.fid, fid, sizeof(s_chunk_rx.fid) - 1);
+        s_chunk_rx.fid[sizeof(s_chunk_rx.fid) - 1] = '\0';
+        s_chunk_rx.total = (uint8_t)t;
+        s_chunk_rx.next_n = 1;
+        s_chunk_rx.buf = s_chunk_rx_buf;
+        s_chunk_rx.buf_len = 0;
+    }
+
+    /* Enforce in-order delivery. */
+    if ((uint8_t)n != s_chunk_rx.next_n) {
+        PR_WARN("%s chunk seq mismatch got=%d want=%u",
+                BUDDY_BLE_TAG, n, (unsigned)s_chunk_rx.next_n);
+        __rx_chunk_reset();
+        return;
+    }
+
+    /* Append _d data. */
+    size_t d_len = strlen(d);
+    if (s_chunk_rx.buf_len + (uint32_t)d_len >= CHUNK_RX_CAP) {
+        PR_WARN("%s chunk reassembly overflow", BUDDY_BLE_TAG);
+        __rx_chunk_reset();
+        return;
+    }
+    memcpy(s_chunk_rx.buf + s_chunk_rx.buf_len, d, d_len);
+    s_chunk_rx.buf_len += (uint32_t)d_len;
+    s_chunk_rx.next_n++;
+    s_chunk_rx.last_ms = now_ms;
+
+    PR_DEBUG("%s chunk %s %d/%d (+%u B)", BUDDY_BLE_TAG,
+             fid, n, t, (unsigned)d_len);
+
+    /* All chunks received? */
+    if ((uint8_t)n == s_chunk_rx.total) {
+        s_chunk_rx.buf[s_chunk_rx.buf_len] = '\0';
+
+        PR_DEBUG("%s chunk reassembled %u B", BUDDY_BLE_TAG,
+                 (unsigned)s_chunk_rx.buf_len);
+        __handle_line(s_chunk_rx.buf);
+        __rx_chunk_reset();
+    }
+}
+
 /**
  * @brief Parse and dispatch a single JSON line from the desktop host.
  * @param[in] line NUL-terminated JSON text (no trailing newline)
@@ -575,11 +913,26 @@ STATIC VOID_T __handle_line(char *line)
     if (line == NULL || line[0] == '\0') {
         return;
     }
-    PR_DEBUG("%s RX %s", BUDDY_BLE_TAG, line);
+
+    size_t line_len = strlen(line);
+    const size_t log_limit = 160;
+    if (line_len > log_limit) {
+        PR_DEBUG("%s RX %.160s...(len=%u)", BUDDY_BLE_TAG, line, (unsigned)line_len);
+    } else {
+        PR_DEBUG("%s RX %s", BUDDY_BLE_TAG, line);
+    }
 
     cJSON *root = cJSON_Parse(line);
     if (root == NULL) {
         PR_WARN("%s bad json", BUDDY_BLE_TAG);
+        return;
+    }
+
+    /* Application-level chunk envelope? Reassemble before dispatching. */
+    cJSON *chunk_f = cJSON_GetObjectItem(root, "_f");
+    if (cJSON_IsString(chunk_f)) {
+        __rx_chunk_feed(root);
+        cJSON_Delete(root);
         return;
     }
 
@@ -627,9 +980,13 @@ STATIC VOID_T __handle_heartbeat(cJSON *root)
         return;
     }
 
-    buddy_tama_state_t snap;
-    buddy_ble_snapshot(&snap);
-    snap.ble_connected = TRUE;
+    buddy_tama_state_t *snap = (buddy_tama_state_t *)tal_malloc(sizeof(buddy_tama_state_t));
+    if (snap == NULL) {
+        PR_ERR("%s heartbeat oom", BUDDY_BLE_TAG);
+        return;
+    }
+    buddy_ble_snapshot(snap);
+    snap->ble_connected = TRUE;
 
     cJSON *total = cJSON_GetObjectItem(root, "total");
     cJSON *running = cJSON_GetObjectItem(root, "running");
@@ -645,114 +1002,167 @@ STATIC VOID_T __handle_heartbeat(cJSON *root)
     cJSON *msg = cJSON_GetObjectItem(root, "msg");
 
     if (cJSON_IsNumber(total)) {
-        snap.sessions_total = (uint8_t)total->valueint;
+        snap->sessions_total = (uint8_t)total->valueint;
     }
     if (cJSON_IsNumber(running)) {
-        snap.sessions_running = (uint8_t)running->valueint;
+        snap->sessions_running = (uint8_t)running->valueint;
     }
     if (cJSON_IsNumber(waiting)) {
-        snap.sessions_waiting = (uint8_t)waiting->valueint;
+        snap->sessions_waiting = (uint8_t)waiting->valueint;
     }
     if (cJSON_IsNumber(tokens)) {
-        snap.tokens = (uint32_t)tokens->valuedouble;
+        snap->tokens = (uint32_t)tokens->valuedouble;
     }
     if (cJSON_IsNumber(tokens_today)) {
-        snap.tokens_today = (uint32_t)tokens_today->valuedouble;
+        snap->tokens_today = (uint32_t)tokens_today->valuedouble;
     }
     if (cJSON_IsNumber(tokens_in)) {
-        snap.tokens_in = (uint32_t)tokens_in->valuedouble;
+        snap->tokens_in = (uint32_t)tokens_in->valuedouble;
     }
     if (cJSON_IsNumber(tokens_in_today)) {
-        snap.tokens_in_today = (uint32_t)tokens_in_today->valuedouble;
+        snap->tokens_in_today = (uint32_t)tokens_in_today->valuedouble;
     }
     if (cJSON_IsNumber(cache_read)) {
-        snap.cache_read = (uint32_t)cache_read->valuedouble;
+        snap->cache_read = (uint32_t)cache_read->valuedouble;
     }
     if (cJSON_IsNumber(cache_write)) {
-        snap.cache_write = (uint32_t)cache_write->valuedouble;
+        snap->cache_write = (uint32_t)cache_write->valuedouble;
     }
     if (cJSON_IsNumber(ctx_used)) {
-        snap.ctx_used = (uint32_t)ctx_used->valuedouble;
+        snap->ctx_used = (uint32_t)ctx_used->valuedouble;
     }
     if (cJSON_IsNumber(ctx_total)) {
-        snap.ctx_total = (uint32_t)ctx_total->valuedouble;
+        snap->ctx_total = (uint32_t)ctx_total->valuedouble;
     }
-    __copy_str(snap.msg, sizeof(snap.msg), msg);
+    __copy_str(snap->msg, sizeof(snap->msg), msg);
 
     cJSON *prompt = cJSON_GetObjectItem(root, "prompt");
     if (cJSON_IsObject(prompt)) {
-        __copy_str(snap.prompt_id, sizeof(snap.prompt_id), cJSON_GetObjectItem(prompt, "id"));
-        __copy_str(snap.prompt_tool, sizeof(snap.prompt_tool), cJSON_GetObjectItem(prompt, "tool"));
-        __copy_str(snap.prompt_hint, sizeof(snap.prompt_hint), cJSON_GetObjectItem(prompt, "hint"));
-        snap.has_prompt = (snap.prompt_id[0] != '\0');
+        __copy_str(snap->prompt_id, sizeof(snap->prompt_id), cJSON_GetObjectItem(prompt, "id"));
+        __copy_str(snap->prompt_tool, sizeof(snap->prompt_tool), cJSON_GetObjectItem(prompt, "tool"));
+        __copy_str(snap->prompt_hint, sizeof(snap->prompt_hint), cJSON_GetObjectItem(prompt, "hint"));
+        snap->has_prompt = (snap->prompt_id[0] != '\0');
     } else {
-        snap.has_prompt = FALSE;
-        snap.prompt_id[0] = '\0';
+        snap->has_prompt = FALSE;
+        snap->prompt_id[0] = '\0';
     }
 
     cJSON *entries = cJSON_GetObjectItem(root, "entries");
     if (cJSON_IsArray(entries)) {
         int n = cJSON_GetArraySize(entries);
         int first = (n > BUDDY_ENTRIES_RING) ? (n - BUDDY_ENTRIES_RING) : 0;
-        __reset_entries(&snap);
+        __reset_entries(snap);
         for (int i = first; i < n; i++) {
             cJSON *e = cJSON_GetArrayItem(entries, i);
             if (cJSON_IsString(e) && e->valuestring != NULL) {
-                __push_entry(&snap, i, e->valuestring);
+                __push_entry(snap, i, e->valuestring);
             }
         }
     }
 
     /* model name */
-    __copy_str(snap.model, sizeof(snap.model), cJSON_GetObjectItem(root, "model"));
+    __copy_str(snap->model, sizeof(snap->model), cJSON_GetObjectItem(root, "model"));
 
-    /* sessions array: [{"id":..,"n":..,"m":..,"to":uint,"r":bool}] */
-    snap.sessions_count = 0;
+    /* sessions array: [{"id":..,"n":..,"m":..,"to":uint,"r":bool,"p":str,"e":[]}] */
+    snap->sessions_count = 0;
     cJSON *jsessions = cJSON_GetObjectItem(root, "sessions");
     if (cJSON_IsArray(jsessions)) {
         int n = cJSON_GetArraySize(jsessions);
-        if (n > BUDDY_SESSIONS_MAX) n = BUDDY_SESSIONS_MAX;
+        if (n > BUDDY_SESSIONS_MAX) {
+            n = BUDDY_SESSIONS_MAX;
+        }
         for (int i = 0; i < n; i++) {
             cJSON *js = cJSON_GetArrayItem(jsessions, i);
-            if (!cJSON_IsObject(js)) continue;
-            buddy_session_t *sess = &snap.sessions[snap.sessions_count];
+            if (!cJSON_IsObject(js)) {
+                continue;
+            }
+            buddy_session_t *sess = &snap->sessions[snap->sessions_count];
             memset(sess, 0, sizeof(*sess));
-            __copy_str(sess->sid,   sizeof(sess->sid),   cJSON_GetObjectItem(js, "id"));
-            __copy_str(sess->name,  sizeof(sess->name),  cJSON_GetObjectItem(js, "n"));
-            __copy_str(sess->model, sizeof(sess->model), cJSON_GetObjectItem(js, "m"));
+            __copy_str(sess->sid,     sizeof(sess->sid),     cJSON_GetObjectItem(js, "id"));
+            __copy_str(sess->name,    sizeof(sess->name),    cJSON_GetObjectItem(js, "n"));
+            __copy_str(sess->model,   sizeof(sess->model),   cJSON_GetObjectItem(js, "m"));
+            __copy_str(sess->project, sizeof(sess->project), cJSON_GetObjectItem(js, "p"));
             cJSON *jto = cJSON_GetObjectItem(js, "to");
             cJSON *jr  = cJSON_GetObjectItem(js, "r");
-            if (cJSON_IsNumber(jto)) sess->tokens_out = (uint32_t)jto->valuedouble;
+            if (cJSON_IsNumber(jto)) {
+                sess->tokens_out = (uint32_t)jto->valuedouble;
+            }
             sess->is_running = cJSON_IsTrue(jr) ? TRUE : FALSE;
-            snap.sessions_count++;
+            cJSON *je = cJSON_GetObjectItem(js, "e");
+            sess->local_entry_count = 0;
+            if (cJSON_IsArray(je)) {
+                int ne = cJSON_GetArraySize(je);
+                if (ne > BUDDY_SESSION_LOCAL_ENTRIES) {
+                    ne = BUDDY_SESSION_LOCAL_ENTRIES;
+                }
+                for (int ei = 0; ei < ne; ei++) {
+                    cJSON *eitem = cJSON_GetArrayItem(je, ei);
+                    if (cJSON_IsString(eitem) && eitem->valuestring) {
+                        (VOID_T)snprintf(sess->local_entries[sess->local_entry_count].text,
+                                         sizeof(sess->local_entries[0].text),
+                                         "%.79s", eitem->valuestring);
+                        sess->local_entry_count++;
+                    }
+                }
+            }
+            snap->sessions_count++;
         }
     }
 
     /* mstats array: [{"m":..,"to":uint}] */
-    snap.mstats_count = 0;
+    snap->mstats_count = 0;
     cJSON *jmstats = cJSON_GetObjectItem(root, "mstats");
     if (cJSON_IsArray(jmstats)) {
         int n = cJSON_GetArraySize(jmstats);
-        if (n > BUDDY_MSTATS_MAX) n = BUDDY_MSTATS_MAX;
+        if (n > BUDDY_MSTATS_MAX) {
+            n = BUDDY_MSTATS_MAX;
+        }
         for (int i = 0; i < n; i++) {
             cJSON *jm = cJSON_GetArrayItem(jmstats, i);
-            if (!cJSON_IsObject(jm)) continue;
-            buddy_mstat_t *ms = &snap.mstats[snap.mstats_count];
+            if (!cJSON_IsObject(jm)) {
+                continue;
+            }
+            buddy_mstat_t *ms = &snap->mstats[snap->mstats_count];
             memset(ms, 0, sizeof(*ms));
             __copy_str(ms->model, sizeof(ms->model), cJSON_GetObjectItem(jm, "m"));
             cJSON *jto = cJSON_GetObjectItem(jm, "to");
-            if (cJSON_IsNumber(jto)) ms->tokens_out = (uint32_t)jto->valuedouble;
-            snap.mstats_count++;
+            if (cJSON_IsNumber(jto)) {
+                ms->tokens_out = (uint32_t)jto->valuedouble;
+            }
+            snap->mstats_count++;
+        }
+    }
+
+    /* M4: Claude version, cost (micro-USD), daily token history */
+    __copy_str(snap->claude_version, sizeof(snap->claude_version), cJSON_GetObjectItem(root, "ver"));
+    cJSON *jcost_td  = cJSON_GetObjectItem(root, "cost_td");
+    cJSON *jcost_all = cJSON_GetObjectItem(root, "cost_all");
+    if (cJSON_IsNumber(jcost_td)) {
+        snap->cost_today_ucc = (uint32_t)jcost_td->valuedouble;
+    }
+    if (cJSON_IsNumber(jcost_all)) {
+        snap->cost_total_ucc = (uint32_t)jcost_all->valuedouble;
+    }
+    cJSON *jdaily = cJSON_GetObjectItem(root, "daily");
+    if (cJSON_IsArray(jdaily)) {
+        int nd = cJSON_GetArraySize(jdaily);
+        if (nd > BUDDY_DAILY_HISTORY_DAYS) {
+            nd = BUDDY_DAILY_HISTORY_DAYS;
+        }
+        for (int di = 0; di < nd; di++) {
+            cJSON *dv = cJSON_GetArrayItem(jdaily, di);
+            snap->daily_tokens[di] = cJSON_IsNumber(dv) ? (uint32_t)dv->valuedouble : 0U;
         }
     }
 
     if (s_state_mutex) {
         tal_mutex_lock(s_state_mutex);
     }
-    s_state = snap;
+    s_state = *snap;
     if (s_state_mutex) {
         tal_mutex_unlock(s_state_mutex);
     }
+    tal_free(snap);
     __push_ui_state();
 }
 
@@ -816,7 +1226,7 @@ STATIC VOID_T __send_ack(const char *ack, BOOL_T ok, int n)
     char buf[96];
     int wrote = snprintf(buf, sizeof(buf), "{\"ack\":\"%s\",\"ok\":%s,\"n\":%d}\n", ack, ok ? "true" : "false", n);
     if (wrote > 0 && wrote < (int)sizeof(buf)) {
-        (VOID_T)__send_raw(buf, (uint16_t)wrote);
+        (VOID_T)__send_chunked(buf, (uint16_t)wrote);
     }
 }
 
@@ -854,7 +1264,7 @@ STATIC VOID_T __send_status(VOID_T)
                 memcpy(buf, out, len);
                 buf[len] = '\n';
                 buf[len + 1] = '\0';
-                (VOID_T)__send_raw(buf, (uint16_t)(len + 1));
+                (VOID_T)__send_chunked(buf, (uint16_t)(len + 1));
                 tal_free(buf);
             }
         }
@@ -883,7 +1293,7 @@ OPERATE_RET buddy_ble_send_permission(const char *prompt_id, const char *decisio
     if (n <= 0 || n >= (int)sizeof(buf)) {
         return OPRT_COM_ERROR;
     }
-    return __send_raw(buf, (uint16_t)n);
+    return __send_chunked(buf, (uint16_t)n);
 }
 
 /**
@@ -917,7 +1327,123 @@ OPERATE_RET buddy_ble_send_cmd(const char *cmd)
     if (n <= 0 || n >= (int)sizeof(buf)) {
         return OPRT_COM_ERROR;
     }
-    return __send_raw(buf, (uint16_t)n);
+    return __send_chunked(buf, (uint16_t)n);
+}
+
+/**
+ * @brief Public: send an ASR transcript frame to the host.
+ * @param[in] text non-NULL UTF-8 transcript
+ * @param[in] sid  short session id (NUL-terminated, ≤ 11 chars); NULL → ""
+ * @return OPRT_OK on success
+ * @note JSON-escapes control characters, '"' and '\\' in `text`. Drops the
+ *       frame (returns OPRT_COM_ERROR) if no NUS link is up. Never blocks.
+ */
+OPERATE_RET buddy_ble_send_asr(const char *text, const char *sid)
+{
+    if (text == NULL) {
+        return OPRT_INVALID_PARM;
+    }
+    size_t tlen = strlen(text);
+    if (tlen == 0) {
+        return OPRT_INVALID_PARM;
+    }
+    /* Hard cap to avoid unbounded heap usage from a misbehaving ASR engine. */
+    if (tlen > 1024) {
+        tlen = 1024;
+    }
+    char sid_buf[12] = {0};
+    if (sid != NULL) {
+        size_t sl = strnlen(sid, sizeof(sid_buf) - 1);
+        for (size_t i = 0; i < sl; i++) {
+            unsigned char c = (unsigned char)sid[i];
+            if (c == '"' || c == '\\' || c < 0x20) {
+                return OPRT_INVALID_PARM;
+            }
+            sid_buf[i] = (char)c;
+        }
+        sid_buf[sl] = '\0';
+    }
+    if (s_conn_handle == TKL_BLE_GATT_INVALID_HANDLE) {
+        return OPRT_COM_ERROR;
+    }
+    /* Worst-case escape: every byte becomes \uXXXX (6 bytes) */
+    size_t cap = 32 + tlen * 6 + sizeof(sid_buf) + 4;
+    char *buf = (char *)tal_malloc(cap);
+    if (buf == NULL) {
+        return OPRT_MALLOC_FAILED;
+    }
+    size_t off = 0;
+    int n = snprintf(buf + off, cap - off, "{\"asr\":\"");
+    if (n <= 0 || (size_t)n >= cap - off) {
+        tal_free(buf);
+        return OPRT_COM_ERROR;
+    }
+    off += (size_t)n;
+    for (size_t i = 0; i < tlen && off + 8 < cap; i++) {
+        unsigned char c = (unsigned char)text[i];
+        if (c == '"' || c == '\\') {
+            buf[off++] = '\\';
+            buf[off++] = (char)c;
+        } else if (c == '\n') {
+            buf[off++] = '\\'; buf[off++] = 'n';
+        } else if (c == '\r') {
+            buf[off++] = '\\'; buf[off++] = 'r';
+        } else if (c == '\t') {
+            buf[off++] = '\\'; buf[off++] = 't';
+        } else if (c < 0x20) {
+            int m = snprintf(buf + off, cap - off, "\\u%04x", c);
+            if (m <= 0 || (size_t)m >= cap - off) { break; }
+            off += (size_t)m;
+        } else {
+            buf[off++] = (char)c;
+        }
+    }
+    n = snprintf(buf + off, cap - off, "\",\"sid\":\"%s\"}\n", sid_buf);
+    if (n <= 0 || (size_t)n >= cap - off) {
+        tal_free(buf);
+        return OPRT_COM_ERROR;
+    }
+    off += (size_t)n;
+    OPERATE_RET rt = __send_chunked(buf, (uint16_t)off);
+    tal_free(buf);
+    return rt;
+}
+
+/**
+ * @brief Public: send a heartbeat-request (device-pull) frame to the host.
+ * @param[in] page optional short page tag (≤ 16 ASCII chars); NULL/"" omits
+ * @return OPRT_OK on success, OPRT_INVALID_PARM / OPRT_COM_ERROR otherwise
+ * @note Tuya extension over REFERENCE.md; non-Tuya peers ignore the frame.
+ */
+OPERATE_RET buddy_ble_send_hb_req(const char *page)
+{
+    if (s_conn_handle == TKL_BLE_GATT_INVALID_HANDLE) {
+        return OPRT_COM_ERROR;
+    }
+    char page_buf[17] = {0};
+    if (page != NULL && page[0] != '\0') {
+        size_t pl = strnlen(page, sizeof(page_buf) - 1);
+        for (size_t i = 0; i < pl; i++) {
+            unsigned char c = (unsigned char)page[i];
+            if (c == '"' || c == '\\' || c < 0x20 || c > 0x7E) {
+                return OPRT_INVALID_PARM;
+            }
+            page_buf[i] = (char)c;
+        }
+        page_buf[pl] = '\0';
+    }
+    char buf[64];
+    int n;
+    if (page_buf[0] != '\0') {
+        n = snprintf(buf, sizeof(buf),
+                     "{\"cmd\":\"hb_req\",\"page\":\"%s\"}\n", page_buf);
+    } else {
+        n = snprintf(buf, sizeof(buf), "{\"cmd\":\"hb_req\"}\n");
+    }
+    if (n <= 0 || n >= (int)sizeof(buf)) {
+        return OPRT_COM_ERROR;
+    }
+    return __send_chunked(buf, (uint16_t)n);
 }
 
 /* ---------------------------------------------------------------------------
@@ -941,6 +1467,17 @@ OPERATE_RET buddy_ble_init(VOID_T)
     rt = tal_mutex_create_init(&s_rx_mutex);
     if (rt != OPRT_OK) {
         PR_ERR("%s rx mutex rt=%d", BUDDY_BLE_TAG, rt);
+        return rt;
+    }
+
+    THREAD_CFG_T rx_workq_cfg = {
+        .stackDepth = 1024 * 10,
+        .priority = THREAD_PRIO_2,
+        .thrdname = "buddy_ble_rx",
+    };
+    rt = tal_workqueue_create(6, &rx_workq_cfg, &s_rx_workq);
+    if (rt != OPRT_OK) {
+        PR_ERR("%s rx workq rt=%d", BUDDY_BLE_TAG, rt);
         return rt;
     }
 

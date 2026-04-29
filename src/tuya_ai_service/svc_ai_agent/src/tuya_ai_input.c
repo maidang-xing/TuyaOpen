@@ -290,6 +290,8 @@ VOID tuya_ai_input_stop(VOID)
             tal_system_sleep(100);
             if (cnt++ >= 5) {
                 PR_ERR("ai input stop timeout, cnt:%d", cnt);
+                ai_input_ctx.state = AI_INPUT_STOP;
+                ai_input_ctx.queue_sync = TRUE;
                 break;
             }
         }
@@ -381,7 +383,10 @@ STATIC VOID __ai_input_thread(VOID* arg)
             rt = tuya_ai_input_read(&head, ai_input_ctx.input_buf);
             tal_mutex_unlock(ai_input_ctx.mutex);
             if ((rt == OPRT_OK) && (head.len > 0)) {
-                tuya_ai_agent_upload_stream(head.type, &head.biz, ai_input_ctx.input_buf, head.len, head.total_len);
+                rt = tuya_ai_agent_upload_stream(head.type, &head.biz, ai_input_ctx.input_buf, head.len, head.total_len);
+                if (rt != OPRT_OK) {
+                    ai_input_ctx.state = AI_INPUT_STOP;
+                }
             }
         }
         break;
@@ -391,8 +396,12 @@ STATIC VOID __ai_input_thread(VOID* arg)
                 rt = tuya_ai_input_read(&head, ai_input_ctx.input_buf);
                 tal_mutex_unlock(ai_input_ctx.mutex);
                 if ((rt == OPRT_OK) && (head.len > 0)) {
-                    tuya_ai_agent_upload_stream(head.type, &head.biz, ai_input_ctx.input_buf, head.len, head.total_len);
-                    ai_input_ctx.state = AI_INPUT_STOPPING;
+                    rt = tuya_ai_agent_upload_stream(head.type, &head.biz, ai_input_ctx.input_buf, head.len, head.total_len);
+                    if (rt == OPRT_OK) {
+                        ai_input_ctx.state = AI_INPUT_STOPPING;
+                    } else {
+                        ai_input_ctx.state = AI_INPUT_STOP;
+                    }
                 } else {
                     ai_input_ctx.state = AI_INPUT_STOP;
                 }

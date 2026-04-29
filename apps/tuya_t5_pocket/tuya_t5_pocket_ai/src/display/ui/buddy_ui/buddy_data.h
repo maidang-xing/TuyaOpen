@@ -42,13 +42,21 @@ extern "C" {
 /* 人格注册表长度；与 persona_registry 中的条目一一对应。 */
 #define BUDDY_PERSONA_COUNT   18
 
-/* Sessions list — 来自心跳 "sessions" 数组 */
-#define BUDDY_SESSIONS_MAX       6
+/* Sessions list — 来自心跳 "sessions" 数组
+ * 12 slots: 最多 6 个活跃会话 + 6 个来自 .claude/projects/ 扫描的历史会话 */
+#define BUDDY_SESSIONS_MAX       12
 #define BUDDY_SESSION_NAME_LEN   28   /* 会话名字符上限（字节） */
 #define BUDDY_MODEL_LEN          22   /* 模型名字符上限（字节） */
 
 /* Per-model token statistics — 来自心跳 "mstats" 数组 */
 #define BUDDY_MSTATS_MAX         4
+
+/* Session-local entries — 来自心跳 sessions[].e 数组，每个会话最近 N 条工具记录 */
+#define BUDDY_SESSION_LOCAL_ENTRIES  4
+#define BUDDY_SESSION_PROJECT_LEN    23   /* 项目名字符上限（字节）*/
+
+/* Daily token history — 来自心跳 "daily" 数组，最近 28 天 output token */
+#define BUDDY_DAILY_HISTORY_DAYS     28
 
 /* ---------------------------------------------------------------------------
  * Type definitions
@@ -108,19 +116,23 @@ typedef struct {
  * @brief 单个 Claude Code 会话快照（来自心跳 sessions[] 数组）。
  *
  * 字段 key 映射（JSON 短名 → 结构体字段）：
- *   "id" → sid      短会话 ID（截取前 11 字符）
- *   "n"  → name     会话名（来自第一条用户 prompt，已截断）
- *   "m"  → model    模型短名（如 "sonnet-4-6"）
- *   "ti" → tokens_in   输入 token 累计
- *   "to" → tokens_out  输出 token 累计
- *   "r"  → is_running  当前是否正在生成
+ *   "id" → sid            短会话 ID（截取前 11 字符）
+ *   "n"  → name           会话名（来自第一条用户 prompt，已截断）
+ *   "m"  → model          模型短名（如 "sonnet-4-6"）
+ *   "to" → tokens_out     输出 token 累计
+ *   "r"  → is_running     当前是否正在生成
+ *   "p"  → project        所属项目名（cwd 末段，M4-UI 新增）
+ *   "e"  → local_entries  会话最近工具记录（M4-UI 新增，最多 4 条）
  */
 typedef struct {
     char     sid[12];                           /* session id 前 11 字符 + NUL */
     char     name[BUDDY_SESSION_NAME_LEN + 1];  /* 会话名 */
     char     model[BUDDY_MODEL_LEN + 1];        /* 模型名 */
+    char     project[BUDDY_SESSION_PROJECT_LEN + 1]; /* 项目名（cwd 末段） */
     uint32_t tokens_out;                        /* 输出 token（REFERENCE.md 定义） */
     bool     is_running;                        /* 是否正在生成 */
+    buddy_entry_t local_entries[BUDDY_SESSION_LOCAL_ENTRIES]; /* 会话本地条目 */
+    uint8_t       local_entry_count;            /* 已填充的本地条目数 */
 } buddy_session_t;
 
 /**
@@ -177,12 +189,22 @@ typedef struct {
 
     /* M2-UI 新增：模型名 + 会话列表（来自心跳 "model" / "sessions" 字段）。 */
     char            model[BUDDY_MODEL_LEN + 1];     /* 当前模型名（如 "sonnet-4-6"） */
-    buddy_session_t sessions[BUDDY_SESSIONS_MAX];   /* 会话快照数组（最多 6 条）     */
+    buddy_session_t sessions[BUDDY_SESSIONS_MAX];   /* 会话快照数组（最多 12 条）    */
     uint8_t         sessions_count;                 /* 本次心跳收到的会话数          */
 
     /* M3-UI 新增：per-model token 统计（来自心跳 "mstats" 字段）。 */
     buddy_mstat_t   mstats[BUDDY_MSTATS_MAX];       /* 模型用量数组（最多 4 条）     */
     uint8_t         mstats_count;
+
+    /* M4-UI 新增：Claude 版本、费用、28 天 token 历史（来自心跳扩展字段）。
+     *   "ver"     → claude_version  版本字符串（如 "1.0.5"）
+     *   "cost_td" → cost_today_ucc  今日费用（micro-USD，÷1e6 得美元）
+     *   "cost_all"→ cost_total_ucc  累计费用（micro-USD）
+     *   "daily"   → daily_tokens[]  最近 28 天 output token，index 0=今日 */
+    char     claude_version[20];                          /* Claude 版本 */
+    uint32_t cost_today_ucc;                              /* 今日费用，micro-USD */
+    uint32_t cost_total_ucc;                              /* 累计费用，micro-USD */
+    uint32_t daily_tokens[BUDDY_DAILY_HISTORY_DAYS];      /* 28 天 token 历史    */
 
     /* M1-UI 派生字段；仅由 UI 层写入，不影响协议。 */
     uint8_t                persona_id;      /* 当前 species 索引，0..BUDDY_PERSONA_COUNT-1 */

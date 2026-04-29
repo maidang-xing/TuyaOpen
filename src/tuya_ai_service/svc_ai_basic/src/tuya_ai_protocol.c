@@ -1186,6 +1186,11 @@ STATIC OPERATE_RET __ai_packet_write(AI_SEND_PACKET_T *info, AI_FRAG_FLAG frag, 
     AI_PACKET_WRITER_T *writer = info->writer;
     // if no writer, use default writer
     if (!writer) {
+        if (ai_basic_proto == NULL || ai_basic_proto->transporter == NULL) {
+            PR_ERR("writer transport invalid");
+            rt = OPRT_COM_ERROR;
+            goto EXIT;
+        }
         writer = &s_default_packet_writer;
         writer->user_data = ai_basic_proto->transporter;
     }

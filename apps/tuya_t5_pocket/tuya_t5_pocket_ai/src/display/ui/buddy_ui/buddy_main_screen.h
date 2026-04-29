@@ -57,6 +57,18 @@ extern Screen_t buddy_main_screen;
  */
 void buddy_main_screen_update_state(const buddy_tama_state_t *state);
 
+/**
+ * @brief 取主屏当前“选中会话”的 11 字符 sid 拷贝。
+ *
+ * 线程安全：内部自取 LVGL 锁。供 ASR/链路侧异步采样使用，无需 UI 线程切换。
+ * 选中行不是 session 行（如位于 header）或快照中无该 session 时返回 0。
+ *
+ * @param[out] out_sid 至少 12 字节的输出缓冲（11 字符 + NUL）
+ * @param[in]  cap     out_sid 容量，必须 ≥ 12
+ * @return 写入的字节数（不含 NUL），0 表示当前没有有效选中会话
+ */
+size_t buddy_main_screen_get_selected_sid(char *out_sid, size_t cap);
+
 #ifdef __cplusplus
 }
 #endif

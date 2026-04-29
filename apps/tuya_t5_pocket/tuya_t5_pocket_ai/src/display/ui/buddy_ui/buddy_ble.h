@@ -93,11 +93,64 @@ OPERATE_RET buddy_ble_send_permission(const char *prompt_id, const char *decisio
 OPERATE_RET buddy_ble_send_cmd(const char *cmd);
 
 /**
+ * @brief Send an ASR (speech-recognition) text frame to the Claude desktop.
+ *
+ * Emits a single newline-terminated JSON frame over NUS TX with the form
+ * `{"asr":"<utf-8 text>","sid":"<11-char short id>"}\n`. The text is JSON-
+ * escaped (control chars + `"` + `\\`) by this function, so callers may pass
+ * raw user-visible UTF-8. `sid` must already be the 11-char short session id
+ * (typically obtained via buddy_main_screen_get_selected_sid()); when empty
+ * the field is still emitted so the host can route it to the active project.
+ *
+ * Direction is device → host only; no reply is expected. Safe to call from
+ * the AI/ASR task; internally it serializes onto the NUS TX path.
+ *
+ * @param[in] text non-NULL UTF-8 ASR transcript (may be empty → returns OPRT_INVALID_PARM)
+ * @param[in] sid  short session id (NUL-terminated, length 0..11); NULL allowed → emitted as ""
+ * @return OPRT_OK on success, OPRT_INVALID_PARM / OPRT_COM_ERROR otherwise
+ * @note If no NUS link is up, returns an error and drops the frame; the caller
+ *       must not block waiting for connectivity.
+ */
+OPERATE_RET buddy_ble_send_asr(const char *text, const char *sid);
+
+/**
+ * @brief Send a heartbeat-request (device-pull) frame to the Claude daemon.
+ *
+ * Emits a single newline-terminated JSON frame over NUS TX with the form
+ * `{"cmd":"hb_req","page":"<name>"}\n`. The Tuya daemon answers by pushing
+ * the next heartbeat snapshot immediately, eliminating the up-to-10 s wait
+ * for the next keepalive when the user switches screens.
+ *
+ * Backward-compatible with REFERENCE.md: the official Claude Desktop apps
+ * silently ignore unknown ``cmd`` frames originating from the device.
+ *
+ * @param[in] page optional short page tag (NUL-terminated, ≤ 16 bytes;
+ *                  e.g. "main", "session", "chart", "pie", "status").
+ *                  NULL or empty → omits the field.
+ * @return OPRT_OK on success, OPRT_INVALID_PARM / OPRT_COM_ERROR otherwise
+ * @note Safe from any task; serialised internally onto the NUS TX queue.
+ *       Drops the frame (returns error) when the BLE link is down — the
+ *       caller must not assume the request was delivered.
+ */
+OPERATE_RET buddy_ble_send_hb_req(const char *page);
+
+/**
  * @brief Read a snapshot of the latest tama state decoded from BLE traffic.
  * @param[out] out target struct (must not be NULL)
  * @return none
  */
 VOID_T buddy_ble_snapshot(buddy_tama_state_t *out);
+
+/**
+ * @brief Check whether the device is connected to the Tuya cloud (implies WiFi up).
+ *
+ * Uses the TuyaOS IoT client activation state as a proxy for WiFi connectivity.
+ * Returns TRUE if the device has been activated (devid populated) and the IoT
+ * client is running, which requires WiFi to have been connected at some point.
+ *
+ * @return TRUE if cloud/WiFi is active
+ */
+BOOL_T buddy_ble_cloud_is_connected(VOID_T);
 
 #ifdef __cplusplus
 }

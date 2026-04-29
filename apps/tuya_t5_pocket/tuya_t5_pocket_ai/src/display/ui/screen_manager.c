@@ -18,6 +18,7 @@
 #include "screen_manager.h"
 #include "startup_screen.h"
 #include "main_screen.h"
+#include "buddy_cjk_font.h"
 #include <stdio.h>
 
 /***********************************************************
@@ -204,6 +205,7 @@ void screen_load(Screen_t *newScreen)
  */
 void screens_init(void)
 {
+    buddy_cjk_font_init();
     screen_stack_init(&screen_stack);
     screen_stack_push(&screen_stack, &startup_screen);
     startup_screen.init();

@@ -8,6 +8,8 @@
 #include "app_display.h"
 #include "game_pet.h"
 #include "uart_expand.h"
+#include "buddy_ble.h"
+#include "buddy_main_screen.h"
 /***********************************************************
 ************************macro define************************
 ***********************************************************/
@@ -29,6 +31,29 @@ static void __ai_chat_handle_event(AI_NOTIFY_EVENT_T *event)
     AI_NOTIFY_TEXT_T *text = NULL;
 
     switch (event->type) {
+    case AI_USER_EVT_ASR_OK: {
+        text = (AI_NOTIFY_TEXT_T *)event->data;
+        /* Forward the recognized transcript to the Claude desktop buddy
+         * over BLE NUS, tagged with the currently selected session id so
+         * the host can route it to the right Claude Code session. Drops
+         * silently if no buddy is connected — this path must not block. */
+        if (text != NULL && text->data != NULL && text->datalen > 0) {
+            size_t tlen = (size_t)text->datalen;
+            if (tlen > 1024) {
+                tlen = 1024;
+            }
+            char *utf8 = (char *)tal_malloc(tlen + 1);
+            if (utf8 != NULL) {
+                memcpy(utf8, text->data, tlen);
+                utf8[tlen] = '\0';
+                char sid[12] = {0};
+                (VOID_T)buddy_main_screen_get_selected_sid(sid, sizeof(sid));
+                (VOID_T)buddy_ble_send_asr(utf8, sid);
+                tal_free(utf8);
+            }
+        }
+    } break;
+
     case AI_USER_EVT_TEXT_STREAM_START: {
         sg_text_stream_active = TRUE;
 
