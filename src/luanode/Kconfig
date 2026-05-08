@@ -1,0 +1,49 @@
+menuconfig ENABLE_LUANODE
+    bool "Enable Lua node"
+    default n
+    help
+        Enable Lua interpreter component for TuyaOpen.
+
+if ENABLE_LUANODE
+
+config LUANODE_HEAP_SIZE
+    int "Lua heap size (KB)"
+    default 64
+    range 16 1024
+    help
+        Heap size reserved for Lua runtime in kilobytes.
+
+config LUANODE_STACK_SIZE
+    int "Lua task stack size (bytes)"
+    default 4096
+    range 2048 32768
+    help
+        Stack size used by Lua execution tasks.
+
+config LUANODE_MAX_SCRIPT_SIZE
+    int "Lua script size limit (bytes)"
+    default 65536
+    range 256 1048576
+    help
+        Maximum script size accepted by Lua runtime APIs.
+
+config LUANODE_ENABLE_STD_LIBS
+    bool "Enable Lua standard libraries"
+    default y
+    help
+        Enable Lua standard libraries. Disable this for restricted products.
+
+config LUANODE_ENABLE_CLI
+    bool "Enable Lua CLI commands"
+    default n
+    depends on ENABLE_SERIAL_CLI_CMD
+    help
+        Enable serial CLI commands to run Lua scripts for debugging.
+
+config LUANODE_ENABLE_TUYA_LIBS
+    bool "Enable Tuya Lua libraries"
+    default y
+    help
+        Enable Tuya helper libraries exposed to Lua scripts.
+
+endif # ENABLE_LUANODE

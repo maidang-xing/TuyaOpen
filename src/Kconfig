@@ -12,4 +12,5 @@ menu "configure tuyaopen"
     rsource "peripherals/Kconfig"
     rsource "tuya_p2p/Kconfig"
     rsource "micropython/Kconfig"
+    rsource "luanode/Kconfig"
 endmenu
