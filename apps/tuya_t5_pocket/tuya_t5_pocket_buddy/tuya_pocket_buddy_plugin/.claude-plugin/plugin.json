@@ -1,0 +1,8 @@
+{
+  "name": "tuya-pocket-buddy",
+  "version": "1.0.0",
+  "description": "WebSocket companion mirror + hardware approval bridge for T5AI Pocket",
+  "author": "Tuya Inc.",
+  "license": "MIT",
+  "keywords": ["claude", "companion", "hardware", "websocket", "approval"]
+}
