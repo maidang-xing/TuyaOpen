@@ -58,6 +58,17 @@ menu "configure tuya cloud service"
                     int "TUYA_HS_BLE_HOST_STACK_SIZE config bt host task size"
                     range 0 10000
                     default 5120
+
+                    config ENABLE_CLAUDE_DESKTOP_BUDDY_BLE
+                    bool "ENABLE_CLAUDE_DESKTOP_BUDDY_BLE: co-register Nordic UART Service for Claude Desktop Buddy"
+                    default n
+                    ---help---
+                        When enabled, the Tuya BLE peripheral GATT database is extended
+                        with a secondary primary service exposing the Nordic UART Service
+                        (NUS) used by the Claude Desktop Buddy protocol. The Tuya provisioning
+                        service continues to work in parallel. The application can then
+                        advertise as "Claude_XXXX" and use the NUS characteristics for
+                        JSON-over-BLE traffic without tearing down the Tuya BLE stack.
                 endif
         endif
 endmenu

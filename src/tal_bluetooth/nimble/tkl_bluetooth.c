@@ -47,6 +47,11 @@ static TKL_BLUETOOTH_SERVER_PARAMS_T tuya_ble_server;
 
 static struct ble_gap_event_listener tuya_ble_event_listener;
 static int gatts_service_flag = FALSE;
+/* File-scope so tkl_ble_stack_deinit() can reset it; otherwise the one-shot
+ * guard inside tkl_ble_stack_init() prevents a subsequent re-init from
+ * re-running tuya_ble_pre_init()/ble_svc_gap_init()/ble_svc_gatt_init(),
+ * leaving the host half-configured. */
+static int init_flag = 0;
 TKL_MUTEX_HANDLE tkl_ble_stack_mutex = NULL;
 static int stack_sync_flag = 0;
 extern int tuya_ble_hs_notify(uint16_t conn_handle, uint16_t svc_handle, uint8_t *notify_data, uint16_t data_len);
@@ -488,7 +493,6 @@ OPERATE_RET tkl_ble_stack_init(uint8_t role)
         tkl_mutex_create_init(&tkl_ble_stack_mutex);
     tkl_mutex_lock(tkl_ble_stack_mutex);
 
-    static int init_flag = 0;
     OPERATE_RET ret = OPRT_OK;
 
     if ((role & TKL_BLE_ROLE_SERVER) == TKL_BLE_ROLE_SERVER) {
@@ -571,6 +575,7 @@ OPERATE_RET tkl_ble_stack_deinit(uint8_t role)
 
     if (tuya_gatt_svcs) {
         tuya_ble_hs_free((void *)tuya_gatt_svcs);
+        tuya_gatt_svcs = NULL;
     }
     // if (tuya_gatt_chars) {
     //     tuya_ble_hs_free((void *)tuya_gatt_chars);
@@ -578,7 +583,15 @@ OPERATE_RET tkl_ble_stack_deinit(uint8_t role)
 
     if (tuya_ble_server.read_char[0].buffer) {
         tuya_ble_hs_free(tuya_ble_server.read_char[0].buffer);
+        tuya_ble_server.read_char[0].buffer = NULL;
     }
+
+    /* Must be reset so a subsequent tkl_ble_stack_init()/tkl_ble_gatts_service_add()
+     * actually re-executes the one-shot initialization paths. Without these
+     * resets the NimBLE host stays half-configured and mem_overflow_check
+     * asserts from the host pool. */
+    init_flag = 0;
+    gatts_service_flag = FALSE;
 
     tkl_mutex_unlock(tkl_ble_stack_mutex);
     return OPRT_OK;

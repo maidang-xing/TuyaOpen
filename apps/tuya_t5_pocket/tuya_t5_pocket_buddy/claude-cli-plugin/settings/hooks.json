@@ -1,0 +1,59 @@
+{
+  "_comment": "Merge this block into ~/.claude/settings.json via scripts/install-hooks.py. PreToolUse uses hook_handler.py so that BLE-device denials properly exit with code 2 (blocking the tool). Other events use plain curl (fire-and-forget).",
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "MultiEdit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "TodoWrite(*)",
+      "NotebookEdit(*)",
+      "NotebookRead(*)",
+      "Agent(*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {"type": "command", "command": "curl -sS --max-time 3 -X POST --data-binary @- http://127.0.0.1:9878/hook 2>/dev/null || echo '{}'"}
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {"type": "command", "command": "curl -sS --max-time 3 -X POST --data-binary @- http://127.0.0.1:9878/hook 2>/dev/null || echo '{}'"}
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {"type": "command", "command": "curl -sS --max-time 3 -X POST --data-binary @- http://127.0.0.1:9878/hook 2>/dev/null || echo '{}'"}
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {"type": "command", "command": "__PYTHON__ __HOOK_HANDLER__"}
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {"type": "command", "command": "curl -sS --max-time 3 -X POST --data-binary @- http://127.0.0.1:9878/hook 2>/dev/null || echo '{}'"}
+        ]
+      }
+    ]
+  }
+}

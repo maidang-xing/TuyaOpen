@@ -1,0 +1,725 @@
+« [01-01 00:00:16 ty D][tuya_health.c:75] feed watchdog
+[01-01 00:00:17 ty D][buddy_indev.c:81] Joystick event: 10, key type: 20
+[01-01 00:00:17 ty N][buddy_status_screen.c:491] [buddy_status_screen] init ver=? model=?
+[01-01 00:00:17 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_status_screen]
+
+[01-01 00:00:18 ty D][buddy_indev.c:67] Button pressed: btn_esc, event: 0, key type: 27
+[01-01 00:00:18 ty N][buddy_main_screen.c:915] [buddy_main_screen] init persona=10
+[01-01 00:00:18 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_main_screen
+
+[01-01 00:00:18 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=0
+[01-01 00:00:19 ty D][buddy_indev.c:67] Button pressed: btn_esc, event: 0, key type: 27
+[01-01 00:00:19 ty D][screen_manager.c:131] [Manager] Returning to previous screen: Startup
+
+[01-01 00:00:20 ty D][startup_screen.c:60] deinit startup screen
+
+[01-01 00:00:20 ty N][buddy_main_screen.c:915] [buddy_main_screen] init persona=10
+[01-01 00:00:20 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_main_screen]
+
+[01-01 00:00:20 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=0
+[01-01 00:00:21 ty D][buddy_indev.c:67] Button pressed: btn_esc, event: 0, key type: 27
+[01-01 00:00:21 ty D][screen_manager.c:131] [Manager] Returning to previous screen: Startup
+
+[01-01 00:00:22 ty D][startup_screen.c:60] deinit startup screen
+
+[01-01 00:00:22 ty N][buddy_main_screen.c:915] [buddy_main_screen] init persona=10
+[01-01 00:00:22 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_main_screen]
+
+[01-01 00:00:22 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=0
+[01-01 00:00:22 ty D][buddy_indev.c:67] Button pressed: btn_esc, event: 0, key type: 27
+[01-01 00:00:22 ty D][screen_manager.c:131] [Manager] Returning to previous screen: Startup
+
+[01-01 00:00:23 ty D][startup_screen.c:60] deinit startup screen
+
+[01-01 00:00:23 ty N][buddy_main_screen.c:915] [buddy_main_screen] init persona=10
+[01-01 00:00:23 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_main_screen]
+
+[01-01 00:00:23 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=0
+[01-01 00:00:25 ty D][buddy_indev.c:81] Joystick event: 10, key type: 20
+[01-01 00:00:25 ty N][buddy_status_screen.c:491] [buddy_status_screen] init ver=? model=?
+[01-01 00:00:25 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_status_screen]
+
+[01-01 00:00:26 ty I][ble_hs.c:433] ble_hs_timer reset:0 
+[01-01 00:00:26 ty I][tkl_bluetooth.c:151] BLE_GAP_EVENT_CONNECT(0x00), handle = 0x01, Role(1)
+
+[01-01 00:00:26 ty N][buddy_ble.c:429] buddy_ble peer connected conn=1 (rx=11 tx=13)
+[01-01 00:00:26 ty N][ble_mgr.c:992] Ble Connected
+[01-01 00:00:26 ty D][buddy_main_screen.c:550] persona 0->1
+[01-01 00:00:26 ty D][ble_hs_hci_evt.c:152] evt code null:20
+[01-01 00:00:26 ty I][tkl_bluetooth.c:195] mtu update event; conn_handle=0x0001 mtu=256, channel id = 4
+
+[01-01 00:00:26 ty I][buddy_ble.c:446] buddy_ble mtu=256
+[01-01 00:00:26 ty I][ble_hs.c:393] ble_hs_timer_exp:
+[01-01 00:00:26 ty D][tuya_health.c:75] feed watchdog
+[01-01 00:00:26 ty D][ble_att.c:491] Rx Op Not Support= 0x06
+
+[01-01 00:00:26 ty D][ble_att_svr.c:1936] debug rc = 0
+[01-01 00:00:26 ty D][ble_att_svr.c:1936] debug rc = 0
+[01-01 00:00:27 ty D][buddy_indev.c:67] Button pressed: btn_esc, event: 0, key type: 27
+[01-01 00:00:27 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:27 ty N][buddy_main_screen.c:915] [buddy_main_screen] init persona=10
+[01-01 00:00:27 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_main_screen
+
+[01-01 00:00:27 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=1
+[01-01 00:00:27 ty D][buddy_indev.c:67] Button pressed: btn_esc, event: 0, key type: 27
+[01-01 00:00:27 ty D][screen_manager.c:131] [Manager] Returning to previous screen: Startup
+
+[01-01 00:00:27 ty I][tkl_bluetooth.c:221] BLE_GAP_EVENT_SUBSCRIBE
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX 19270890,\"ctx_used\":92526,\"ctx_total\":200000,\"entries\":[\"15:29 Edit D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\tuya_t5_\",\"15...(len=327)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"f9","_n":2,"_t":6,"_d":",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"3\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"4\...(len=533)
+[01-01 00:00:28 ty W][buddy_ble.c:902] buddy_ble chunk seq mismatch got=2 want=1
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"f9","_n":3,"_t":6,"_d":"\"n\":\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,\"p\":\"TuyaOpen\",\"e\":[\"15:30 Task...(len=522)
+[01-01 00:00:28 ty W][buddy_ble.c:902] buddy_ble chunk seq mismatch got=3 want=1
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"f9","_n":4,"_t":6,"_d":"ab\",\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"根据：https://lewlh.gith...(len=525)
+[01-01 00:00:28 ty W][buddy_ble.c:902] buddy_ble chunk seq mismatch got=4 want=1
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"f9","_n":5,"_t":6,"_d":"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\":\"\",\"to\":0,\"r\":false,\"p\...(len=517)
+[01-01 00:00:28 ty W][buddy_ble.c:902] buddy_ble chunk seq mismatch got=5 want=1
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"f9","_n":6,"_t":6,"_d":"yClaw\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"ver\":\"2.1.138 (Claude Cod\",...(len=257)
+[01-01 00:00:28 ty W][buddy_ble.c:902] buddy_ble chunk seq mismatch got=6 want=1
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fa","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":1,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"approve: Edit\",\"cache_read\":190645972...(len=508)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fa 1/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fa","_n":2,"_t":6,"_d":"5:30 TaskUpdate {\\\"taskId\\\": \\\"3\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"4\\\",...(len=535)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fa 2/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fa","_n":3,"_t":6,"_d":":\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\tuya_t5_\"},\"model\":\"deepseek-v4-pro\",\"sessions\":[{\"i...(len=522)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fa 3/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fa","_n":4,"_t":6,"_d":"\", \\\"status\"]},{\"id\":\"defda17b-bb\",\"n\":\"/tuya-pocket-buddy:buddy-sta\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":false}...(len=520)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fa 4/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fa","_n":5,"_t":6,"_d":" with subagen\",\"m\":\"\",\"to\":7,\"r\":false,\"p\":\"Windows\"},{\"id\":\"57739520-a7\",\"n\":\"根据platform/tools/gcc-arm\"...(len=516)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fa 5/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fa","_n":6,"_t":6,"_d":"\"\",\"to\":0,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"9b39fac0-2d\",\"n\":\"Starts the daemon detached. \",\"m\":\"\",\"to\":1...(len=412)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fa 6/6 (+323 B)
+[01-01 00:00:28 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2323 B
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":1,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"approve: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":92526,"ctx_t...(len=2323)
+[01-01 00:00:28 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:28 ty D][startup_screen.c:60] deinit startup screen
+
+[01-01 00:00:28 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=b4cc1c296a802586862c
+[01-01 00:00:28 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_approval_screen]
+
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fb","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"result: deny\",\"cache_read\":190645972,...(len=508)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fb 1/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fb","_n":2,"_t":6,"_d":":30 TaskUpdate {\\\"taskId\\\": \\\"3\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"4\\\", ...(len=534)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fb 2/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fb","_n":3,"_t":6,"_d":"\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,\"p\":\"TuyaOpen\",\"e\":[\"15:30 TaskUpdate...(len=521)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fb 3/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fb","_n":4,"_t":6,"_d":"\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"根据：https://lewlh.githu\",\...(len=525)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fb 4/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fb","_n":5,"_t":6,"_d":"alse,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"T...(len=516)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fb 5/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fb","_n":6,"_t":6,"_d":"w\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"ver\":\"2.1.138 (Claude Cod\",\"da...(len=253)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fb 6/6 (+193 B)
+[01-01 00:00:28 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2193 B
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"result: deny","cache_read":190645972,"cache_write":19270890,"ctx_used":92526,"ctx_to...(len=2193)
+[01-01 00:00:28 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:28 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fc","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"done: Edit\",\"cache_read\":190645972,\"...(len=512)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fc 1/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fc","_n":2,"_t":6,"_d":" {\\\"taskId\\\": \\\"4\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"5\\\", \\\"status\\\"...(len=531)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fc 2/6 (+400 B)
+ipc_router_tx_cmpl_isr error @423, indx=22!
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fc","_n":3,"_t":6,"_d":".target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,\"p\":\"TuyaOpen\",\"e\":[\"15:30 TaskUpdate {\...(len=518)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fc 3/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fc","_n":4,"_t":6,"_d":"\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"根据：https://lewlh.githu\",\"m\":\...(len=523)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fc 4/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fc","_n":5,"_t":6,"_d":",\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaO...(len=517)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fc 5/6 (+400 B)
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fc","_n":6,"_t":6,"_d":"{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"ver\":\"2.1.138 (Claude Cod\",\"daily\"...(len=248)
+[01-01 00:00:28 ty D][buddy_ble.c:920] buddy_ble chunk fc 6/6 (+189 B)
+[01-01 00:00:28 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2189 B
+[01-01 00:00:28 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"done: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":93307,"ctx_tota...(len=2189)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fd","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":1,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"approve: Edit\",\"cache_read\":190645972...(len=512)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fd 1/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fd","_n":2,"_t":6,"_d":"ate {\\\"taskId\\\": \\\"4\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"5\\\", \\\"status\...(len=531)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fd 2/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fd","_n":3,"_t":6,"_d":":\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\tuya_t5_\"},\"model\":\"deepseek-v4-pro\",\"sessions\":[{\"i...(len=519)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fd 3/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fd","_n":4,"_t":6,"_d":"t\\\\TuyaOp\"]},{\"id\":\"defda17b-bb\",\"n\":\"/tuya-pocket-buddy:buddy-sta\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":false},{\...(len=519)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fd 4/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fd","_n":5,"_t":6,"_d":"ith subagen\",\"m\":\"\",\"to\":7,\"r\":false,\"p\":\"Windows\"},{\"id\":\"57739520-a7\",\"n\":\"根据platform/tools/gcc-arm\",\...(len=518)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fd 5/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fd","_n":6,"_t":6,"_d":",\"to\":0,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"9b39fac0-2d\",\"n\":\"Starts the daemon detached. \",\"m\":\"\",\"to\":13,\"...(len=408)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fd 6/6 (+321 B)
+[01-01 00:00:29 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2321 B
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":1,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"approve: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":93307,"ctx_t...(len=2321)
+[01-01 00:00:29 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:29 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=c38a0c535d56ffb7b322
+[01-01 00:00:29 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_approval_screen]
+
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fe","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"result: deny\",\"cache_read\":190645972,...(len=512)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fe 1/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fe","_n":2,"_t":6,"_d":"te {\\\"taskId\\\": \\\"4\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"5\\\", \\\"status\\...(len=530)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fe 2/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fe","_n":3,"_t":6,"_d":"\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,\"p\":\"TuyaOpen\",\"e\":[\"15:30 TaskUpdate...(len=518)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fe 3/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fe","_n":4,"_t":6,"_d":"\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"根据：https://lewlh.githu\",\"m\...(len=524)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fe 4/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fe","_n":5,"_t":6,"_d":"se,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"Tuy...(len=517)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fe 5/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"fe","_n":6,"_t":6,"_d":"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"ver\":\"2.1.138 (Claude Cod\",\"daily...(len=250)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk fe 6/6 (+191 B)
+[01-01 00:00:29 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2191 B
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"result: deny","cache_read":190645972,"cache_write":19270890,"ctx_used":93307,"ctx_to...(len=2191)
+[01-01 00:00:29 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:29 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"ff","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"done: Edit\",\"cache_read\":190645972,\"...(len=512)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk ff 1/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"ff","_n":2,"_t":6,"_d":"te {\\\"taskId\\\": \\\"5\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"6\\\", \\\"status\\...(len=523)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk ff 2/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"ff","_n":3,"_t":6,"_d":"09b-db\",\"n\":\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,\"p\":\"TuyaOpen\",\"e\":[\"1...(len=515)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk ff 3/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"ff","_n":4,"_t":6,"_d":"3b4-ab\",\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"根据：https://lewlh....(len=524)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk ff 4/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"ff","_n":5,"_t":6,"_d":"19,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\":\"\",\"to\":0,\"r\":false...(len=518)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk ff 5/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"ff","_n":6,"_t":6,"_d":"DuckyClaw\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"ver\":\"2.1.138 (Claude Co...(len=261)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk ff 6/6 (+201 B)
+[01-01 00:00:29 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2201 B
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"done: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":93774,"ctx_tota...(len=2201)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"00","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":1,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"approve: Edit\",\"cache_read\":190645972...(len=512)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 00 1/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"00","_n":2,"_t":6,"_d":"pdate {\\\"taskId\\\": \\\"5\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"6\\\", \\\"statu...(len=523)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 00 2/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"00","_n":3,"_t":6,"_d":"dit\",\"hint\":\"D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\tuya_t5_\"},\"model\":\"deepseek-v4-pro\",...(len=517)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 00 3/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"00","_n":4,"_t":6,"_d":"oj\\\\temp_test\\\\TuyaOp\"]},{\"id\":\"defda17b-bb\",\"n\":\"/tuya-pocket-buddy:buddy-sta\",\"m\":\"deepseek-v4-pro\",\"to\":0,\...(len=521)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 00 4/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"00","_n":5,"_t":6,"_d":"e an Agent with subagen\",\"m\":\"\",\"to\":7,\"r\":false,\"p\":\"Windows\"},{\"id\":\"57739520-a7\",\"n\":\"根据platform/tools...(len=513)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 00 5/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"00","_n":6,"_t":6,"_d":"ed. \",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"9b39fac0-2d\",\"n\":\"Starts the daemon detached. \",\"m\":...(len=425)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 00 6/6 (+333 B)
+[01-01 00:00:29 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2333 B
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":1,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"approve: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":93774,"ctx_t...(len=2333)
+[01-01 00:00:29 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:29 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=703f807515b96b2360c0
+[01-01 00:00:29 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_approval_screen]
+
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"01","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"result: deny\",\"cache_read\":190645972,...(len=512)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 01 1/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"01","_n":2,"_t":6,"_d":"date {\\\"taskId\\\": \\\"5\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"6\\\", \\\"status...(len=523)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 01 2/6 (+400 B)
+[01-01 00:00:29 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"01","_n":3,"_t":6,"_d":"0909b-db\",\"n\":\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,\"p\":\"TuyaOpen\",\"e\":[\...(len=515)
+[01-01 00:00:29 ty D][buddy_ble.c:920] buddy_ble chunk 01 3/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"01","_n":4,"_t":6,"_d":"e73b4-ab\",\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"根据：https://lewl...(len=524)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 01 4/6 (+400 B)
+ipc_router_tx_cmpl_isr error @423, indx=23!
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"01","_n":5,"_t":6,"_d":":219,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\":\"\",\"to\":0,\"r\":fal...(len=517)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 01 5/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"01","_n":6,"_t":6,"_d":":\"DuckyClaw\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"ver\":\"2.1.138 (Claude...(len=264)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 01 6/6 (+203 B)
+[01-01 00:00:30 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2203 B
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"result: deny","cache_read":190645972,"cache_write":19270890,"ctx_used":93774,"ctx_to...(len=2203)
+[01-01 00:00:30 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:30 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"02","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"done: Edit\",\"cache_read\":190645972,\"...(len=512)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 02 1/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"02","_n":2,"_t":6,"_d":"te {\\\"taskId\\\": \\\"6\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"7\\\", \\\"status\\...(len=516)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 02 2/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"02","_n":3,"_t":6,"_d":"{\"id\":\"5200909b-db\",\"n\":\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,\"p\":\"TuyaOp...(len=512)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 02 3/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"02","_n":4,"_t":6,"_d":"id\":\"02ae73b4-ab\",\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"根据：ht...(len=522)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 02 4/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"02","_n":5,"_t":6,"_d":":\"\",\"to\":219,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\":\"\",\"to\"...(len=519)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 02 5/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"02","_n":6,"_t":6,"_d":"alse,\"p\":\"DuckyClaw\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"ver\":\"2.1.1...(len=274)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 02 6/6 (+211 B)
+[01-01 00:00:30 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2211 B
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"done: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":94415,"ctx_tota...(len=2211)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"03","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":1,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"approve: Edit\",\"cache_read\":190645972...(len=512)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 03 1/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"03","_n":2,"_t":6,"_d":"pdate {\\\"taskId\\\": \\\"6\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"7\\\", \\\"statu...(len=515)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 03 2/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"03","_n":3,"_t":6,"_d":"f\",\"tool\":\"Edit\",\"hint\":\"D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\tuya_t5_\"},\"model\":\"de...(len=515)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 03 3/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"03","_n":4,"_t":6,"_d":":\\\\tuya_proj\\\\temp_test\\\\TuyaOp\"]},{\"id\":\"defda17b-bb\",\"n\":\"/tuya-pocket-buddy:buddy-sta\",\"m\":\"deepseek-v4-pro\...(len=520)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 03 4/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"03","_n":5,"_t":6,"_d":"\"n\":\"Create an Agent with subagen\",\"m\":\"\",\"to\":7,\"r\":false,\"p\":\"Windows\"},{\"id\":\"57739520-a7\",\"n\":\"根据p...(len=516)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 03 5/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"03","_n":6,"_t":6,"_d":"mon detached. \",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"9b39fac0-2d\",\"n\":\"Starts the daemon detached....(len=435)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 03 6/6 (+343 B)
+[01-01 00:00:30 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2343 B
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":1,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"approve: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":94415,"ctx_t...(len=2343)
+ipc_router_tx_cmpl_isr error @423, indx=2!
+[01-01 00:00:30 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:30 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=b6b4ca72b5bf6565834f
+[01-01 00:00:30 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_approval_screen]
+
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"04","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"result: deny\",\"cache_read\":190645972,...(len=512)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 04 1/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"04","_n":2,"_t":6,"_d":"date {\\\"taskId\\\": \\\"6\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:30 TaskUpdate {\\\"taskId\\\": \\\"7\\\", \\\"status...(len=516)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 04 2/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"04","_n":3,"_t":6,"_d":":[{\"id\":\"5200909b-db\",\"n\":\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,\"p\":\"Tuya...(len=511)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 04 3/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"04","_n":4,"_t":6,"_d":"{\"id\":\"02ae73b4-ab\",\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"根据�...(len=522)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 04 4/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"04","_n":5,"_t":6,"_d":"m\":\"\",\"to\":219,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\":\"\",\"t...(len=520)
+[01-01 00:00:30 ty I][ble_hs.c:433] ble_hs_timer reset:0 
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 04 5/6 (+400 B)
+[01-01 00:00:30 ty I][ble_hs.c:393] ble_hs_timer_exp:
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"04","_n":6,"_t":6,"_d":":false,\"p\":\"DuckyClaw\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"ver\":\"2.1...(len=276)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 04 6/6 (+213 B)
+[01-01 00:00:30 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2213 B
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"result: deny","cache_read":190645972,"cache_write":19270890,"ctx_used":94415,"ctx_to...(len=2213)
+[01-01 00:00:30 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:30 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"05","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"done: Edit\",\"cache_read\":190645972,\"...(len=512)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 05 1/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"05","_n":2,"_t":6,"_d":"te {\\\"taskId\\\": \\\"7\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:31 Edit D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\ap...(len=510)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 05 2/6 (+400 B)
+[01-01 00:00:30 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"05","_n":3,"_t":6,"_d":"\"sessions\":[{\"id\":\"5200909b-db\",\"n\":\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":true,...(len=509)
+[01-01 00:00:30 ty D][buddy_ble.c:920] buddy_ble chunk 05 3/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"05","_n":4,"_t":6,"_d":":false},{\"id\":\"02ae73b4-ab\",\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\":\"...(len=520)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 05 4/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"05","_n":5,"_t":6,"_d":"c-arm\",\"m\":\"\",\"to\":219,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"m\...(len=519)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 05 5/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"05","_n":6,"_t":6,"_d":"\":13,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],\"...(len=287)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 05 6/6 (+221 B)
+[01-01 00:00:31 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2221 B
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"done: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":95244,"ctx_tota...(len=2221)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"06","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":1,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"approve: Edit\",\"cache_read\":190645972...(len=512)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 06 1/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"06","_n":2,"_t":6,"_d":"pdate {\\\"taskId\\\": \\\"7\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:31 Edit D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\...(len=511)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 06 2/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"06","_n":3,"_t":6,"_d":"56e321df49f32\",\"tool\":\"Edit\",\"hint\":\"D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\tuya_t5_\"},\"...(len=511)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 06 3/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"06","_n":4,"_t":6,"_d":":33 Edit D:\\\\tuya_proj\\\\temp_test\\\\TuyaOp\"]},{\"id\":\"defda17b-bb\",\"n\":\"/tuya-pocket-buddy:buddy-sta\",\"m\":\"deepse...(len=519)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 06 4/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"06","_n":5,"_t":6,"_d":"9d897-aa\",\"n\":\"Create an Agent with subagen\",\"m\":\"\",\"to\":7,\"r\":false,\"p\":\"Windows\"},{\"id\":\"57739520-a7\",\"n\...(len=517)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 06 5/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"06","_n":6,"_t":6,"_d":"ts the daemon detached. \",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"9b39fac0-2d\",\"n\":\"Starts the daemon...(len=445)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 06 6/6 (+353 B)
+[01-01 00:00:31 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2353 B
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":1,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"approve: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":95244,"ctx_t...(len=2353)
+[01-01 00:00:31 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"07","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"result: deny\",\"cache_read\":190645972,...(len=512)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 07 1/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"07","_n":2,"_t":6,"_d":"date {\\\"taskId\\\": \\\"7\\\", \\\"status\\\": \\\"in_progress\\\"}\",\"15:31 Edit D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\...(len=509)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 07 2/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"07","_n":3,"_t":6,"_d":"\",\"sessions\":[{\"id\":\"5200909b-db\",\"n\":\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":0,\"r\":tr...(len=509)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 07 3/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"07","_n":4,"_t":6,"_d":"r\":false},{\"id\":\"02ae73b4-ab\",\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784800-8d\",\"n\"...(len=521)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 07 4/6 (+400 B)
+ipc_router_tx_cmpl_isr error @423, indx=10!
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"07","_n":5,"_t":6,"_d":"gcc-arm\",\"m\":\"\",\"to\":219,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess >>> c\",\"...(len=519)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 07 5/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"07","_n":6,"_t":6,"_d":"to\":13,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"TuyaOpen\"}],...(len=289)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 07 6/6 (+223 B)
+[01-01 00:00:31 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2223 B
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"result: deny","cache_read":190645972,"cache_write":19270890,"ctx_used":95244,"ctx_to...(len=2223)
+[01-01 00:00:31 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:31 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"08","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":0,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"done: Edit\",\"cache_read\":190645972,\"...(len=513)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 08 1/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"08","_n":2,"_t":6,"_d":"\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\tuya_t5_\",\"15:32 Edit D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpe...(len=504)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 08 2/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"08","_n":3,"_t":6,"_d":"eek-v4-pro\",\"sessions\":[{\"id\":\"5200909b-db\",\"n\":\"@.target_logging\\\\2026-05-11\\\\\",\"m\":\"deepseek-v4-pro\",\"to\":...(len=505)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 08 3/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"08","_n":4,"_t":6,"_d":"\",\"to\":0,\"r\":false},{\"id\":\"02ae73b4-ab\",\"n\":\"\",\"m\":\"\",\"to\":437,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"3c784...(len=525)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 08 4/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"08","_n":5,"_t":6,"_d":"orm/tools/gcc-arm\",\"m\":\"\",\"to\":219,\"r\":false,\"p\":\"TuyaOpen\"},{\"id\":\"9f6f46c3-71\",\"n\":\"[INFO]: >>> subprocess ...(len=513)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 08 5/6 (+400 B)
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"08","_n":6,"_t":6,"_d":"\",\"m\":\"\",\"to\":13,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"ab4bdab7-0c\",\"n\":\"\",\"m\":\"\",\"to\":0,\"r\":false,\"p\"...(len=305)
+[01-01 00:00:31 ty D][buddy_ble.c:920] buddy_ble chunk 08 6/6 (+233 B)
+[01-01 00:00:31 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2233 B
+[01-01 00:00:31 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":0,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"done: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":95801,"ctx_tota...(len=2233)
+[01-01 00:00:32 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"09","_n":1,"_t":6,"_d":"{\"total\":2,\"running\":1,\"waiting\":1,\"tokens\":1450160,\"tokens_today\":0,\"msg\":\"approve: Edit\",\"cache_read\":190645972...(len=512)
+[01-01 00:00:32 ty D][buddy_ble.c:920] buddy_ble chunk 09 1/6 (+400 B)
+[01-01 00:00:32 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"09","_n":2,"_t":6,"_d":"D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\tuya_t5_\",\"15:32 Edit D:\\\\tuya_proj\\\\temp_test\\\\Tuy...(len=505)
+[01-01 00:00:32 ty D][buddy_ble.c:920] buddy_ble chunk 09 2/6 (+400 B)
+[01-01 00:00:32 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"09","_n":3,"_t":6,"_d":"id\":\"45a995e2af67fc28236d\",\"tool\":\"Edit\",\"hint\":\"D:\\\\tuya_proj\\\\temp_test\\\\TuyaOpen\\\\apps\\\\tuya_t5_pocket\\\\...(len=510)
+[01-01 00:00:32 ty D][buddy_ble.c:920] buddy_ble chunk 09 3/6 (+400 B)
+[01-01 00:00:32 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"09","_n":4,"_t":6,"_d":"\\TuyaOp\",\"15:34 Edit D:\\\\tuya_proj\\\\temp_test\\\\TuyaOp\"]},{\"id\":\"defda17b-bb\",\"n\":\"/tuya-pocket-buddy:buddy-sta\"...(len=519)
+[01-01 00:00:32 ty D][buddy_ble.c:920] buddy_ble chunk 09 4/6 (+400 B)
+[01-01 00:00:32 ty D][buddy_indev.c:67] Button pressed: btn_enter, event: 0, key type: 10
+[01-01 00:00:32 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:32 ty N][buddy_approval_screen.c:288] [buddy_approval_screen] decision=once id=b6b4ca72b5bf6565834f
+[01-01 00:00:32 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:32 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=-
+[01-01 00:00:32 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_approval_screen
+
+[01-01 00:00:32 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"09","_n":5,"_t":6,"_d":"},{\"id\":\"0689d897-aa\",\"n\":\"Create an Agent with subagen\",\"m\":\"\",\"to\":7,\"r\":false,\"p\":\"Windows\"},{\"id\":\"577...(len=516)
+[01-01 00:00:32 ty D][buddy_ble.c:920] buddy_ble chunk 09 5/6 (+400 B)
+[01-01 00:00:32 ty D][buddy_ble.c:948] buddy_ble RX {"_f":"09","_n":6,"_t":6,"_d":"e\",\"n\":\"Starts the daemon detached. \",\"m\":\"\",\"to\":0,\"r\":false,\"p\":\"DuckyClaw\"},{\"id\":\"9b39fac0-2d\",\"n\":\"S...(len=461)
+[01-01 00:00:32 ty D][buddy_ble.c:920] buddy_ble chunk 09 6/6 (+365 B)
+[01-01 00:00:32 ty D][buddy_ble.c:927] buddy_ble chunk reassembled 2365 B
+[01-01 00:00:32 ty D][buddy_ble.c:948] buddy_ble RX {"total":2,"running":1,"waiting":1,"tokens":1450160,"tokens_today":0,"msg":"approve: Edit","cache_read":190645972,"cache_write":19270890,"ctx_used":95801,"ctx_t...(len=2365)
+[01-01 00:00:32 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=45a995e2af67fc28236d
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1019+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1013+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1013+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1013+20)
+[01-01 00:00:32 ty D][buddy_indev.c:67] Button pressed: btn_enter, event: 0, key type: 10
+[01-01 00:00:32 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:32 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:32 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:32 ty N][buddy_approval_screen.c:288] [buddy_approval_screen] decision=once id=45a995e2af67fc28236d
+[01-01 00:00:32 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:32 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=45a995e2af67fc28236d
+[01-01 00:00:32 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_approval_screen
+
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1014+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:32 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1013+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1009+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:33 ty D][buddy_indev.c:67] Button pressed: btn_enter, event: 0, key type: 10
+[01-01 00:00:33 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:33 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:33 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:33 ty N][buddy_approval_screen.c:288] [buddy_approval_screen] decision=once id=45a995e2af67fc28236d
+[01-01 00:00:33 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:33 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=45a995e2af67fc28236d
+[01-01 00:00:33 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_approval_screen
+
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1018+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1009+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:33 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1015+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:34 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:35 ty D][buddy_indev.c:67] Button pressed: btn_enter, event: 0, key type: 10
+[01-01 00:00:35 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:35 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:35 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:35 ty N][buddy_approval_screen.c:288] [buddy_approval_screen] decision=once id=45a995e2af67fc28236d
+[01-01 00:00:35 ty D][buddy_led.c:112] buddy_led OFF -> BLINK_FAST
+[01-01 00:00:35 ty N][buddy_approval_screen.c:234] [buddy_approval_screen] init tool=Edit id=45a995e2af67fc28236d
+[01-01 00:00:35 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_approval_screen
+
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+ipc_router_tx_cmpl_isr error @423, indx=2!
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:35 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:36 ty D][buddy_indev.c:67] Button pressed: btn_enter, event: 0, key type: 10
+[01-01 00:00:36 ty D][buddy_led.c:112] buddy_led BLINK_FAST -> OFF
+[01-01 00:00:36 ty N][tdl_led_manage.c:267] led_set_status: 0
+[01-01 00:00:36 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:36 ty N][buddy_approval_screen.c:288] [buddy_approval_screen] decision=once id=45a995e2af67fc28236d
+[01-01 00:00:36 ty D][screen_manager.c:131] [Manager] Returning to previous screen: Startup
+
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1022+20)
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:36 ty D][tuya_health.c:75] feed watchdog
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1015+20)
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:36 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:37 ty D][startup_screen.c:60] deinit startup screen
+
+[01-01 00:00:37 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:37 ty D][buddy_main_screen.c:550] persona 1->3
+[01-01 00:00:37 ty N][buddy_main_screen.c:915] [buddy_main_screen] init persona=10
+[01-01 00:00:37 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_main_screen]
+
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:37 ty I][ble_hs.c:433] ble_hs_timer reset:0 
+[01-01 00:00:37 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=3
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:37 ty I][ble_hs.c:393] ble_hs_timer_exp:
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1015+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:37 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:38 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+17)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+8)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:39 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1015+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1017+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1009+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:40 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+17)
+[01-01 00:00:41 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+8)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1015+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1017+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1017+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1018+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:42 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1014+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1019+20)
+[01-01 00:00:43 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1018+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1019+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1018+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1017+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1018+20)
+[01-01 00:00:44 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1018+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1013+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1019+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1019+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1013+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:45 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1017+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1009+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1022+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1022+20)
+[01-01 00:00:46 ty D][tuya_health.c:75] feed watchdog
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1009+20)
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:46 ty D][buddy_indev.c:81] Joystick event: 10, key type: 20
+[01-01 00:00:46 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:46 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:46 ty N][buddy_status_screen.c:491] [buddy_status_screen] init ver=2.1.138 (Claude Cod model=deepseek-v4-pro
+[01-01 00:00:46 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_status_screen]
+
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1006+20)
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+20)
+ipc_router_tx_cmpl_isr error @423, indx=7!
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1016+20)
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1013+20)
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1018+20)
+ipc_router_tx_cmpl_isr error @423, indx=17!
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:47 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1017+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1021+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+5)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:48 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1022+20)
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:49 ty D][buddy_indev.c:81] Joystick event: 11, key type: 19
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:49 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:49 ty N][buddy_main_screen.c:915] [buddy_main_screen] init persona=10
+[01-01 00:00:49 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_main_screen
+
+[01-01 00:00:49 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:49 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=3
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1019+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1017+20)
+[01-01 00:00:50 ty D][buddy_indev.c:81] Joystick event: 11, key type: 19
+[01-01 00:00:50 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:50 ty N][buddy_chart_screen.c:546] [buddy_chart_screen] init period=7d
+[01-01 00:00:50 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_chart_screen]
+
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1022+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:50 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+5)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1007+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:51 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1022+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1017+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1010+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1023+17)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1004+20)
+[01-01 00:00:52 ty D][buddy_indev.c:81] Joystick event: 11, key type: 19
+[01-01 00:00:52 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:52 ty N][buddy_pie_screen.c:635] [buddy_pie_screen] init mstats_count=0
+[01-01 00:00:52 ty D][screen_manager.c:195] [Manager] Loading to new screen: [buddy_pie_screen]
+
+[01-01 00:00:52 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:53 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:53 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1019+20)
+[01-01 00:00:53 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:53 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)
+[01-01 00:00:55 ty D][buddy_indev.c:81] Joystick event: 10, key type: 20
+[01-01 00:00:55 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:55 ty N][buddy_chart_screen.c:546] [buddy_chart_screen] init period=7d
+[01-01 00:00:55 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_chart_screen
+
+[01-01 00:00:55 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1022+20)
+[01-01 00:00:55 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:55 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1005+20)
+[01-01 00:00:55 ty D][buddy_indev.c:81] Joystick event: 10, key type: 20
+ipc_router_tx_cmpl_isr error @423, indx=24!
+[01-01 00:00:56 ty I][tkl_bluetooth.c:205] send notify ok
+[01-01 00:00:56 ty N][buddy_main_screen.c:915] [buddy_main_screen] init persona=10
+[01-01 00:00:56 ty D][screen_manager.c:131] [Manager] Returning to previous screen: buddy_main_screen
+
+[01-01 00:00:56 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=3
+[01-01 00:00:56 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1022+20)
+[01-01 00:00:56 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:00:56 ty D][ble_mgr.c:427] ble pair timeout then disconnect!!
+[01-01 00:00:56 ty I][ble_gap.c:5121] ble_gap_terminate:
+
+[01-01 00:00:56 ty I][ble_gap.c:5097] GAP procedure initiated: terminate connection; conn_handle=1 hci_reason=13
+
+[01-01 00:00:56 ty I][tkl_bluetooth.c:221] BLE_GAP_EVENT_SUBSCRIBE
+[01-01 00:00:56 ty N][tkl_bluetooth.c:163] BLE_GAP_EVENT_DISCONNECT(0x216)
+
+[01-01 00:00:56 ty N][buddy_ble.c:435] buddy_ble peer disconnected
+[01-01 00:00:56 ty I][ble_gap.c:2248] GAP init: stop adv
+[01-01 00:00:56 ty D][buddy_main_screen.c:550] persona 3->0
+[01-01 00:00:56 ty I][ble_hs.c:433] ble_hs_timer reset:0 
+[01-01 00:00:56 ty N][ble_gap.c:2509] Start Adv
+[01-01 00:00:56 ty N][ble_mgr.c:403] ble adv updated 0
+[01-01 00:00:56 ty N][ble_mgr.c:1006] Ble Disonnected
+[01-01 00:00:56 ty D][tuya_health.c:75] feed watchdog
+[01-01 00:00:56 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=0
+[01-01 00:00:56 ty I][ble_hs.c:393] ble_hs_timer_exp:
+[01-01 00:01:06 ty D][tuya_health.c:75] feed watchdog
+[01-01 00:01:14 ty I][ble_hs.c:433] ble_hs_timer reset:0 
+[01-01 00:01:14 ty I][tkl_bluetooth.c:151] BLE_GAP_EVENT_CONNECT(0x00), handle = 0x01, Role(1)
+
+[01-01 00:01:14 ty N][buddy_ble.c:429] buddy_ble peer connected conn=1 (rx=11 tx=13)
+[01-01 00:01:14 ty N][ble_mgr.c:992] Ble Connected
+[01-01 00:01:14 ty D][buddy_main_screen.c:550] persona 0->1
+[01-01 00:01:14 ty D][ble_hs_hci_evt.c:152] evt code null:20
+[01-01 00:01:14 ty D][ascii_persona.c:246] persona_tick transition persona=snail state=1
+[01-01 00:01:14 ty I][tkl_bluetooth.c:195] mtu update event; conn_handle=0x0001 mtu=256, channel id = 4
+
+[01-01 00:01:14 ty I][buddy_ble.c:446] buddy_ble mtu=256
+[01-01 00:01:14 ty I][ble_hs.c:393] ble_hs_timer_exp:
+[01-01 00:01:14 ty D][ble_att.c:491] Rx Op Not Support= 0x06
+
+[01-01 00:01:14 ty D][ble_att_svr.c:1936] debug rc = 0
+[01-01 00:01:14 ty D][ble_att_svr.c:1936] debug rc = 0
+[01-01 00:01:15 ty I][tkl_bluetooth.c:221] BLE_GAP_EVENT_SUBSCRIBE
+[01-01 00:01:15 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1011+20)
+[01-01 00:01:15 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:01:16 ty D][tuya_health.c:75] feed watchdog
+[01-01 00:01:16 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1012+20)
+[01-01 00:01:16 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1020+20)
+[01-01 00:01:17 ty W][buddy_ble.c:497] buddy_ble rx overflow, reset (len=1008+20)

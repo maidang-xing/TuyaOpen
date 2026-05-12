@@ -80,6 +80,7 @@ typedef struct {
 
 static tuya_ble_mgr_t *s_ble_mgr = NULL;
 static bool s_ble_debug = false;
+static bool s_pair_monitor_disabled = false; //! Set via tuya_ble_pair_monitor_disable()
 
 /**
  * @brief Prints the raw data in hexadecimal format.
@@ -112,6 +113,42 @@ void tuya_ble_raw_print(char *title, uint8_t width, uint8_t *buf, uint16_t size)
 void tuya_ble_enable_debug(bool enable)
 {
     s_ble_debug = enable;
+}
+
+/**
+ * @brief Disable or re-enable Tuya's pair-timeout monitor.
+ *
+ * By default, ble_mgr starts a 30 s pair_timer on every peripheral connect.
+ * If the remote peer does not complete Tuya's pairing handshake within that
+ * window, the device is forced to disconnect. For third-party peers that use
+ * a different application protocol (e.g. the Claude Desktop Buddy NUS profile),
+ * this timer would spuriously tear down the link. Call this with `disable=true`
+ * to suppress that behavior globally.
+ *
+ * @param[in] disable true to prevent pair_timer from starting on future connects
+ *                    and stop any currently running pair_timer; false to restore
+ *                    the default behavior.
+ * @return OPRT_OK on success, OPRT_COM_ERROR if ble_mgr is not initialized
+ */
+OPERATE_RET tuya_ble_pair_monitor_disable(bool disable)
+{
+    if (s_ble_mgr == NULL) {
+        return OPRT_COM_ERROR;
+    }
+    s_pair_monitor_disabled = disable;
+    if (disable) {
+        if (s_ble_mgr->pair_timer) {
+            tal_sw_timer_stop(s_ble_mgr->pair_timer);
+        }
+        /* The periodic monitor_timer would stop our advertising once the
+         * device connects to the cloud; kill it so buddy_ble can own the
+         * advertising stack uninterrupted. */
+        if (s_ble_mgr->monitor_timer) {
+            tal_sw_timer_stop(s_ble_mgr->monitor_timer);
+        }
+    }
+    PR_INFO("pair monitor %s", disable ? "disabled" : "enabled");
+    return OPRT_OK;
 }
 
 static int ble_adv_set(tuya_ble_mgr_t *ble)
@@ -947,7 +984,11 @@ static void tal_ble_event_callback(void *data)
             memcpy(&ble->peer_info, &msg->ble_event.connect.peer, sizeof(TAL_BLE_PEER_INFO_T));
             ble->recv_sn = 0;
             ble->send_sn = 1;
-            tal_sw_timer_start(ble->pair_timer, BLE_CONN_MONITOR_TIME, TAL_TIMER_ONCE);
+            if (!s_pair_monitor_disabled) {
+                tal_sw_timer_start(ble->pair_timer, BLE_CONN_MONITOR_TIME, TAL_TIMER_ONCE);
+            } else {
+                PR_DEBUG("pair monitor disabled, skip pair_timer start");
+            }
             PR_NOTICE("Ble Connected");
         } else {
             memset(&ble->peer_info, 0, sizeof(TAL_BLE_PEER_INFO_T));

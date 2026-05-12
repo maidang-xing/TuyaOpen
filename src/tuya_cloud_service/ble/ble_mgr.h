@@ -127,6 +127,21 @@ void tuya_ble_enable_debug(bool enable);
  */
 void tuya_ble_raw_print(char *title, uint8_t width, uint8_t *buf, uint16_t size);
 
+/**
+ * @brief Disable or re-enable Tuya's pair-timeout monitor.
+ *
+ * By default, ble_mgr forcibly disconnects any peripheral that does not complete
+ * Tuya's pairing handshake within 30 s. Call this with disable=true to suppress
+ * that behaviour so third-party BLE profiles (e.g. Nordic UART Service used by
+ * the Claude Desktop Buddy protocol) can keep the link alive.
+ *
+ * @param[in] disable true to prevent pair_timer from starting on future connects
+ *                    and stop any currently running pair_timer; false to restore
+ *                    the default behaviour.
+ * @return OPRT_OK on success, OPRT_COM_ERROR if ble_mgr is not initialized
+ */
+OPERATE_RET tuya_ble_pair_monitor_disable(bool disable);
+
 #ifdef __cplusplus
 }
 #endif

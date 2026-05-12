@@ -21,9 +21,9 @@ extern "C" {
 #endif
 
 #if defined(TARGET_BT_PLATFORM) && (TARGET_BT_PLATFORM == BK_BT_PLATFORM)
-#define TUYA_BLE_HOST_STACK_SIZE                    (1024*4)
+#define TUYA_BLE_HOST_STACK_SIZE                    (1024*14)
 #else
-#define TUYA_BLE_HOST_STACK_SIZE                    (1024*4)
+#define TUYA_BLE_HOST_STACK_SIZE                    (1024*14)
 #endif
 
 

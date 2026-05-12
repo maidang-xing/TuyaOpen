@@ -1,0 +1,21 @@
+{
+  "name": "tuya-pocket-buddy",
+  "owner": {
+    "name": "TuyaOpen Project"
+  },
+  "metadata": {
+    "description": "Claude Code companion plugin for the Tuya T5AI-Pocket buddy device.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "tuya-pocket-buddy",
+      "source": "./",
+      "description": "Mirror Claude Code sessions to a T5AI-Pocket over BLE; route PreToolUse permission prompts to physical buttons.",
+      "version": "0.1.0",
+      "category": "hardware",
+      "tags": ["ble", "tuya", "t5ai-pocket", "hardware"],
+      "homepage": "https://github.com/TuyaOpen/TuyaOpen"
+    }
+  ]
+}

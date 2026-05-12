@@ -1,0 +1,17 @@
+menu "Tuya T5 Pocket Buddy"
+
+config ENABLE_CLAUDE_DESKTOP_BUDDY_BLE
+    bool "Enable Claude Desktop Buddy BLE"
+    default y
+    help
+        Enables the Claude Desktop Buddy NUS BLE bridge, allowing the
+        device to pair with a Claude Desktop or CLI instance.
+
+config DISABLE_BUDDY_CJK_FONT
+    bool "Disable CJK font (faster compile)"
+    default n
+    help
+        Disables the large CJK bitmap font (~3MB) to speed up compilation
+        during development. Turn this OFF for production builds.
+
+endmenu
