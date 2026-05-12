@@ -1,0 +1,10 @@
+menu "Tuya T5 Pocket Buddy"
+
+config DISABLE_BUDDY_CJK_FONT
+    bool "Disable CJK font (faster compile)"
+    default n
+    help
+        Disables the large CJK bitmap font to speed up compilation
+        during development. Turn this OFF for production builds.
+
+endmenu
