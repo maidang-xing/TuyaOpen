@@ -32,7 +32,7 @@
 #include "buddy_protocol.h"
 #include "buddy_transport.h"
 #include "buddy_types.h"
-#include "buddy_led.h"
+#include "led_indicator.h"
 #include "lv_vendor.h"
 #include "screen_manager.h"
 #include "tal_api.h"

@@ -343,7 +343,7 @@ STATIC VOID_T __refresh_header(VOID_T)
     }
     if (s_lbl_right) {
         /* Show wifi/WS icons and total tokens */
-        const char *wifi = buddy_ws_cloud_is_connected() ? LV_SYMBOL_WIFI      : " ";
+        const char *wifi = buddy_ws_is_connected() ? LV_SYMBOL_WIFI      : " ";
         const char *bt   = s_state.ws_connected          ? LV_SYMBOL_BLUETOOTH : " ";
         char tok[12];
         __fmt_tok(s_state.tokens, tok, sizeof(tok));

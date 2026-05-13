@@ -40,6 +40,7 @@ list(APPEND APP_SRCS ${INPUT_SRCS} ${TRANSPORT_SRCS} ${PROTOCOL_SRCS} ${MEDIA_SR
 
 set(APP_INC
     ${APP_PATH}/include
+    ${APP_PATH}/include/media
     ${APP_PATH}/src/transport
     ${APP_PATH}/src/protocol
 )

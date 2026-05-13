@@ -33,6 +33,8 @@
 #include "board_com_api.h"
 #include "buddy_transport.h"
 #include "buddy_protocol.h"
+#include "screen_manager.h"
+#include "lv_vendor.h"
 
 tuya_iot_client_t ai_client;
 tuya_iot_license_t license;
@@ -40,11 +42,6 @@ tuya_iot_license_t license;
 #ifndef PROJECT_VERSION
 #define PROJECT_VERSION "1.0.0"
 #endif
-
-STATIC VOID_T user_log_output_cb(const char *str)
-{
-    tal_uart_write(TUYA_UART_NUM_0, (const uint8_t *)str, strlen(str));
-}
 
 STATIC VOID_T user_upgrade_notify_on(tuya_iot_client_t *client, cJSON *upgrade)
 {
@@ -190,6 +187,13 @@ void user_main(void)
     tuya_iot_start(&ai_client);
 
     buddy_state_init();
+    lv_vendor_init(DISPLAY_NAME);
+    ui_init();
+    lv_vendor_start(5, 1024 * 8);
+
+    extern void buddy_indev_init(void);
+    buddy_indev_init();
+    
     buddy_protocol_init();
     buddy_ws_init();
 

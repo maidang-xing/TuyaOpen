@@ -27,12 +27,12 @@
 #include "buddy_protocol.h"
 #include "buddy_transport.h"
 #include "buddy_types.h"
-#include "buddy_led.h"
-#include "buddy_gif_stub.h"
+#include "led_indicator.h"
+// buddy_gif_stub not used in WS version
 #include "ascii_persona.h"
 #include "persona_registry.h"
 #include "buddy_cjk_font.h"
-#include "buddy_status_bar.h"
+#include "status_bar.h"
 #include "screen_manager.h"
 #include "lv_vendor.h"
 #include "tal_api.h"
@@ -575,7 +575,7 @@ STATIC VOID_T __refresh_header(VOID_T)
     if (lbl_conn) {
         char buf[24];
         buddy_status_bar_format(buf, sizeof(buf),
-                                buddy_ws_cloud_is_connected(),
+                                buddy_ws_is_connected(),
                                 s_state.ws_connected,
                                 BUDDY_BAT_PCT_UNKNOWN);
         lv_label_set_text(lbl_conn, buf);

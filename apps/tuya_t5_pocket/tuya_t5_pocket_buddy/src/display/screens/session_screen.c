@@ -31,7 +31,7 @@
 #include "buddy_transport.h"
 #include "buddy_types.h"
 #include "buddy_cjk_font.h"
-#include "buddy_status_bar.h"
+#include "status_bar.h"
 #include "screen_manager.h"
 #include "lv_vendor.h"
 #include "tal_api.h"
@@ -153,17 +153,6 @@ Screen_t buddy_session_screen = {
 /* ---------------------------------------------------------------------------
  * Utilities
  * --------------------------------------------------------------------------- */
-
-/**
- * @brief Create a single-line label with explicit size to prevent word wrap.
- *
- * @param parent  Parent LVGL object.
- * @param x       X position relative to parent.
- * @param y       Y position relative to parent.
- * @param w       Width in pixels; use LV_SIZE_CONTENT if 0 is passed.
- * @param font    Font pointer (FONT_S or FONT_M).
- * @return        Pointer to the created label.
- */
 STATIC lv_obj_t *__lbl(lv_obj_t *parent, int32_t x, int32_t y,
                         int32_t w, const lv_font_t *font)
 {
@@ -178,16 +167,6 @@ STATIC lv_obj_t *__lbl(lv_obj_t *parent, int32_t x, int32_t y,
     return l;
 }
 
-/**
- * @brief Create an inverted (black bg, white text) header strip.
- *
- * @param parent  Parent LVGL object.
- * @param x       X position.
- * @param y       Y position.
- * @param w       Width in pixels.
- * @param text    Label text.
- * @return        Pointer to the label inside the strip.
- */
 STATIC lv_obj_t *__make_inv_hdr(lv_obj_t *parent, int32_t x, int32_t y,
                                  int32_t w, const char *text)
 {
@@ -209,11 +188,6 @@ STATIC lv_obj_t *__make_inv_hdr(lv_obj_t *parent, int32_t x, int32_t y,
     return lbl;
 }
 
-/**
- * @brief Format a wall-clock time from the WS state into HH:MM.
- *
- * Outputs "--:--" if wall_epoch_s is not yet set.
- */
 STATIC VOID_T __format_clock(const buddy_tama_state_t *s, char *out, size_t n)
 {
     if (!out || n < 6) return;
@@ -231,9 +205,6 @@ STATIC VOID_T __format_clock(const buddy_tama_state_t *s, char *out, size_t n)
                      (int)(sod / 3600), (int)((sod / 60) % 60));
 }
 
-/**
- * @brief Format a token count as a compact string (e.g. "1.2k" or "850").
- */
 STATIC VOID_T __fmt_tok(uint32_t v, char *out, size_t n)
 {
     if (v >= 1000U)
@@ -258,7 +229,6 @@ STATIC VOID_T __build_header(lv_obj_t *parent)
     lv_obj_set_style_pad_all(bar, 0, 0);
     lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* Left: screen title */
     lv_obj_t *lbl_title = lv_label_create(bar);
     lv_label_set_text(lbl_title, "claude buddy");
     lv_obj_set_style_text_font(lbl_title, FONT_S, 0);
@@ -266,7 +236,6 @@ STATIC VOID_T __build_header(lv_obj_t *parent)
     lv_obj_set_style_pad_all(lbl_title, 0, 0);
     lv_obj_align(lbl_title, LV_ALIGN_LEFT_MID, 4, 0);
 
-    /* Center: clock */
     lbl_clock = lv_label_create(bar);
     lv_label_set_text(lbl_clock, "--:--");
     lv_obj_set_style_text_font(lbl_clock, FONT_S, 0);
@@ -274,7 +243,6 @@ STATIC VOID_T __build_header(lv_obj_t *parent)
     lv_obj_set_style_pad_all(lbl_clock, 0, 0);
     lv_obj_align(lbl_clock, LV_ALIGN_CENTER, 0, 0);
 
-    /* Right: WS + status summary */
     lbl_status = lv_label_create(bar);
     lv_label_set_text(lbl_status, "W B --");
     lv_obj_set_style_text_font(lbl_status, FONT_S, 0);
@@ -285,7 +253,6 @@ STATIC VOID_T __build_header(lv_obj_t *parent)
 
 STATIC VOID_T __build_left_panel(lv_obj_t *parent)
 {
-    /* Container clipped to left panel area */
     lv_obj_t *panel = lv_obj_create(parent);
     lv_obj_set_size(panel, LEFT_W, BODY_H);
     lv_obj_set_pos(panel, 0, BODY_TOP);
@@ -295,12 +262,10 @@ STATIC VOID_T __build_left_panel(lv_obj_t *parent)
     lv_obj_set_style_pad_all(panel, 0, 0);
     lv_obj_clear_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* Inverted "Name" header strip spanning the full left panel width */
     lbl_name_hdr = __make_inv_hdr(panel, 0, 0, LEFT_W, "Name");
 
-    /* Content rows — each LEFT_ROW_H px apart, starting at y=INV_HDR_H+2 */
     int32_t y = INV_HDR_H + 2;
-    int32_t cw = LEFT_W - LEFT_PAD * 2;  /* usable content width ~144px */
+    int32_t cw = LEFT_W - LEFT_PAD * 2;
 
     lbl_sess_name = __lbl(panel, LEFT_PAD, y, cw, FONT_S);  y += LEFT_ROW_H;
     lbl_sid       = __lbl(panel, LEFT_PAD, y, cw, FONT_S);  y += LEFT_ROW_H;
@@ -308,13 +273,11 @@ STATIC VOID_T __build_left_panel(lv_obj_t *parent)
     lbl_tokens    = __lbl(panel, LEFT_PAD, y, cw, FONT_S);  y += LEFT_ROW_H;
     lbl_running   = __lbl(panel, LEFT_PAD, y, cw, FONT_S);  y += LEFT_ROW_H;
     lbl_project   = __lbl(panel, LEFT_PAD, y, cw, FONT_S);  y += LEFT_ROW_H;
-    /* Extra row showing global Ctx usage (no per-session ctx in snapshot). */
     lbl_ctx       = __lbl(panel, LEFT_PAD, y, cw, FONT_S);
 }
 
 STATIC VOID_T __build_right_panel(lv_obj_t *parent)
 {
-    /* Container for the right panel */
     lv_obj_t *panel = lv_obj_create(parent);
     lv_obj_set_size(panel, RIGHT_W, BODY_H);
     lv_obj_set_pos(panel, RIGHT_X, BODY_TOP);
@@ -324,10 +287,8 @@ STATIC VOID_T __build_right_panel(lv_obj_t *parent)
     lv_obj_set_style_pad_all(panel, 0, 0);
     lv_obj_clear_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* Inverted "Session Log" header strip */
     lbl_log_hdr = __make_inv_hdr(panel, 0, 0, RIGHT_W, "Session Log");
 
-    /* Log entry rows */
     int32_t cw = RIGHT_W - RIGHT_PAD * 2;
     for (uint32_t i = 0; i < LOG_VISIBLE; i++) {
         int32_t ey = (int32_t)(INV_HDR_H + 2 + i * (LOG_ENTRY_H + 1));
@@ -335,7 +296,6 @@ STATIC VOID_T __build_right_panel(lv_obj_t *parent)
         lv_obj_add_flag(lbl_log[i], LV_OBJ_FLAG_HIDDEN);
     }
 
-    /* Empty placeholder */
     lbl_log_empty = __lbl(panel, RIGHT_PAD,
                           INV_HDR_H + 2, cw, FONT_S);
     lv_label_set_text(lbl_log_empty, "No entries yet");
@@ -355,7 +315,7 @@ STATIC VOID_T __refresh_header(VOID_T)
     if (lbl_status) {
         char buf[24];
         buddy_status_bar_format(buf, sizeof(buf),
-                                buddy_ws_cloud_is_connected(),
+                                buddy_ws_is_connected(),
                                 s_state.ws_connected,
                                 BUDDY_BAT_PCT_UNKNOWN);
         lv_label_set_text(lbl_status, buf);
@@ -367,7 +327,6 @@ STATIC VOID_T __refresh_left(VOID_T)
     if (s_sess_idx >= s_state.sessions_count) return;
     const buddy_session_t *sess = &s_state.sessions[s_sess_idx];
 
-    /* Session name — truncate at 16 chars with "..." */
     if (lbl_sess_name) {
         char name_buf[20];
         if (strlen(sess->name) > 16) {
@@ -379,15 +338,12 @@ STATIC VOID_T __refresh_left(VOID_T)
         lv_label_set_text(lbl_sess_name, name_buf);
     }
 
-    /* Short session ID: first 8 chars of sid */
     if (lbl_sid) {
         char id_buf[20];
         (VOID_T)snprintf(id_buf, sizeof(id_buf), "ID: %.8s", sess->sid);
         lv_label_set_text(lbl_sid, id_buf);
     }
 
-    /* Model name — left panel is ~144px / 8px per char ~= 18 chars;
-     * prefix "Model: " uses 7 chars leaving 11 for the name.  */
     if (lbl_model) {
         char mod_buf[24];
         (VOID_T)snprintf(mod_buf, sizeof(mod_buf), "Model: %.11s",
@@ -395,16 +351,14 @@ STATIC VOID_T __refresh_left(VOID_T)
         lv_label_set_text(lbl_model, mod_buf);
     }
 
-    /* Token count */
     if (lbl_tokens) {
         char tok[10];
         char out_buf[20];
-        __fmt_tok(sess->tokens_out, tok, sizeof(tok));
+        __fmt_tok(sess->tokens, tok, sizeof(tok));
         (VOID_T)snprintf(out_buf, sizeof(out_buf), "Out: %s", tok);
         lv_label_set_text(lbl_tokens, out_buf);
     }
 
-    /* Running state */
     if (lbl_running) {
         char run_buf[16];
         (VOID_T)snprintf(run_buf, sizeof(run_buf),
@@ -412,7 +366,6 @@ STATIC VOID_T __refresh_left(VOID_T)
         lv_label_set_text(lbl_running, run_buf);
     }
 
-    /* Project */
     if (lbl_project) {
         char proj_buf[36];
         (VOID_T)snprintf(proj_buf, sizeof(proj_buf), "Project: %.18s",
@@ -420,8 +373,6 @@ STATIC VOID_T __refresh_left(VOID_T)
         lv_label_set_text(lbl_project, proj_buf);
     }
 
-    /* Context window — shared global state (not per-session). Reflects the
-     * most recent API call, useful while a session is active. */
     if (lbl_ctx) {
         char ctx_buf[28];
         char used_s[10];
@@ -441,7 +392,6 @@ STATIC VOID_T __refresh_left(VOID_T)
 STATIC VOID_T __refresh_right(VOID_T)
 {
     if (s_sess_idx >= s_state.sessions_count) {
-        /* No valid session — show empty */
         for (uint32_t i = 0; i < LOG_VISIBLE; i++) {
             if (lbl_log[i]) lv_obj_add_flag(lbl_log[i], LV_OBJ_FLAG_HIDDEN);
         }
@@ -450,7 +400,7 @@ STATIC VOID_T __refresh_right(VOID_T)
     }
 
     const buddy_session_t *sess = &s_state.sessions[s_sess_idx];
-    uint8_t count = sess->local_entry_count;
+    uint8_t count = sess->local_entries_count;
 
     if (count == 0) {
         for (uint32_t i = 0; i < LOG_VISIBLE; i++) {
@@ -462,7 +412,6 @@ STATIC VOID_T __refresh_right(VOID_T)
 
     if (lbl_log_empty) lv_obj_add_flag(lbl_log_empty, LV_OBJ_FLAG_HIDDEN);
 
-    /* Clamp scroll */
     if (s_log_scroll >= count) s_log_scroll = (uint8_t)(count - 1U);
 
     for (uint32_t i = 0; i < LOG_VISIBLE; i++) {
@@ -473,7 +422,7 @@ STATIC VOID_T __refresh_right(VOID_T)
             continue;
         }
         lv_label_set_text(lbl_log[i],
-                          sess->local_entries[entry_idx].text);
+                          sess->local_entries[entry_idx]);
         lv_obj_clear_flag(lbl_log[i], LV_OBJ_FLAG_HIDDEN);
     }
 }
@@ -494,9 +443,8 @@ STATIC VOID_T __key_cb(lv_event_t *e)
         break;
 
     case KEY_UP:
-        /* Scroll log up (toward older entries) */
         if (sess) {
-            uint8_t count = sess->local_entry_count;
+            uint8_t count = sess->local_entries_count;
             if (count > 0 &&
                 (uint32_t)s_log_scroll + LOG_VISIBLE < (uint32_t)count) {
                 s_log_scroll++;
@@ -508,7 +456,6 @@ STATIC VOID_T __key_cb(lv_event_t *e)
         break;
 
     case KEY_DOWN:
-        /* Scroll log down (toward newer entries) */
         if (s_log_scroll > 0) {
             s_log_scroll--;
             lv_vendor_disp_lock();
@@ -527,16 +474,12 @@ STATIC VOID_T __key_cb(lv_event_t *e)
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __init(VOID_T)
 {
-    /* 1. Read state_data: the calling screen passes a buddy_session_t * */
     const buddy_session_t *requested_sess =
         (const buddy_session_t *)buddy_session_screen.state_data;
 
-    /* 2. Get a fresh state snapshot + ask the daemon for an immediate refresh
-     *    so live session metadata (running flag, ctx, entries) is current. */
     buddy_state_snapshot(&s_state);
     (VOID_T)buddy_ws_send_hb_req("session");
 
-    /* 3. Find the matching session by sid */
     s_sess_idx = 0;
     s_log_scroll = 0;
     if (requested_sess && requested_sess->sid[0]) {
@@ -550,7 +493,6 @@ STATIC VOID_T __init(VOID_T)
         }
     }
 
-    /* 4. Build UI */
     ui_screen = lv_obj_create(NULL);
     lv_obj_set_size(ui_screen, SCR_W, SCR_H);
     lv_obj_set_style_bg_color(ui_screen, C_BG, 0);
@@ -560,7 +502,6 @@ STATIC VOID_T __init(VOID_T)
     __build_header(ui_screen);
     __build_left_panel(ui_screen);
 
-    /* Vertical divider between left and right panels */
     lv_obj_t *div = lv_obj_create(ui_screen);
     lv_obj_set_size(div, DIV_W, BODY_H);
     lv_obj_set_pos(div, DIV_X, BODY_TOP);
@@ -571,12 +512,10 @@ STATIC VOID_T __init(VOID_T)
 
     __build_right_panel(ui_screen);
 
-    /* 5. Populate widgets */
     __refresh_header();
     __refresh_left();
     __refresh_right();
 
-    /* 6. Register key handler */
     lv_obj_add_event_cb(ui_screen, __key_cb, LV_EVENT_KEY, NULL);
     lv_group_add_obj(lv_group_get_default(), ui_screen);
     lv_group_focus_obj(ui_screen);

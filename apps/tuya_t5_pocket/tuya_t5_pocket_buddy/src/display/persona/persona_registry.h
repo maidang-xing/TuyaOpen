@@ -21,7 +21,7 @@
 #define PERSONA_REGISTRY_H
 
 #include "ascii_persona.h"
-#include "buddy_data.h"
+#include "buddy_types.h"
 #include <stdint.h>
 
 #ifdef __cplusplus

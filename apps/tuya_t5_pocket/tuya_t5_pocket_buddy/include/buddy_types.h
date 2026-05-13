@@ -20,10 +20,12 @@ extern "C" {
 #define BUDDY_ENTRY_HINT_LEN     48
 #define BUDDY_SESSIONS_MAX       12
 #define BUDDY_SESSION_NAME_LEN   32
+#define BUDDY_SESSION_PROJECT_LEN 16
 #define BUDDY_SESSION_ENTRIES    4
 #define BUDDY_MODEL_LEN          15
 #define BUDDY_MSTATS_MAX         4
 #define BUDDY_DAILY_HISTORY      28
+#define BUDDY_PERSONA_COUNT      18
 
 #define BUDDY_WS_DEFAULT_PORT    7681
 #define BUDDY_WS_PATH            "/buddy"
@@ -52,21 +54,23 @@ typedef struct {
 } buddy_mstat_t;
 
 typedef enum {
-    PERSONA_SLEEP = 0,
-    PERSONA_IDLE,
-    PERSONA_BUSY,
-    PERSONA_ATTENTION,
-    PERSONA_CELEBRATE,
-    PERSONA_HEART,
-    PERSONA_DIZZY,
+    BUDDY_PERSONA_STATE_SLEEP = 0,
+    BUDDY_PERSONA_STATE_IDLE,
+    BUDDY_PERSONA_STATE_BUSY,
+    BUDDY_PERSONA_STATE_ATTENTION,
+    BUDDY_PERSONA_STATE_CELEBRATE,
+    BUDDY_PERSONA_STATE_HEART,
+    BUDDY_PERSONA_STATE_DIZZY,
+    BUDDY_PERSONA_STATE_COUNT,
 } buddy_persona_state_e;
 
 typedef enum {
-    LED_OFF = 0,
-    LED_ON_DIM,
-    LED_BLINK_SLOW,
-    LED_BLINK_FAST,
-    LED_FLASH_ONCE,
+    BUDDY_LED_STATE_OFF = 0,
+    BUDDY_LED_STATE_ON_DIM,
+    BUDDY_LED_STATE_BLINK_SLOW,
+    BUDDY_LED_STATE_BLINK_FAST,
+    BUDDY_LED_STATE_FLASH_ONCE,
+    BUDDY_LED_STATE_COUNT,
 } buddy_led_state_e;
 
 typedef struct {
@@ -93,6 +97,7 @@ typedef struct {
     uint32_t cost_total_ucc;
 
     bool     has_prompt;
+    bool     recently_completed;
     char     prompt_id[40];
     char     prompt_tool[32];
     char     prompt_hint[64];

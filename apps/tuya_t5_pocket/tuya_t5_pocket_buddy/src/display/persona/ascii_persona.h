@@ -27,7 +27,7 @@
 #define ASCII_PERSONA_H
 
 #include "screen_manager.h"
-#include "buddy_data.h"
+#include "buddy_types.h"
 #include "lv_vendor.h"
 #include <stdint.h>
 

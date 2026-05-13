@@ -17,6 +17,7 @@
 #include "tal_network.h"
 #include "tal_cli.h"
 #include "tal_kv.h"
+#include "mix_method.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -324,8 +325,7 @@ static OPERATE_RET __ws_connect(void)
 
     TUYA_IP_ADDR_T addr = tal_net_str2addr(s_host);
     if (addr == 0) {
-        addr = tal_net_gethostbyname(s_host);
-        if (addr == 0) {
+        if (tal_net_gethostbyname(s_host, &addr) != OPRT_OK || addr == 0) {
             PR_WARN("DNS resolve failed: %s", s_host);
             return OPRT_COM_ERROR;
         }
@@ -443,16 +443,23 @@ static void __ws_task(void *arg)
 
 static void __load_kv_config(void)
 {
-    size_t len = sizeof(s_host);
-    if (tal_kv_get(KV_KEY_HOST, (uint8_t *)s_host, &len) != OPRT_OK) {
+    uint8_t *val = NULL;
+    size_t len = 0;
+
+    if (tal_kv_get(KV_KEY_HOST, &val, &len) == OPRT_OK && val) {
+        strncpy(s_host, (char *)val, BUDDY_WS_HOST_LEN);
+        s_host[BUDDY_WS_HOST_LEN] = '\0';
+        tal_free(val);
+    } else {
         s_host[0] = '\0';
     }
 
-    uint8_t port_buf[8] = {0};
-    len = sizeof(port_buf);
-    if (tal_kv_get(KV_KEY_PORT, port_buf, &len) == OPRT_OK) {
-        s_port = (uint16_t)atoi((char *)port_buf);
+    val = NULL;
+    len = 0;
+    if (tal_kv_get(KV_KEY_PORT, &val, &len) == OPRT_OK && val) {
+        s_port = (uint16_t)atoi((char *)val);
         if (s_port == 0) s_port = BUDDY_WS_DEFAULT_PORT;
+        tal_free(val);
     }
 
     if (s_host[0]) {
@@ -504,7 +511,10 @@ static void __cli_ws_handler(int argc, char *argv[])
 
 void buddy_ws_cli_register(void)
 {
-    tal_cli_cmd_register("buddy", __cli_ws_handler);
+    static const cli_cmd_t cmds[] = {
+        {.name = "buddy", .help = "buddy ws <set|status>", .func = __cli_ws_handler},
+    };
+    tal_cli_cmd_register(cmds, 1);
 }
 
 /* ---- Lifecycle ---- */

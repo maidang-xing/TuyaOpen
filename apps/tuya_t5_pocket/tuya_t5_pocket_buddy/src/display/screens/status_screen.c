@@ -48,7 +48,7 @@
  * Fonts
  * --------------------------------------------------------------------------- */
 #include "buddy_cjk_font.h"
-#include "buddy_status_bar.h"
+#include "status_bar.h"
 #define FONT_M   (&buddy_font_m)
 #define FONT_S   (&buddy_font_s)
 
@@ -307,7 +307,7 @@ STATIC VOID_T __refresh_header(VOID_T)
     if (s_hdr_status) {
         char buf[24];
         buddy_status_bar_format(buf, sizeof(buf),
-                                buddy_ws_cloud_is_connected(),
+                                buddy_ws_is_connected(),
                                 s_state.ws_connected,
                                 BUDDY_BAT_PCT_UNKNOWN);
         lv_label_set_text(s_hdr_status, buf);

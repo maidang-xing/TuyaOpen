@@ -168,10 +168,6 @@ Screen_t buddy_pie_screen = {
 /* ---------------------------------------------------------------------------
  * Utilities
  * --------------------------------------------------------------------------- */
-/**
- * @brief Format wall clock from snapshot epoch + tz offset.
- * @return none
- */
 STATIC VOID_T __format_clock(const buddy_tama_state_t *s, char *out, size_t n)
 {
     if (!out || n < 6) {
@@ -193,10 +189,6 @@ STATIC VOID_T __format_clock(const buddy_tama_state_t *s, char *out, size_t n)
                      (int)(sod / 3600), (int)((sod / 60) % 60));
 }
 
-/**
- * @brief Format token count: "1.2k" for >=1000, plain integer otherwise.
- * @return none
- */
 STATIC VOID_T __fmt_tok(uint32_t v, char *out, size_t n)
 {
     if (v >= 1000U) {
@@ -209,7 +201,7 @@ STATIC VOID_T __fmt_tok(uint32_t v, char *out, size_t n)
 }
 
 /* ---------------------------------------------------------------------------
- * Header builder — same convention as the other buddy tabs.
+ * Header builder
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __build_header(lv_obj_t *parent)
 {
@@ -257,8 +249,7 @@ STATIC VOID_T __build_title(lv_obj_t *parent)
 }
 
 /* ---------------------------------------------------------------------------
- * Pie disc builder — pre-allocate PIE_MAX_ROWS lv_arc widgets and the
- * in-wedge numeric labels. All start hidden.
+ * Pie disc builder
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __build_pie(lv_obj_t *parent)
 {
@@ -266,46 +257,38 @@ STATIC VOID_T __build_pie(lv_obj_t *parent)
         lv_obj_t *arc = lv_arc_create(parent);
         lv_obj_set_size(arc, PIE_D, PIE_D);
         lv_obj_set_pos(arc, PIE_X, PIE_Y);
-        /* Make the wedge start at 12 o'clock and grow clockwise. */
         lv_arc_set_rotation(arc, 270);
         lv_arc_set_bg_angles(arc, 0, 360);
         lv_arc_set_angles(arc, 0, 0);
 
-        /* Hide the (default) value-mode behavior: not user adjustable. */
         lv_obj_remove_flag(arc, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_remove_flag(arc, LV_OBJ_FLAG_SCROLLABLE);
 
-        /* Background arc track: invisible (we only want the indicator). */
         lv_obj_set_style_arc_color(arc, C_BG, LV_PART_MAIN);
         lv_obj_set_style_arc_opa(arc, LV_OPA_TRANSP, LV_PART_MAIN);
         lv_obj_set_style_arc_width(arc, PIE_R, LV_PART_MAIN);
 
-        /* Indicator: solid black wedge, line_width = R fills from center. */
         lv_obj_set_style_arc_color(arc, C_FG, LV_PART_INDICATOR);
         lv_obj_set_style_arc_opa(arc, LV_OPA_COVER, LV_PART_INDICATOR);
         lv_obj_set_style_arc_width(arc, PIE_R, LV_PART_INDICATOR);
         lv_obj_set_style_arc_rounded(arc, false, LV_PART_INDICATOR);
         lv_obj_set_style_arc_rounded(arc, false, LV_PART_MAIN);
 
-        /* Hide the knob (drag handle). */
         lv_obj_set_style_bg_opa(arc, LV_OPA_TRANSP, LV_PART_KNOB);
         lv_obj_set_style_pad_all(arc, 0, LV_PART_KNOB);
 
         lv_obj_add_flag(arc, LV_OBJ_FLAG_HIDDEN);
         s_arc[i] = arc;
 
-        /* In-wedge numeric label "1".."4" */
         lv_obj_t *num = lv_label_create(parent);
         lv_obj_set_style_pad_all(num, 0, 0);
         lv_obj_set_style_text_font(num, FONT_S, 0);
-        /* Inverted (white on black wedge) so the digit is readable. */
         lv_obj_set_style_text_color(num, C_INV_FG, 0);
         lv_label_set_text(num, "");
         lv_obj_add_flag(num, LV_OBJ_FLAG_HIDDEN);
         s_wedge_num[i] = num;
     }
 
-    /* Empty-state label: drawn over the pie area when there is no data. */
     s_empty_lbl = lv_label_create(parent);
     lv_label_set_long_mode(s_empty_lbl, LV_LABEL_LONG_CLIP);
     lv_obj_set_size(s_empty_lbl, SCR_W - 8, H_S);
@@ -318,14 +301,13 @@ STATIC VOID_T __build_pie(lv_obj_t *parent)
 }
 
 /* ---------------------------------------------------------------------------
- * Legend builder — 4 rows on the right side of the pie.
+ * Legend builder
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __build_legend(lv_obj_t *parent)
 {
     for (uint32_t i = 0; i < PIE_MAX_ROWS; i++) {
         int32_t row_y = (int32_t)(LEG_Y + i * (uint32_t)LEG_ROW_H);
 
-        /* Numbered black marker square */
         lv_obj_t *m = lv_obj_create(parent);
         lv_obj_set_size(m, LEG_MARK_W, LEG_MARK_H);
         lv_obj_set_pos(m, LEG_X, row_y);
@@ -338,7 +320,6 @@ STATIC VOID_T __build_legend(lv_obj_t *parent)
         lv_obj_add_flag(m, LV_OBJ_FLAG_HIDDEN);
         s_leg_mark[i] = m;
 
-        /* "1".."4" centered inside the marker square */
         lv_obj_t *ml = lv_label_create(m);
         lv_obj_set_style_text_font(ml, FONT_S, 0);
         lv_obj_set_style_text_color(ml, C_INV_FG, 0);
@@ -347,7 +328,6 @@ STATIC VOID_T __build_legend(lv_obj_t *parent)
         lv_obj_align(ml, LV_ALIGN_CENTER, 0, 0);
         s_leg_mark_lbl[i] = ml;
 
-        /* Text: "<model>  <tok>  NN%" */
         lv_obj_t *t = lv_label_create(parent);
         lv_label_set_long_mode(t, LV_LABEL_LONG_DOT);
         lv_obj_set_size(t, LEG_TXT_W, H_S);
@@ -362,7 +342,7 @@ STATIC VOID_T __build_legend(lv_obj_t *parent)
 }
 
 /* ---------------------------------------------------------------------------
- * Nav bar — Tab 4 ("Pi") highlighted with rounded white pill.
+ * Nav bar — Tab 4 ("Pi") highlighted
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __build_nav(lv_obj_t *parent)
 {
@@ -389,7 +369,7 @@ STATIC VOID_T __build_nav(lv_obj_t *parent)
 }
 
 /* ---------------------------------------------------------------------------
- * Refresh header (clock + WiFi/WS/total tokens)
+ * Refresh header
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __refresh_header(VOID_T)
 {
@@ -399,8 +379,8 @@ STATIC VOID_T __refresh_header(VOID_T)
         lv_label_set_text(s_lbl_clock, buf);
     }
     if (s_lbl_right) {
-        const char *wifi = buddy_ws_cloud_is_connected() ? LV_SYMBOL_WIFI      : " ";
-        const char *bt   = s_state.ws_connected          ? LV_SYMBOL_BLUETOOTH : " ";
+        const char *wifi = buddy_ws_is_connected() ? LV_SYMBOL_WIFI      : " ";
+        const char *bt   = s_state.ws_connected    ? LV_SYMBOL_BLUETOOTH : " ";
         char tok[12];
         __fmt_tok(s_state.tokens, tok, sizeof(tok));
         char buf[32];
@@ -409,10 +389,6 @@ STATIC VOID_T __refresh_header(VOID_T)
     }
 }
 
-/**
- * @brief Helper: hide all per-wedge widgets (used by empty-state and reset).
- * @return none
- */
 STATIC VOID_T __hide_all_wedges(VOID_T)
 {
     for (uint32_t i = 0; i < PIE_MAX_ROWS; i++) {
@@ -428,8 +404,6 @@ STATIC VOID_T __hide_all_wedges(VOID_T)
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __refresh_pie(VOID_T)
 {
-    /* Sort indices by tokens_out desc — limited to 4 entries so a tiny
-     * O(N^2) selection sort is fine and avoids dragging in qsort. */
     uint8_t idx[PIE_MAX_ROWS] = {0};
     uint8_t cnt = s_state.mstats_count;
     if (cnt > PIE_MAX_ROWS) {
@@ -440,8 +414,8 @@ STATIC VOID_T __refresh_pie(VOID_T)
     }
     for (uint8_t i = 0; i < cnt; i++) {
         for (uint8_t j = (uint8_t)(i + 1); j < cnt; j++) {
-            if (s_state.mstats[idx[j]].tokens_out >
-                s_state.mstats[idx[i]].tokens_out) {
+            if (s_state.mstats[idx[j]].tokens >
+                s_state.mstats[idx[i]].tokens) {
                 uint8_t tmp = idx[i];
                 idx[i] = idx[j];
                 idx[j] = tmp;
@@ -449,7 +423,6 @@ STATIC VOID_T __refresh_pie(VOID_T)
         }
     }
 
-    /* Empty-state */
     if (cnt == 0) {
         if (s_empty_lbl) {
             lv_obj_clear_flag(s_empty_lbl, LV_OBJ_FLAG_HIDDEN);
@@ -463,10 +436,8 @@ STATIC VOID_T __refresh_pie(VOID_T)
 
     uint32_t total_tok = 0U;
     for (uint8_t i = 0; i < cnt; i++) {
-        total_tok += s_state.mstats[idx[i]].tokens_out;
+        total_tok += s_state.mstats[idx[i]].tokens;
     }
-    /* Total of zero (every model reported 0) — render empty state instead
-     * of a degenerate full circle. */
     if (total_tok == 0U) {
         if (s_empty_lbl) {
             lv_obj_clear_flag(s_empty_lbl, LV_OBJ_FLAG_HIDDEN);
@@ -475,18 +446,15 @@ STATIC VOID_T __refresh_pie(VOID_T)
         return;
     }
 
-    /* Compute wedge angles. With N>=2 wedges insert WEDGE_GAP_DEG gap
-     * between adjacent wedges; with N=1 draw a full circle. */
     int32_t total_gap_deg = (cnt > 1) ? (int32_t)(WEDGE_GAP_DEG * cnt) : 0;
     int32_t avail_deg     = 360 - total_gap_deg;
     if (avail_deg < 0) {
-        avail_deg = 0;   /* defensive: shouldn't happen with cnt<=4 */
+        avail_deg = 0;
     }
 
     int32_t cursor_deg = 0;
     for (uint32_t row = 0; row < PIE_MAX_ROWS; row++) {
         if (row >= (uint32_t)cnt) {
-            /* Hide unused slots */
             if (s_arc[row])       lv_obj_add_flag(s_arc[row],       LV_OBJ_FLAG_HIDDEN);
             if (s_wedge_num[row]) lv_obj_add_flag(s_wedge_num[row], LV_OBJ_FLAG_HIDDEN);
             if (s_leg_mark[row])  lv_obj_add_flag(s_leg_mark[row],  LV_OBJ_FLAG_HIDDEN);
@@ -496,18 +464,14 @@ STATIC VOID_T __refresh_pie(VOID_T)
 
         const buddy_mstat_t *ms = &s_state.mstats[idx[row]];
 
-        /* Wedge angle span in deg (rounded; last wedge takes the remainder
-         * to fill exactly 360 - total_gap_deg). */
         int32_t span_deg;
         if (row + 1U == (uint32_t)cnt) {
             span_deg = (avail_deg) - cursor_deg + (int32_t)(row * WEDGE_GAP_DEG);
-            /* cursor_deg already accumulated previous spans + gaps; the
-             * remaining span fills the rest cleanly. */
             if (span_deg < 1) {
                 span_deg = 1;
             }
         } else {
-            span_deg = (int32_t)(((uint64_t)ms->tokens_out * (uint32_t)avail_deg)
+            span_deg = (int32_t)(((uint64_t)ms->tokens * (uint32_t)avail_deg)
                                  / total_tok);
             if (span_deg < 1) {
                 span_deg = 1;
@@ -521,22 +485,13 @@ STATIC VOID_T __refresh_pie(VOID_T)
         }
 
         if (s_arc[row]) {
-            /* For N==1 the indicator [0,360] is a degenerate range in
-             * LVGL (start==end means empty). Use [0,359] which renders
-             * almost-full circle; combined with the 0/360 wrap it appears
-             * as a complete disc to the eye. */
             uint32_t s_a = (uint32_t)start_deg;
             uint32_t e_a = (uint32_t)((cnt == 1U) ? 359 : end_deg);
             lv_arc_set_angles(s_arc[row], s_a, e_a);
             lv_obj_clear_flag(s_arc[row], LV_OBJ_FLAG_HIDDEN);
         }
 
-        /* Place numeric label at 0.7*R from center, mid-angle of wedge */
         int32_t mid_deg = (start_deg + end_deg) / 2;
-        /* Visual coords (0=top, 90=right, clockwise):
-         *   sx = cx + r*sin(mid)
-         *   sy = cy - r*cos(mid)
-         * cos(deg) = sin(deg+90); both via lv_trigo_sin (1<<15 scale). */
         int32_t r_lbl  = (int32_t)PIE_R * (int32_t)LABEL_R_NUM
                          / (int32_t)LABEL_R_DEN;
         int32_t sin_v  = (int32_t)lv_trigo_sin((int16_t)mid_deg);
@@ -547,12 +502,10 @@ STATIC VOID_T __refresh_pie(VOID_T)
             char nbuf[4];
             (VOID_T)snprintf(nbuf, sizeof(nbuf), "%u", (unsigned)(row + 1U));
             lv_label_set_text(s_wedge_num[row], nbuf);
-            /* Approximate centering: assume single-digit ~6px wide, 14px tall. */
             lv_obj_set_pos(s_wedge_num[row], lx - 3, ly - 7);
             lv_obj_clear_flag(s_wedge_num[row], LV_OBJ_FLAG_HIDDEN);
         }
 
-        /* Legend row */
         if (s_leg_mark[row]) {
             lv_obj_clear_flag(s_leg_mark[row], LV_OBJ_FLAG_HIDDEN);
         }
@@ -562,13 +515,13 @@ STATIC VOID_T __refresh_pie(VOID_T)
             lv_label_set_text(s_leg_mark_lbl[row], nbuf);
         }
         if (s_leg_txt[row]) {
-            uint32_t pct = (uint32_t)(((uint64_t)ms->tokens_out * 100U)
+            uint32_t pct = (uint32_t)(((uint64_t)ms->tokens * 100U)
                                        / total_tok);
             if (pct > 100U) {
                 pct = 100U;
             }
             char tok[12];
-            __fmt_tok(ms->tokens_out, tok, sizeof(tok));
+            __fmt_tok(ms->tokens, tok, sizeof(tok));
             char buf[64];
             (VOID_T)snprintf(buf, sizeof(buf), "%-12.12s %s  %u%%",
                              ms->model[0] ? ms->model : "unknown",
@@ -577,7 +530,6 @@ STATIC VOID_T __refresh_pie(VOID_T)
             lv_obj_clear_flag(s_leg_txt[row], LV_OBJ_FLAG_HIDDEN);
         }
 
-        /* Advance cursor: wedge span + gap (no gap after the last one). */
         cursor_deg = end_deg;
         if (row + 1U < (uint32_t)cnt) {
             cursor_deg += WEDGE_GAP_DEG;
@@ -587,7 +539,6 @@ STATIC VOID_T __refresh_pie(VOID_T)
 
 /* ---------------------------------------------------------------------------
  * Key handler
- *   LEFT / ESC → screen_back() (return to caller).
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __key_cb(lv_event_t *e)
 {
@@ -597,7 +548,6 @@ STATIC VOID_T __key_cb(lv_event_t *e)
     case KEY_ESC:
         screen_back();
         break;
-    /* No RIGHT — this is the last tab. */
     default:
         break;
     }
@@ -614,9 +564,6 @@ STATIC VOID_T __init(VOID_T)
     lv_obj_set_style_pad_all(ui_screen, 0, 0);
     lv_obj_clear_flag(ui_screen, LV_OBJ_FLAG_SCROLLABLE);
 
-    /* Snapshot latest state and ask the daemon for a fresh heartbeat so
-     * mstats[] is up to date at first paint. The hb_req frame is ignored
-     * by upstream Claude Desktop daemons (REFERENCE.md compatible). */
     buddy_state_snapshot(&s_state);
     (VOID_T)buddy_ws_send_hb_req("pie");
 
@@ -637,10 +584,6 @@ STATIC VOID_T __init(VOID_T)
               (unsigned)s_state.mstats_count);
 }
 
-/**
- * @brief Tear down the screen widgets and clear our cached pointers.
- * @return none
- */
 STATIC VOID_T __deinit(VOID_T)
 {
     if (ui_screen) {
