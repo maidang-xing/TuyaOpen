@@ -40,6 +40,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "buddy_anim.h"
 
 /* ---------------------------------------------------------------------------
  * Constants
@@ -245,6 +246,9 @@ STATIC VOID_T __screen_deinit(VOID_T)
         lv_group_remove_obj(s_screen);
     }
     s_tool = s_info = s_session = s_owner = NULL;
+    for (uint32_t i = 0; i < OPT_COUNT; i++) {
+        if (s_opts[i]) buddy_anim_blink_stop(s_opts[i]);
+    }
     for (uint32_t i = 0; i < OPT_COUNT; i++) s_opts[i] = NULL;
     s_cursor = 0;
 }
@@ -259,12 +263,14 @@ STATIC VOID_T __refresh_cursor(VOID_T)
     };
     for (uint32_t i = 0; i < OPT_COUNT; i++) {
         if (!s_opts[i]) continue;
+        buddy_anim_blink_stop(s_opts[i]);
         char buf[32];
         if (i == (uint32_t)s_cursor) {
             (VOID_T)snprintf(buf, sizeof(buf), "> %s", OPT_TEXT[i]);
             lv_obj_set_style_text_color(s_opts[i], lv_color_white(), 0);
             lv_obj_set_style_bg_color(s_opts[i],   lv_color_black(), 0);
             lv_obj_set_style_bg_opa(s_opts[i],     LV_OPA_COVER, 0);
+            buddy_anim_blink(s_opts[i], lv_color_black(), lv_color_white(), 500);
         } else {
             (VOID_T)snprintf(buf, sizeof(buf), "  %s", OPT_TEXT[i]);
             lv_obj_set_style_text_color(s_opts[i], lv_color_black(), 0);
