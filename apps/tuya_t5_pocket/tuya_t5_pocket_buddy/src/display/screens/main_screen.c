@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "buddy_anim.h"
 
 /* ---------------------------------------------------------------------------
  * Fonts
@@ -323,7 +324,7 @@ STATIC VOID_T __build_header(lv_obj_t *parent)
 
     /* Left: "claude buddy" */
     lbl_title = lv_label_create(bar);
-    lv_label_set_text(lbl_title, "claude buddy");
+    buddy_anim_typewriter(lbl_title, "claude buddy", 40);
     lv_obj_set_style_text_font(lbl_title, FONT_S, 0);
     lv_obj_set_style_text_color(lbl_title, C_INV_FG, 0);
     lv_obj_align(lbl_title, LV_ALIGN_LEFT_MID, 4, 0);
@@ -934,6 +935,7 @@ STATIC VOID_T __deinit(VOID_T)
         lv_group_remove_obj(ui_buddy_main_screen);
     }
 
+    if (lbl_title) buddy_anim_typewriter_stop(lbl_title);
     lbl_title = lbl_clock = lbl_conn = NULL;
     lbl_persona_name = lbl_persona_level = NULL;
     for (uint32_t i = 0; i < LIST_VISIBLE_MAX; i++) {
