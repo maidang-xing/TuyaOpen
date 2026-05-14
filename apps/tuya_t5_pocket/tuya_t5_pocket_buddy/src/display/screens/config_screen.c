@@ -254,7 +254,7 @@ static void __poll_cb(lv_timer_t *t)
     (void)t;
     s_poll_count++;
 
-#if !defined(LVGL_PC_SIMULATOR) || !LVGL_PC_SIMULATOR
+#if !defined(CONFIG_LVGL_PC_SIMULATOR) || !CONFIG_LVGL_PC_SIMULATOR
     if (buddy_ws_is_connected()) {
         /* Connected — stop poll, go to main */
         if (s_connect_poll) {
@@ -278,7 +278,7 @@ static void __poll_cb(lv_timer_t *t)
         s_hint_restore_timer = lv_timer_create(__hint_restore_cb, 3000, NULL);
         lv_timer_set_repeat_count(s_hint_restore_timer, 1);
     }
-#endif /* !LVGL_PC_SIMULATOR */
+#endif /* !CONFIG_LVGL_PC_SIMULATOR */
 }
 
 /* ---------------------------------------------------------------------------
@@ -286,13 +286,14 @@ static void __poll_cb(lv_timer_t *t)
  * --------------------------------------------------------------------------- */
 static void __connect(void)
 {
-#if defined(LVGL_PC_SIMULATOR) && LVGL_PC_SIMULATOR
+#ifdef CONFIG_LVGL_PC_SIMULATOR
     screen_load(&buddy_main_screen);
 #else
     char ip[32];
     __assemble_ip(ip, sizeof(ip));
 
     buddy_ws_set_host(ip);
+    tal_kv_set(KV_KEY_WS_HOST, (const uint8_t *)ip, strlen(ip) + 1);
     buddy_ws_stop();
     buddy_ws_start(NULL);
 
@@ -311,7 +312,7 @@ static void __connect(void)
     }
     s_poll_count = 0;
     s_connect_poll = lv_timer_create(__poll_cb, POLL_INTERVAL_MS, NULL);
-#endif /* LVGL_PC_SIMULATOR */
+#endif /* CONFIG_LVGL_PC_SIMULATOR */
 }
 
 /* ---------------------------------------------------------------------------
@@ -373,7 +374,7 @@ static void __build_header(lv_obj_t *parent)
     lv_obj_set_style_text_font(s_hdr_left, FONT_S, 0);
     lv_obj_set_style_text_color(s_hdr_left, C_INV_FG, 0);
     lv_obj_align(s_hdr_left, LV_ALIGN_LEFT_MID, 4, 0);
-    buddy_anim_typewriter(s_hdr_left, "claude buddy", 60);
+    buddy_anim_typewriter(s_hdr_left, "claude buddy", 40);
 
     /* Right: status bar */
     s_hdr_right = lv_label_create(bar);
@@ -384,13 +385,13 @@ static void __build_header(lv_obj_t *parent)
 
     /* Update status bar */
     char sbuf[24];
-#if !defined(LVGL_PC_SIMULATOR) || !LVGL_PC_SIMULATOR
+#if !defined(CONFIG_LVGL_PC_SIMULATOR) || !CONFIG_LVGL_PC_SIMULATOR
     buddy_status_bar_format(sbuf, sizeof(sbuf),
                             FALSE, buddy_ws_is_connected(),
                             BUDDY_BAT_PCT_UNKNOWN);
 #else
     buddy_status_bar_format(sbuf, sizeof(sbuf), FALSE, FALSE, BUDDY_BAT_PCT_UNKNOWN);
-#endif /* !LVGL_PC_SIMULATOR */
+#endif /* !CONFIG_LVGL_PC_SIMULATOR */
     lv_label_set_text(s_hdr_right, sbuf);
 }
 
@@ -408,21 +409,27 @@ static void __build_body(lv_obj_t *parent)
 
     /* Title */
     lv_obj_t *title = lv_label_create(body);
-    lv_label_set_text(title, "Claude Buddy 设置");
     lv_obj_set_style_text_font(title, FONT_M, 0);
     lv_obj_set_style_text_color(title, C_FG, 0);
     lv_obj_set_pos(title, 0, 0);
+    buddy_anim_typewriter(title, "Setup", 60);
 
-    /* Instructions */
-    s_body_lbl = lv_label_create(body);
-    lv_label_set_long_mode(s_body_lbl, LV_LABEL_LONG_WRAP);
-    lv_obj_set_size(s_body_lbl, SCR_W - 8, 55);
-    lv_label_set_text(s_body_lbl,
-                      "输入 MCP 服务器 IP 地址后按 ENTER 连接。\n"
-                      "确保 PC 端已启动 claude-buddy 插件。");
-    lv_obj_set_style_text_font(s_body_lbl, FONT_S, 0);
-    lv_obj_set_style_text_color(s_body_lbl, C_FG, 0);
-    lv_obj_set_pos(s_body_lbl, 0, 22);
+    /* Instructions — 4 numbered steps */
+    static const char *const STEPS[] = {
+        "1. 打开涂鸦 App 扫码配网",
+        "2. 安装插件: claude mcp add buddy",
+        "3. 填写下方服务器 IP 地址",
+        "4. 按 ENTER 连接",
+    };
+    for (int i = 0; i < 4; i++) {
+        lv_obj_t *lbl = lv_label_create(body);
+        lv_label_set_long_mode(lbl, LV_LABEL_LONG_DOT);
+        lv_obj_set_width(lbl, SCR_W - PAD * 2);
+        lv_obj_set_style_text_font(lbl, FONT_S, 0);
+        lv_obj_set_style_text_color(lbl, C_FG, 0);
+        lv_obj_set_pos(lbl, 0, 18 + i * 16);
+        lv_label_set_text(lbl, STEPS[i]);
+    }
 
     /* Divider */
     lv_obj_t *div = lv_obj_create(parent);
@@ -436,6 +443,13 @@ static void __build_body(lv_obj_t *parent)
 
 static void __build_ip_area(lv_obj_t *parent)
 {
+    /* "Server IP:" label */
+    lv_obj_t *ip_lbl = lv_label_create(s_screen);
+    lv_obj_set_style_text_font(ip_lbl, FONT_S, 0);
+    lv_obj_set_style_text_color(ip_lbl, C_FG, 0);
+    lv_obj_set_pos(ip_lbl, PAD, IP_Y + 2);
+    lv_label_set_text(ip_lbl, "Server IP:");
+
     /* Build 12 digit cells */
     for (int i = 0; i < DIGIT_COUNT; i++) {
         int32_t cx = __cell_x(i);
