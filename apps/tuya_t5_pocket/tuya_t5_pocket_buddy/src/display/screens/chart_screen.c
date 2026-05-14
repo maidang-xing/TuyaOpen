@@ -385,6 +385,21 @@ STATIC VOID_T __day_date(const buddy_tama_state_t *s, uint8_t offset,
 }
 
 /* ---------------------------------------------------------------------------
+ * Animation setter: grow bar upward (bottom-anchored).
+ * --------------------------------------------------------------------------- */
+static void __bar_h_set(void *obj, int32_t v)
+{
+    lv_obj_t *bar  = (lv_obj_t *)obj;
+    int32_t   w    = lv_obj_get_width(bar);
+    int32_t   full = lv_obj_get_style_height(bar, 0);
+    /* bar is bottom-anchored: keep bottom edge fixed, grow upward */
+    int32_t   orig_bottom = lv_obj_get_y(bar) + lv_obj_get_height(bar);
+    lv_obj_set_size(bar, w, v);
+    lv_obj_set_y(bar, orig_bottom - v);
+    (void)full;
+}
+
+/* ---------------------------------------------------------------------------
  * Redraw chart for current period.
  * All widget geometry is recalculated from s_state.daily_tokens[].
  * --------------------------------------------------------------------------- */
@@ -456,9 +471,20 @@ STATIC VOID_T __redraw_chart(VOID_T)
         int32_t bar_y = CHART_H - bar_h;   /* relative to s_chart_cont top */
 
         if (s_bars[i]) {
-            lv_obj_set_pos(s_bars[i], bar_x, bar_y);
-            lv_obj_set_size(s_bars[i], bar_w, bar_h);
+            /* Start bar at bottom (height=1), animate grow to bar_h */
+            lv_obj_set_pos(s_bars[i], bar_x, bar_y + bar_h - 1);
+            lv_obj_set_size(s_bars[i], bar_w, 1);
             lv_obj_clear_flag(s_bars[i], LV_OBJ_FLAG_HIDDEN);
+
+            lv_anim_t a;
+            lv_anim_init(&a);
+            lv_anim_set_var(&a, s_bars[i]);
+            lv_anim_set_exec_cb(&a, __bar_h_set);
+            lv_anim_set_values(&a, 1, bar_h);
+            lv_anim_set_time(&a, 200);
+            lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+            lv_anim_set_delay(&a, (uint32_t)i * 8);
+            lv_anim_start(&a);
         }
 
         /* X-axis label: centered under bar column */
