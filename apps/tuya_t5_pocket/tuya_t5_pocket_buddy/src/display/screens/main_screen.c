@@ -223,6 +223,10 @@ Screen_t buddy_main_screen = {
 VOID_T buddy_main_screen_update_state(const buddy_tama_state_t *state)
 {
     if (!state) return;
+    PR_DEBUG("[main_screen] update_state: ws=%d sess=%d run=%d tok=%u prompt=%d scr=%p",
+             (int)state->ws_connected, (int)state->sessions_count,
+             (int)state->sessions_running, (unsigned)state->tokens,
+             (int)state->has_prompt, (void *)ui_buddy_main_screen);
     lv_vendor_disp_lock();
     const BOOL_T was_prompt = s_state.has_prompt ? TRUE : FALSE;
     s_state = *state;
@@ -716,6 +720,10 @@ STATIC VOID_T __refresh_sessions(VOID_T)
 STATIC VOID_T __refresh(VOID_T)
 {
     if (!ui_buddy_main_screen) return;
+    PR_DEBUG("[main_screen] refresh: ws=%d sess=%d run=%d tok=%u flat=%d",
+             (int)s_state.ws_connected, (int)s_state.sessions_count,
+             (int)s_state.sessions_running, (unsigned)s_state.tokens,
+             (int)s_flat_count);
     __refresh_header();
     __refresh_persona_strip();
     __derive_persona();

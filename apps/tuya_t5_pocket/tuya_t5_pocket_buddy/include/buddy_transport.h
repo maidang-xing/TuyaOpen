@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 OPERATE_RET buddy_ws_init(void);
-OPERATE_RET buddy_ws_start(void);
+OPERATE_RET buddy_ws_start(void *data);
 OPERATE_RET buddy_ws_stop(void);
 bool        buddy_ws_is_connected(void);
 

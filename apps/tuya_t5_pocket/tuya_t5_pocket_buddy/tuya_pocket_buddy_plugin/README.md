@@ -1,31 +1,30 @@
-# Tuya Pocket Buddy Plugin 使用文档
+# Tuya Pocket Buddy Plugin
 
 ## 概述
 
 `tuya_pocket_buddy_plugin` 是一个 Claude Code 插件，运行 PC 端 Node.js 守护进程，作为 Claude Code CLI 与 T5AI Pocket 硬件设备之间的桥梁。
 
-**工作原理：**
-
 ```
-┌─────────────┐      Hook HTTP       ┌──────────────────┐     WebSocket      ┌──────────────┐
-│ Claude Code  │  ──────────────────► │  Buddy Daemon    │ ◄───────────────►  │  T5AI Pocket │
-│   CLI        │  localhost:9878      │  (Node.js)       │   0.0.0.0:7681     │  硬件设备     │
-└─────────────┘                      └──────────────────┘                    └──────────────┘
+┌─────────────┐   Hook HTTP (9878)   ┌──────────────────┐   WebSocket (7681)   ┌──────────────┐
+│ Claude Code  │ ──────────────────► │  Buddy Daemon    │ ◄──────────────────► │  T5AI Pocket │
+│   CLI        │                     │  (Node.js)       │                      │  硬件设备     │
+└─────────────┘                      └──────────────────┘                      └──────────────┘
 ```
 
 - **Hook Server** (HTTP :9878)：接收 Claude Code 的 Hook 事件（会话启动、工具调用、结束等）
 - **WebSocket Server** (:7681/buddy)：与 T5AI Pocket 设备保持双向通信
-- **Permission Bridge**：硬件审批流程——设备可以批准或拒绝 Claude 的工具调用
+- **Permission Bridge**：设备审批流程——设备可以批准或拒绝 Claude 的工具调用
 
 ## 功能
 
 | 功能 | 说明 |
 |------|------|
 | 实时状态镜像 | 将 Claude 会话状态（token 用量、活跃会话、模型信息等）推送到设备显示 |
-| 硬件审批 | 设备可以通过按键批准/拒绝 Claude 的 PreToolUse 请求 |
-| 时间同步 | 自动同步 PC 时间和时区到设备 |
+| 硬件审批 | **仅在设备连接时生效**：设备可通过按键批准/拒绝 Claude 的 PreToolUse 请求 |
 | 操作日志 | 记录最近 8 条工具调用，在设备上滚动显示 |
 | 多设备支持 | 最多同时连接 4 台设备 |
+
+> **注意：** 无设备连接时，所有工具调用自动放行，守护进程仅作为状态监控使用。
 
 ## 快速开始
 
@@ -33,111 +32,201 @@
 
 - Node.js >= 18
 - npm
-- Claude Code CLI（已安装并可用）
+- Claude Code CLI（`claude` 命令可用）
 
-### 第一步：获取插件源码
+### 方式一：`--plugin-dir` 加载（推荐）
 
-```bash
-git clone https://github.com/tuya/TuyaOpen.git
-cd TuyaOpen
-```
-
-插件位于 `apps/tuya_t5_pocket/tuya_t5_pocket_buddy/tuya_pocket_buddy_plugin/`。
-
-### 第二步：加载插件到 Claude Code
-
-使用 `--plugin-dir` 参数启动 Claude Code，将插件目录传入：
+使用 Claude Code 的 `--plugin-dir` 参数直接加载插件目录，hooks 和 slash commands 自动注册，**无需手动编辑配置文件**：
 
 ```bash
-claude --plugin-dir ./apps/tuya_t5_pocket/tuya_t5_pocket_buddy/tuya_pocket_buddy_plugin
+# 启动 Claude Code 并加载插件
+claude --plugin-dir /path/to/tuya_pocket_buddy_plugin
 ```
 
-> **这一步做了什么？** Claude Code 读取插件目录下的 `.claude-plugin/plugin.json` 识别插件，自动加载 `commands/` 下的 Slash Commands 和 `hooks/hooks.json` 中的 Hooks 配置。插件的所有功能立即可用，无需手动配置。
-
-### 第三步：安装依赖并编译
-
-在 Claude Code 终端中执行：
+首次使用时，在 Claude 会话中执行一键安装命令完成编译和防火墙配置：
 
 ```
 /tuya-pocket-buddy:install
 ```
 
-这会自动运行 `npm install` 和 `npm run build` 编译 TypeScript 源码。**首次使用时需要执行一次。**
+该命令自动完成：npm install → 编译 TypeScript → 配置 Windows 防火墙（如适用）。
 
-### 第四步：启动守护进程
+然后启动守护进程：
 
 ```
 /tuya-pocket-buddy:start
 ```
 
-启动成功后会显示：
-- Hook server: `http://127.0.0.1:9878`
-- WebSocket server: `ws://0.0.0.0:7681/buddy`
+> **提示：** 可将 `--plugin-dir` 参数添加到 shell alias 中以便每次自动加载：
+> ```bash
+> alias claude='claude --plugin-dir /path/to/tuya_pocket_buddy_plugin'
+> ```
 
-### 第五步：连接设备
+### 方式二：全局 hooks 注册（不使用 --plugin-dir）
 
-T5AI Pocket 设备开机后，通过设备 CLI 配置 WebSocket 地址：
+适合不想每次都传 `--plugin-dir` 参数的用户。将 hooks 写入 `~/.claude/settings.json`，对所有 Claude Code 会话生效。
+
+#### 第一步：安装依赖并编译
+
+```bash
+cd /path/to/tuya_pocket_buddy_plugin
+npm install
+npm run build
+```
+
+#### 第二步：注册 hooks
+
+```bash
+node scripts/setup-hooks.js
+```
+
+幂等操作，重复运行会更新而不会重复添加。执行后重启 Claude Code 或打开 `/hooks` 菜单使配置生效。
+
+#### 第三步：配置 Windows 防火墙（仅需一次，需管理员权限）
+
+设备通过 WebSocket 连接 PC 需放行 7681 端口入站：
+
+```powershell
+New-NetFirewallRule -DisplayName 'Tuya Pocket Buddy WS' -Direction Inbound -Protocol TCP -LocalPort 7681 -Action Allow
+```
+
+Linux/macOS 通常无需配置，如设备无法连接请检查 `ufw`/`iptables`。
+
+#### 第四步：启动守护进程
+
+```bash
+cd /path/to/tuya_pocket_buddy_plugin
+node dist/index.js run
+```
+
+> **⚠️ 重要：** 方式一和方式二不可同时使用。`--plugin-dir` 会自动加载 `hooks/hooks.json`，若 `~/.claude/settings.json` 中同时配置了相同 hooks，两套会叠加触发，PreToolUse 的并发请求会相互阻断。
+
+### 方式三：手动编辑 settings.json
+
+如果 `setup-hooks.js` 脚本不适用于你的环境，可手动将 hooks 配置合并到 `~/.claude/settings.json`。
+
+<details>
+<summary>点击展开手动配置</summary>
+
+将以下内容合并到 `~/.claude/settings.json` 的 `hooks` 字段中（完整参考见 [`settings/hooks.json`](settings/hooks.json)）：
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://127.0.0.1:9878/hook -H 'Content-Type: application/json' --data-binary @- --max-time 5 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://127.0.0.1:9878/hook -H 'Content-Type: application/json' --data-binary @- --max-time 5 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const http=require('http'),c=[];process.stdin.on('data',d=>c.push(d));process.stdin.on('end',()=>{const p=Buffer.concat(c).toString();const req=http.request({hostname:'127.0.0.1',port:9878,path:'/hook',method:'POST',headers:{'Content-Type':'application/json'},timeout:42000},res=>{const r=[];res.on('data',d=>r.push(d));res.on('end',()=>{try{const b=JSON.parse(Buffer.concat(r).toString());if(b.decision==='block')process.exit(2);}catch(e){}process.exit(0);});});req.on('error',()=>process.exit(0));req.on('timeout',()=>{req.destroy();process.exit(0);});req.write(p);req.end();});\"",
+            "timeout": 45
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://127.0.0.1:9878/hook -H 'Content-Type: application/json' --data-binary @- --max-time 5 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://127.0.0.1:9878/hook -H 'Content-Type: application/json' --data-binary @- --max-time 5 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+> **注意：** `PreToolUse` 使用内联 node 脚本而非 curl。原因：curl 加 `|| true` 始终 exit(0)，无法将守护进程的 `{"decision":"block"}` 传递给 Claude Code；内联 node 脚本在收到 block 响应时以 exit(2) 退出，Claude Code 据此拒绝该工具调用。
+
+</details>
+
+### 连接设备
+
+T5AI Pocket 设备开机后，通过串口终端配置 WebSocket 地址：
 
 ```
 buddy ws set <PC的IP地址> 7681
 ```
 
-设备自动连接到 `ws://<IP>:7681/buddy`，连接后屏幕显示 Claude 实时状态。
+设备连接到 `ws://<IP>:7681/buddy`，连接后屏幕显示 Claude 实时状态。
 
 ---
 
-### 所有 Slash Commands
+## Slash Commands（需通过 --plugin-dir 加载）
+
+使用 `claude --plugin-dir ./tuya_pocket_buddy_plugin` 启动时，以下命令自动可用：
 
 | 命令 | 说明 |
 |------|------|
-| `/tuya-pocket-buddy:install` | 安装 npm 依赖并编译 TypeScript |
-| `/tuya-pocket-buddy:start` | 启动守护进程 |
+| `/tuya-pocket-buddy:install` | 安装 npm 依赖、编译 TypeScript、配置防火墙 |
+| `/tuya-pocket-buddy:start` | 启动守护进程（后台运行） |
 | `/tuya-pocket-buddy:stop` | 停止守护进程 |
 | `/tuya-pocket-buddy:status` | 查看守护进程状态 |
-| `/tuya-pocket-buddy:uninstall` | 停止守护进程 |
+| `/tuya-pocket-buddy:uninstall` | 停止守护进程并清理 |
 
-### 日常使用
+> **首次使用流程：** `claude --plugin-dir ...` → `/tuya-pocket-buddy:install` → `/tuya-pocket-buddy:start` → 设备配置 `buddy ws set <IP> 7681`
 
-```bash
-# 每次启动 Claude Code 时带上 --plugin-dir 参数
-claude --plugin-dir ./apps/tuya_t5_pocket/tuya_t5_pocket_buddy/tuya_pocket_buddy_plugin
+---
 
-# 然后在 Claude 终端中：
-/tuya-pocket-buddy:start      ← 启动守护进程
-# ... 正常使用 Claude Code ...  ← 设备自动显示状态
-/tuya-pocket-buddy:stop       ← 结束时停止
-```
-
-> **提示：** 设置 shell alias 简化每次启动：
-> ```bash
-> # 添加到 ~/.bashrc 或 ~/.zshrc
-> alias claude-buddy='claude --plugin-dir /absolute/path/to/tuya_pocket_buddy_plugin'
-> ```
-> 之后直接运行 `claude-buddy` 即可。
-
-## 插件工作原理
-
-### 插件目录结构
-
-Claude Code 插件系统通过以下约定自动发现组件：
+## 插件目录结构
 
 ```
 tuya_pocket_buddy_plugin/
-├── .claude-plugin/
-│   └── plugin.json          # 插件元信息（name 字段决定命令的命名空间）
-├── commands/                 # Slash Commands（自动注册为 /tuya-pocket-buddy:xxx）
-│   ├── install.md           # → /tuya-pocket-buddy:install
-│   ├── start.md             # → /tuya-pocket-buddy:start
-│   ├── stop.md              # → /tuya-pocket-buddy:stop
+├── commands/                 # Slash Commands（--plugin-dir 时自动注册）
+│   ├── install.md           # → /tuya-pocket-buddy:install （跨平台）
+│   ├── start.md             # → /tuya-pocket-buddy:start   （跨平台）
+│   ├── stop.md              # → /tuya-pocket-buddy:stop    （跨平台）
 │   ├── status.md            # → /tuya-pocket-buddy:status
-│   └── uninstall.md         # → /tuya-pocket-buddy:uninstall
+│   └── uninstall.md         # → /tuya-pocket-buddy:uninstall （跨平台）
 ├── hooks/
-│   └── hooks.json           # Hooks 配置（插件加载时自动生效）
+│   └── hooks.json           # Hooks 配置（--plugin-dir 时自动加载）
 ├── scripts/
-│   └── hook_handler.js      # PreToolUse 同步 hook 脚本
+│   ├── setup-hooks.js       # 注册 hooks 到 ~/.claude/settings.json（幂等）
+│   ├── remove-hooks.js      # 从 ~/.claude/settings.json 移除 hooks
+│   └── hook_handler.js      # 已弃用，功能已内联到 hooks.json 命令字符串中
 ├── settings/
-│   └── hooks.json           # Hooks 配置模板（供手动安装参考）
-├── src/                      # TypeScript 源码
+│   └── hooks.json           # 手动安装参考配置（与 hooks/hooks.json 内容一致）
+├── src/
 │   ├── index.ts             # 入口，启动所有服务
 │   ├── config.ts            # 配置常量
 │   ├── hook-server.ts       # HTTP hook 接收服务
@@ -145,35 +234,79 @@ tuya_pocket_buddy_plugin/
 │   ├── ws-server.ts         # WebSocket 设备连接管理
 │   ├── permissions.ts       # 硬件审批桥接
 │   └── wire.ts              # 通信协议定义
-├── dist/                     # 编译输出
+├── dist/                     # 编译输出（tsc 生成，不提交到 git）
 ├── package.json
 └── tsconfig.json
 ```
 
-### 关键机制
+---
 
-**命令命名空间：** `plugin.json` 中的 `name` 字段（`tuya-pocket-buddy`）作为命令的命名空间前缀。`commands/install.md` 自动注册为 `/tuya-pocket-buddy:install`。
+## Hook 工作机制
 
-**Hooks 自动加载：** `hooks/hooks.json` 中的 hooks 配置在插件加载时自动生效。不需要手动编辑 `~/.claude/settings.json`。插件卸载后 hooks 自动移除。
+### 各事件说明
 
-**`${CLAUDE_PLUGIN_ROOT}`：** 在 hooks 命令中使用此变量引用插件内部文件，Claude Code 自动替换为插件的实际安装路径。
+| Hook 事件 | 传输方式 | 说明 |
+|-----------|---------|------|
+| SessionStart | curl（异步） | 通知守护进程新会话建立 |
+| UserPromptSubmit | curl（异步） | 传递用户输入，用于会话命名 |
+| PreToolUse | node 内联脚本（**同步**） | 有设备连接时等待设备审批；无设备时立即放行 |
+| PostToolUse | curl（异步） | 记录工具调用历史 |
+| Stop | curl（异步） | 通知守护进程会话结束 |
+
+### PreToolUse 阻断逻辑
+
+```
+Claude 准备执行工具
+       │
+       ▼
+  hook 脚本运行（node 内联）
+       │
+       ▼
+  POST 到 127.0.0.1:9878/hook
+       │
+       ├─ 连接失败（守护进程未运行）→ exit(0) → 放行 ✓
+       │
+       ▼
+  守护进程检查已连接设备数
+       │
+       ├─ 无设备连接 → 返回 {} → exit(0) → 放行 ✓
+       │
+       ▼
+  向所有设备推送审批请求（心跳中带 prompt 字段）
+       │
+       ├─ 设备按键批准 → 返回 {} → exit(0) → 放行 ✓
+       ├─ 设备按键拒绝 → 返回 {"decision":"block"} → exit(2) → 阻断 ✗
+       └─ 35 秒无响应 → 返回 {"decision":"block"} → exit(2) → 阻断 ✗
+```
+
+### 关于 `${CLAUDE_PLUGIN_ROOT}`
+
+Claude Code 插件系统在 `hooks.json` 的 `command` 字符串中**不展开** `${CLAUDE_PLUGIN_ROOT}` shell 变量（该占位符仅在 `args` 数组形式的命令中有效，`command` 字符串通过 shell 执行，`${CLAUDE_PLUGIN_ROOT}` 会被 shell 当作未设置的环境变量处理为空）。
+
+旧版使用 `node "${CLAUDE_PLUGIN_ROOT}/scripts/hook_handler.js"` 会导致：hook 报错 `No stderr output`，阻断所有工具调用。
+
+**当前修复：** 将 hook_handler.js 的逻辑内联到 `command` 字符串中，彻底消除对文件路径的依赖。
+
+---
 
 ## 配置参数
 
-配置在 `src/config.ts` 中定义：
+配置在 `src/config.ts` 中，修改后需重新 `npm run build`：
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `hookPort` | 9878 | Hook HTTP 服务端口（仅监听 127.0.0.1） |
 | `wsPort` | 7681 | WebSocket 服务端口 |
 | `maxDevices` | 4 | 最大同时连接设备数 |
-| `permissionTimeoutMs` | 35000 | 审批超时时间（毫秒），超时自动拒绝 |
+| `permissionTimeoutMs` | 35000 | 审批超时（毫秒），超时后自动拒绝 |
 | `heartbeatIntervalMs` | 10000 | 心跳推送间隔（毫秒） |
 | `maxPayloadBytes` | 65536 | 最大 Hook 负载大小 |
 
+---
+
 ## 通信协议
 
-### PC → 设备 (Heartbeat JSON)
+### PC → 设备（Heartbeat JSON）
 
 每 10 秒或 Hook 事件触发时推送：
 
@@ -181,85 +314,83 @@ tuya_pocket_buddy_plugin/
 {
   "total": 3,
   "running": 1,
-  "waiting": 0,
   "tokens": 15000,
   "tokens_today": 5000,
-  "model": "claude-opus-4-6",
+  "model": "claude-sonnet-4-6",
   "ver": "1.0.30",
   "entries": [{"t": "t", "n": "Bash", "h": "git status"}],
-  "sessions": [{"sid": "abc123", "name": "fix bug", "model": "opus", "tok": 1200, "proj": "myproject", "run": true, "ent": ["Read", "Edit"]}],
-  "mstats": [{"m": "opus", "tok": 10000}],
-  "daily": [500, 1200, 800],
+  "sessions": [
+    {
+      "sid": "abc123",
+      "name": "fix bug",
+      "model": "sonnet",
+      "tok": 1200,
+      "proj": "TuyaOpen",
+      "run": true,
+      "ent": ["Read", "Edit"]
+    }
+  ],
   "prompt": {"id": "p_123", "tool": "Bash", "hint": "rm -rf /tmp"},
   "time": [1715500000, 480]
 }
 ```
 
-### 设备 → PC (Device Frame JSON)
+`prompt` 字段仅在有设备连接且等待审批时出现。
+
+### 设备 → PC（Device Frame JSON）
 
 ```json
 {"cmd": "permission", "id": "p_123", "decision": "once"}
+{"cmd": "permission", "id": "p_123", "decision": "deny"}
 {"cmd": "hb_req"}
-{"cmd": "asr", "text": "approve"}
 ```
 
-## 手动安装（不使用插件系统）
+---
 
-如果不通过 `--plugin-dir` 加载插件，也可以手动操作：
+## 停止守护进程
 
+使用 slash command（推荐）：
+```
+/tuya-pocket-buddy:stop
+```
+
+或手动停止：
 ```bash
-# 1. 安装和编译
-cd tuya_pocket_buddy_plugin && npm install && npm run build
-
-# 2. 手动合并 hooks 到 Claude Code 设置
-# 将 settings/hooks.json 的内容合并到 ~/.claude/settings.json
-
-# 3. 启动
-node dist/index.js run &
-
-# 4. 停止
+# Linux/macOS
 pkill -f "node dist/index.js run"
+
+# Windows：找到监听 9878 端口的进程 PID
+netstat -ano | findstr :9878
+taskkill /F /PID <PID>
 ```
 
-## 卸载旧版 claude-cli-plugin
-
-如果你之前从 `xb/claude_buddy_pocket` 分支安装了旧版 `claude-cli-plugin`，按以下步骤清理：
-
-### 1. 停止旧进程
-
-```bash
-ps aux | grep -i "claude-cli-plugin\|buddy.*daemon" | grep -v grep
-pkill -f "claude-cli-plugin"
-```
-
-### 2. 删除旧的 hooks 配置
-
-```bash
-# 查看是否有旧 hooks
-cat ~/.claude/settings.json | python3 -m json.tool | grep -A2 "claude-cli-plugin"
-```
-
-如果有匹配条目，编辑 `~/.claude/settings.json` 删除它们。
-
-### 3. 删除旧插件文件
-
-```bash
-rm -rf apps/tuya_t5_pocket/tuya_t5_pocket_buddy/claude-cli-plugin
-npm uninstall -g claude-cli-plugin 2>/dev/null
-```
+---
 
 ## 常见问题
 
-**Q: 设备连不上？**
-- 确认守护进程已启动：`/tuya-pocket-buddy:status`
-- 确认 PC 防火墙允许 7681 端口入站
-- 确认设备和 PC 在同一网络
-- 检查设备 WS 配置：`buddy ws status`
+**Q: 守护进程未运行时，PreToolUse hook 会造成延迟吗？**
 
-**Q: Claude 执行工具时卡住了？**
-- 可能是 PreToolUse hook 在等待设备审批（35 秒超时）
-- 如果不需要硬件审批，编辑 `hooks/hooks.json` 删除 `PreToolUse` 部分
+不会。node 脚本连接 9878 失败（ECONNREFUSED）后立即 exit(0) 放行，延迟可忽略不计。
 
-**Q: 想禁用硬件审批但保留状态显示？**
-- 编辑 `hooks/hooks.json`，删除 `PreToolUse` 条目
-- 运行 `/reload-plugins` 使更改生效
+**Q: 不需要硬件审批功能，只想要状态显示，如何禁用 PreToolUse？**
+
+从 `~/.claude/settings.json` 的 hooks 中删除 `PreToolUse` 条目即可。设备仍会收到心跳并显示状态，但不会拦截工具调用。
+
+**Q: 设备连接后，Claude 工具调用被拒绝或超时？**
+
+设备审批默认超时 35 秒。确保设备屏幕上出现审批提示并及时操作。如需关闭审批，删除 `PreToolUse` hook 或停止守护进程。
+
+**Q: 设备连不上 PC？**
+
+1. 确认守护进程运行：`curl -s -X POST http://127.0.0.1:9878/hook -d '{}'`（返回 `{}` 为正常）
+2. 确认 Windows 防火墙已放行 7681 端口入站
+3. 确认设备和 PC 在同一局域网
+4. 检查设备配置：`buddy ws status`
+
+**Q: 出现 `hook error: No stderr output` 错误？**
+
+原因及解决方法：
+
+1. **旧版 bug（已修复）**：守护进程运行但无设备连接时，35 秒超时后会阻断所有工具调用。请更新到最新版本并重新编译：`npm run build`
+2. **守护进程仍在运行**：停止旧进程（`taskkill /F /PID <PID>`）后重启
+3. **hooks 重复注册**：检查是否同时在 `~/.claude/settings.json` 和 `--plugin-dir` 中都配置了 PreToolUse hook，删除其中一处

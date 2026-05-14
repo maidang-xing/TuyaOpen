@@ -2,32 +2,61 @@
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "curl -s -X POST http://127.0.0.1:9878/hook -d @- -H 'Content-Type: application/json' --max-time 3 || true"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://127.0.0.1:9878/hook -H 'Content-Type: application/json' --data-binary @- --max-time 5 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "type": "command",
-        "command": "curl -s -X POST http://127.0.0.1:9878/hook -d @- -H 'Content-Type: application/json' --max-time 3 || true"
-      }
-    ],
-    "PostToolUse": [
-      {
-        "type": "command",
-        "command": "curl -s -X POST http://127.0.0.1:9878/hook -d @- -H 'Content-Type: application/json' --max-time 3 || true"
-      }
-    ],
-    "Stop": [
-      {
-        "type": "command",
-        "command": "curl -s -X POST http://127.0.0.1:9878/hook -d @- -H 'Content-Type: application/json' --max-time 3 || true"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://127.0.0.1:9878/hook -H 'Content-Type: application/json' --data-binary @- --max-time 5 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
       }
     ],
     "PreToolUse": [
       {
-        "type": "command",
-        "command": "node tuya_pocket_buddy_plugin/scripts/hook_handler.js"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const http=require('http'),c=[];process.stdin.on('data',d=>c.push(d));process.stdin.on('end',()=>{const p=Buffer.concat(c).toString();const req=http.request({hostname:'127.0.0.1',port:9878,path:'/hook',method:'POST',headers:{'Content-Type':'application/json'},timeout:42000},res=>{const r=[];res.on('data',d=>r.push(d));res.on('end',()=>{try{const b=JSON.parse(Buffer.concat(r).toString());if(b.decision==='block')process.exit(2);}catch(e){}process.exit(0);});});req.on('error',()=>process.exit(0));req.on('timeout',()=>{req.destroy();process.exit(0);});req.write(p);req.end();});\"",
+            "timeout": 45
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://127.0.0.1:9878/hook -H 'Content-Type: application/json' --data-binary @- --max-time 5 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://127.0.0.1:9878/hook -H 'Content-Type: application/json' --data-binary @- --max-time 5 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
       }
     ]
   }

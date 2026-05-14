@@ -10,6 +10,13 @@
 
 #define TAG "buddy_proto"
 
+static buddy_state_cb_t s_state_cb = NULL;
+
+void buddy_protocol_set_state_cb(buddy_state_cb_t cb)
+{
+    s_state_cb = cb;
+}
+
 OPERATE_RET buddy_protocol_init(void)
 {
     PR_INFO("buddy_protocol_init");
@@ -39,6 +46,19 @@ void buddy_protocol_on_recv(const char *json_str)
     } else {
         /* No "cmd" field -- treat as heartbeat */
         buddy_state_update_from_heartbeat(root);
+
+        /* Notify display layer so it can refresh immediately */
+        if (s_state_cb) {
+            buddy_tama_state_t snap;
+            buddy_state_snapshot(&snap);
+            PR_DEBUG("hb parsed: ws=%d sess=%d/%d tok=%u prompt=%d model=%s",
+                     (int)snap.ws_connected, (int)snap.sessions_running,
+                     (int)snap.sessions_count, (unsigned)snap.tokens,
+                     (int)snap.has_prompt, snap.model);
+            s_state_cb(&snap);
+        } else {
+            PR_WARN("hb: no state_cb registered!");
+        }
     }
 
     cJSON_Delete(root);

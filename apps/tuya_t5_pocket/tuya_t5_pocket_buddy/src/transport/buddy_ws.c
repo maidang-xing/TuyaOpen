@@ -218,9 +218,30 @@ static OPERATE_RET __ws_handshake(int fd)
         }
     }
 
-    if (!strstr((char *)resp, "101")) {
-        PR_WARN("WS handshake rejected: %.*s", (int)(resp_len > 80 ? 80 : resp_len), resp);
+    if (resp_len == 0) {
+        PR_WARN("WS handshake timeout: no response in %d ms", timeout_ms);
         return OPRT_COM_ERROR;
+    }
+
+    if (!strstr((char *)resp, "101")) {
+        PR_WARN("WS handshake rejected (%d bytes): %.*s", (int)resp_len,
+                (int)(resp_len > 120 ? 120 : resp_len), resp);
+        return OPRT_COM_ERROR;
+    }
+
+    /* Preserve any WS frame data that arrived after the HTTP headers.
+     * The server may send the first frame in the same TCP segment as
+     * the 101 response — without this, those bytes are lost and
+     * subsequent frame parsing is misaligned. */
+    char *hdr_end = strstr((char *)resp, "\r\n\r\n");
+    if (hdr_end) {
+        size_t hdr_len = (size_t)(hdr_end - (char *)resp) + 4;
+        size_t extra = resp_len - hdr_len;
+        if (extra > 0 && extra <= sizeof(s_rx_buf)) {
+            memcpy(s_rx_buf, resp + hdr_len, extra);
+            s_rx_len = extra;
+            PR_INFO("WS handshake: carried %d trailing bytes", (int)extra);
+        }
     }
 
     PR_INFO("WS handshake success");
@@ -232,6 +253,8 @@ static OPERATE_RET __ws_handshake(int fd)
 static OPERATE_RET __send_json(const char *json_str)
 {
     if (!s_ws_connected || s_ws_fd < 0 || !json_str) return OPRT_COM_ERROR;
+
+    PR_DEBUG("WS send: %.120s", json_str);
 
     tal_mutex_lock(s_ws_tx_mutex);
     OPERATE_RET rt = __send_ws_frame(s_ws_fd, 0x1,
@@ -323,35 +346,45 @@ static OPERATE_RET __ws_connect(void)
 {
     if (s_host[0] == '\0') return OPRT_COM_ERROR;
 
+    PR_NOTICE("WS connecting to %s:%u ...", s_host, s_port);
+
     TUYA_IP_ADDR_T addr = tal_net_str2addr(s_host);
     if (addr == 0) {
         if (tal_net_gethostbyname(s_host, &addr) != OPRT_OK || addr == 0) {
-            PR_WARN("DNS resolve failed: %s", s_host);
+            PR_WARN("WS DNS resolve failed: %s", s_host);
             return OPRT_COM_ERROR;
         }
+        PR_NOTICE("WS DNS resolved %s -> 0x%08x", s_host, (unsigned)addr);
     }
 
     int fd = tal_net_socket_create(PROTOCOL_TCP);
-    if (fd < 0) return OPRT_SOCK_ERR;
+    if (fd < 0) {
+        PR_ERR("WS socket create failed");
+        return OPRT_SOCK_ERR;
+    }
 
     OPERATE_RET rt = tal_net_connect(fd, addr, s_port);
     if (rt != OPRT_OK) {
+        PR_WARN("WS TCP connect to %s:%u failed (rt=%d)", s_host, s_port, rt);
         tal_net_close(fd);
         return rt;
     }
+    PR_NOTICE("WS TCP connected, starting handshake");
 
-    tal_net_set_block(fd, FALSE);
     s_ws_fd = fd;
 
     rt = __ws_handshake(fd);
     if (rt != OPRT_OK) {
+        PR_WARN("WS handshake failed (rt=%d)", rt);
         __ws_close();
         return rt;
     }
 
+    tal_net_set_block(fd, FALSE);
+
     s_ws_connected = TRUE;
     buddy_state_set_connected(true);
-    PR_INFO("WS connected to %s:%u", s_host, s_port);
+    PR_NOTICE("WS connected to %s:%u", s_host, s_port);
     return OPRT_OK;
 }
 
@@ -370,7 +403,7 @@ static void __ws_task(void *arg)
             }
             OPERATE_RET rt = __ws_connect();
             if (rt != OPRT_OK) {
-                PR_DEBUG("WS connect failed, retry in %u ms", backoff);
+                PR_NOTICE("WS connect failed, retry in %u ms", backoff);
                 tal_system_sleep(backoff);
                 if (backoff < WS_RECONNECT_MAX) backoff *= 2;
                 continue;
@@ -384,13 +417,14 @@ static void __ws_task(void *arg)
 
         int ready = tal_net_select(s_ws_fd + 1, &readfds, NULL, NULL, 200);
         if (ready < 0) {
+            PR_WARN("WS select error (%d)", ready);
             __ws_close();
             continue;
         }
         if (ready == 0) continue;
 
         if (s_rx_len >= sizeof(s_rx_buf)) {
-            PR_WARN("WS RX buffer overflow");
+            PR_WARN("WS RX buffer overflow (rx_len=%d)", (int)s_rx_len);
             __ws_close();
             continue;
         }
@@ -399,6 +433,7 @@ static void __ws_task(void *arg)
                               (uint32_t)(sizeof(s_rx_buf) - s_rx_len));
         if (n == OPRT_RESOURCE_NOT_READY) continue;
         if (n <= 0) {
+            PR_WARN("WS recv returned %d (peer closed or error)", n);
             __ws_close();
             continue;
         }
@@ -413,6 +448,7 @@ static void __ws_task(void *arg)
             OPERATE_RET rt = __decode_ws_frame(&payload, &pay_len, &opcode, &consumed);
             if (rt == OPRT_RESOURCE_NOT_READY) break;
             if (rt != OPRT_OK) {
+                PR_WARN("WS frame decode error rt=%d rx_len=%d", rt, (int)s_rx_len);
                 tal_free(payload);
                 __ws_close();
                 break;
@@ -421,14 +457,19 @@ static void __ws_task(void *arg)
             __consume_rx(consumed);
 
             if (opcode == 0x1) {
+                PR_DEBUG("WS recv(%d): %.*s", (int)pay_len,
+                         (int)(pay_len > 120 ? 120 : pay_len), (const char *)payload);
                 buddy_protocol_on_recv((const char *)payload);
             } else if (opcode == 0x8) {
+                PR_NOTICE("WS close frame from server (len=%d)", (int)pay_len);
                 __send_ws_frame(s_ws_fd, 0x8, payload, pay_len);
                 tal_free(payload);
                 __ws_close();
                 break;
             } else if (opcode == 0x9) {
                 __send_ws_frame(s_ws_fd, 0xA, payload, pay_len);
+            } else {
+                PR_WARN("WS unknown opcode 0x%02x len=%d", opcode, (int)pay_len);
             }
 
             tal_free(payload);
@@ -473,22 +514,22 @@ static void __load_kv_config(void)
 
 static void __cli_ws_handler(int argc, char *argv[])
 {
-    if (argc < 2) {
+    if (argc < 3 || strcmp(argv[1], "ws") != 0) {
         PR_NOTICE("Usage: buddy ws <set|status>");
         return;
     }
 
-    if (strcmp(argv[1], "set") == 0) {
-        if (argc < 3) {
+    if (strcmp(argv[2], "set") == 0) {
+        if (argc < 4) {
             PR_NOTICE("Usage: buddy ws set <ip> [port]");
             return;
         }
-        strncpy(s_host, argv[2], BUDDY_WS_HOST_LEN);
+        strncpy(s_host, argv[3], BUDDY_WS_HOST_LEN);
         s_host[BUDDY_WS_HOST_LEN] = '\0';
         tal_kv_set(KV_KEY_HOST, (const uint8_t *)s_host, strlen(s_host) + 1);
 
-        if (argc >= 4) {
-            s_port = (uint16_t)atoi(argv[3]);
+        if (argc >= 5) {
+            s_port = (uint16_t)atoi(argv[4]);
             if (s_port == 0) s_port = BUDDY_WS_DEFAULT_PORT;
         } else {
             s_port = BUDDY_WS_DEFAULT_PORT;
@@ -500,12 +541,12 @@ static void __cli_ws_handler(int argc, char *argv[])
         PR_NOTICE("WS target set to %s:%u", s_host, s_port);
         __ws_close();
 
-    } else if (strcmp(argv[1], "status") == 0) {
+    } else if (strcmp(argv[2], "status") == 0) {
         PR_NOTICE("WS host:      %s", s_host[0] ? s_host : "(not set)");
         PR_NOTICE("WS port:      %u", s_port);
         PR_NOTICE("WS connected: %s", s_ws_connected ? "yes" : "no");
     } else {
-        PR_NOTICE("Unknown subcommand: %s", argv[1]);
+        PR_NOTICE("Unknown subcommand: %s", argv[2]);
     }
 }
 
@@ -534,8 +575,9 @@ OPERATE_RET buddy_ws_init(void)
     return OPRT_OK;
 }
 
-OPERATE_RET buddy_ws_start(void)
+OPERATE_RET buddy_ws_start(void *data)
 {
+    (void)data;
     if (s_ws_thread) return OPRT_OK;
 
     s_ws_running = TRUE;

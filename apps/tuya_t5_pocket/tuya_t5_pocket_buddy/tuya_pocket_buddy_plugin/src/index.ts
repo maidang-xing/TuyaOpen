@@ -22,9 +22,11 @@ async function runDaemon(): Promise<void> {
 
   const permissions = new PermissionBridge();
 
-  const wsServer = new WsServer((session, frame) => {
-    router.handleDeviceFrame(session, frame);
-  });
+  const wsServer = new WsServer(
+    (session, frame) => { router.handleDeviceFrame(session, frame); },
+    (session) => { router.onDeviceConnect(session); },
+    () => { permissions.resolveAllOnDisconnect(); }
+  );
 
   const router = new HookRouter(permissions, wsServer);
 
@@ -53,4 +55,12 @@ async function runDaemon(): Promise<void> {
 main().catch((err) => {
   console.error("[daemon] fatal error:", err);
   process.exit(1);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("[daemon] uncaught exception:", err.message, err.stack);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[daemon] unhandled rejection:", reason);
 });

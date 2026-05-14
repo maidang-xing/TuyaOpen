@@ -13,8 +13,11 @@
 extern "C" {
 #endif
 
+typedef void (*buddy_state_cb_t)(const buddy_tama_state_t *state);
+
 OPERATE_RET buddy_protocol_init(void);
 void        buddy_protocol_on_recv(const char *json_str);
+void        buddy_protocol_set_state_cb(buddy_state_cb_t cb);
 
 OPERATE_RET buddy_state_init(void);
 void        buddy_state_snapshot(buddy_tama_state_t *out);

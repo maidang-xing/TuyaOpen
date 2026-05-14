@@ -11,6 +11,7 @@
 #include "buddy_protocol.h"
 #include "tal_mutex.h"
 #include "tal_system.h"
+#include "tal_log.h"
 #include "cJSON.h"
 #include <string.h>
 
@@ -241,6 +242,11 @@ void buddy_state_update_from_heartbeat(void *cjson_root)
     #undef GET_U8
     #undef GET_U32
     #undef GET_STR
+
+    PR_DEBUG("state_update: sess=%d run=%d tok=%u tdtok=%u model=%s prompt=%d",
+             s_state.sessions_count, s_state.sessions_running,
+             s_state.tokens, s_state.tokens_today,
+             s_state.model, (int)s_state.has_prompt);
 
     tal_mutex_unlock(s_mutex);
 }

@@ -41,7 +41,7 @@ export class HookServer {
           try {
             const body = Buffer.concat(chunks).toString("utf-8");
             const payload = JSON.parse(body || "{}");
-            const eventName = payload.event || payload.type || "unknown";
+            const eventName = payload.hook_event_name || payload.event || payload.type || "unknown";
             const result = await this.handler(eventName, payload);
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify(result));
