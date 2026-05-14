@@ -76,7 +76,7 @@
 /* ---------------------------------------------------------------------------
  * Cell X position helper (groups 3+3+3+3 with '.' separators)
  * --------------------------------------------------------------------------- */
-static int32_t __cell_x(int i)
+STATIC int32_t __cell_x(int i)
 {
     int group = i / 3;
     int pos   = i % 3;
@@ -86,57 +86,54 @@ static int32_t __cell_x(int i)
 /* ---------------------------------------------------------------------------
  * Static state
  * --------------------------------------------------------------------------- */
-static lv_obj_t   *s_screen      = NULL;
+STATIC lv_obj_t   *s_screen      = NULL;
 
 /* Header widgets */
-static lv_obj_t   *s_hdr_left    = NULL;   /* "claude buddy" — typewriter */
-static lv_obj_t   *s_hdr_right   = NULL;   /* status bar */
-
-/* Body widgets */
-static lv_obj_t   *s_body_lbl    = NULL;   /* instructions */
+STATIC lv_obj_t   *s_hdr_left    = NULL;   /* "claude buddy" — typewriter */
+STATIC lv_obj_t   *s_hdr_right   = NULL;   /* status bar */
 
 /* IP digit cells */
-static lv_obj_t   *s_cells[DIGIT_COUNT];
-static lv_obj_t   *s_cell_lbls[DIGIT_COUNT];
+STATIC lv_obj_t   *s_cells[DIGIT_COUNT];
+STATIC lv_obj_t   *s_cell_lbls[DIGIT_COUNT];
 
 /* Dot separator labels */
-static lv_obj_t   *s_dots[3];
+STATIC lv_obj_t   *s_dots[3];
 
 /* Hint label */
-static lv_obj_t   *s_hint_lbl   = NULL;
+STATIC lv_obj_t   *s_hint_lbl   = NULL;
 
 /* Digit values [0..9] */
-static uint8_t     s_digits[DIGIT_COUNT];
-static int         s_cursor_pos = 0;
+STATIC uint8_t     s_digits[DIGIT_COUNT];
+STATIC int         s_cursor_pos = 0;
 
 /* Connect poll timer */
-static lv_timer_t *s_connect_poll = NULL;
-static int         s_poll_count   = 0;
+STATIC lv_timer_t *s_connect_poll = NULL;
+STATIC int         s_poll_count   = 0;
 
 /* Hint restore timer (one-shot after failed connect) */
-static lv_timer_t *s_hint_restore_timer = NULL;
+STATIC lv_timer_t *s_hint_restore_timer = NULL;
 
 /* ---------------------------------------------------------------------------
  * Forward declarations
  * --------------------------------------------------------------------------- */
-static void __load_ip(void);
-static void __assemble_ip(char *buf, size_t cap);
-static void __refresh_cell(int i);
-static void __refresh_all_cells(void);
-static void __set_cursor(int pos);
-static void __kbd_cb(lv_event_t *e);
-static void __connect(void);
-static void __poll_cb(lv_timer_t *t);
-static void __hint_restore_cb(lv_timer_t *t);
-static void __build_header(lv_obj_t *parent);
-static void __build_body(lv_obj_t *parent);
-static void __build_ip_area(lv_obj_t *parent);
+STATIC void __load_ip(void);
+STATIC void __assemble_ip(char *buf, size_t cap);
+STATIC void __refresh_cell(int i);
+STATIC void __refresh_all_cells(void);
+STATIC void __set_cursor(int pos);
+STATIC void __kbd_cb(lv_event_t *e);
+STATIC void __connect(void);
+STATIC void __poll_cb(lv_timer_t *t);
+STATIC void __hint_restore_cb(lv_timer_t *t);
+STATIC void __build_header(lv_obj_t *parent);
+STATIC void __build_body(lv_obj_t *parent);
+STATIC void __build_ip_area(lv_obj_t *parent);
 
 /* ---------------------------------------------------------------------------
  * KV IP load — parse "192.168.0.1" style stored string into s_digits[]
  * Default: 192.168.001.001
  * --------------------------------------------------------------------------- */
-static void __load_ip(void)
+STATIC void __load_ip(void)
 {
     /* defaults */
     /* 192.168.001.001 */
@@ -180,7 +177,7 @@ static void __load_ip(void)
 /* ---------------------------------------------------------------------------
  * Assemble IP string from digit array
  * --------------------------------------------------------------------------- */
-static void __assemble_ip(char *buf, size_t cap)
+STATIC void __assemble_ip(char *buf, size_t cap)
 {
     int a = s_digits[0] * 100 + s_digits[1] * 10 + s_digits[2];
     int b = s_digits[3] * 100 + s_digits[4] * 10 + s_digits[5];
@@ -192,7 +189,7 @@ static void __assemble_ip(char *buf, size_t cap)
 /* ---------------------------------------------------------------------------
  * Refresh a single digit cell appearance
  * --------------------------------------------------------------------------- */
-static void __refresh_cell(int i)
+STATIC void __refresh_cell(int i)
 {
     if (i < 0 || i >= DIGIT_COUNT) return;
     if (!s_cells[i] || !s_cell_lbls[i]) return;
@@ -216,7 +213,7 @@ static void __refresh_cell(int i)
     }
 }
 
-static void __refresh_all_cells(void)
+STATIC void __refresh_all_cells(void)
 {
     for (int i = 0; i < DIGIT_COUNT; i++) {
         __refresh_cell(i);
@@ -226,7 +223,7 @@ static void __refresh_all_cells(void)
 /* ---------------------------------------------------------------------------
  * Move cursor, refresh old and new cell
  * --------------------------------------------------------------------------- */
-static void __set_cursor(int pos)
+STATIC void __set_cursor(int pos)
 {
     int old = s_cursor_pos;
     s_cursor_pos = pos;
@@ -237,7 +234,7 @@ static void __set_cursor(int pos)
 /* ---------------------------------------------------------------------------
  * Hint restore timer callback (one-shot after failed connect)
  * --------------------------------------------------------------------------- */
-static void __hint_restore_cb(lv_timer_t *t)
+STATIC void __hint_restore_cb(lv_timer_t *t)
 {
     (void)t;
     if (s_hint_lbl) {
@@ -249,7 +246,7 @@ static void __hint_restore_cb(lv_timer_t *t)
 /* ---------------------------------------------------------------------------
  * Poll timer callback — check connection status
  * --------------------------------------------------------------------------- */
-static void __poll_cb(lv_timer_t *t)
+STATIC void __poll_cb(lv_timer_t *t)
 {
     (void)t;
     s_poll_count++;
@@ -284,7 +281,7 @@ static void __poll_cb(lv_timer_t *t)
 /* ---------------------------------------------------------------------------
  * Connect flow
  * --------------------------------------------------------------------------- */
-static void __connect(void)
+STATIC void __connect(void)
 {
 #ifdef CONFIG_LVGL_PC_SIMULATOR
     screen_load(&buddy_main_screen);
@@ -318,7 +315,7 @@ static void __connect(void)
 /* ---------------------------------------------------------------------------
  * Key event callback
  * --------------------------------------------------------------------------- */
-static void __kbd_cb(lv_event_t *e)
+STATIC void __kbd_cb(lv_event_t *e)
 {
     uint32_t key = lv_event_get_key(e);
     switch (key) {
@@ -357,7 +354,7 @@ static void __kbd_cb(lv_event_t *e)
 /* ---------------------------------------------------------------------------
  * Build helpers
  * --------------------------------------------------------------------------- */
-static void __build_header(lv_obj_t *parent)
+STATIC void __build_header(lv_obj_t *parent)
 {
     lv_obj_t *bar = lv_obj_create(parent);
     lv_obj_set_size(bar, SCR_W, HEADER_H);
@@ -395,7 +392,7 @@ static void __build_header(lv_obj_t *parent)
     lv_label_set_text(s_hdr_right, sbuf);
 }
 
-static void __build_body(lv_obj_t *parent)
+STATIC void __build_body(lv_obj_t *parent)
 {
     /* Body container: y=20..105 */
     lv_obj_t *body = lv_obj_create(parent);
@@ -441,10 +438,10 @@ static void __build_body(lv_obj_t *parent)
     lv_obj_set_style_pad_all(div, 0, 0);
 }
 
-static void __build_ip_area(lv_obj_t *parent)
+STATIC void __build_ip_area(lv_obj_t *parent)
 {
     /* "Server IP:" label */
-    lv_obj_t *ip_lbl = lv_label_create(s_screen);
+    lv_obj_t *ip_lbl = lv_label_create(parent);
     lv_obj_set_style_text_font(ip_lbl, FONT_S, 0);
     lv_obj_set_style_text_color(ip_lbl, C_FG, 0);
     lv_obj_set_pos(ip_lbl, PAD, IP_Y + 2);
@@ -566,7 +563,6 @@ void config_screen_deinit(void)
     s_screen     = NULL;
     s_hdr_left   = NULL;
     s_hdr_right  = NULL;
-    s_body_lbl   = NULL;
     s_hint_lbl   = NULL;
     for (int i = 0; i < DIGIT_COUNT; i++) {
         s_cells[i]    = NULL;
