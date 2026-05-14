@@ -49,7 +49,7 @@
  * --------------------------------------------------------------------------- */
 #include "buddy_cjk_font.h"
 #include "status_bar.h"
-#include "buddy_anim.h"
+
 #define FONT_M   (&buddy_font_m)
 #define FONT_S   (&buddy_font_s)
 
