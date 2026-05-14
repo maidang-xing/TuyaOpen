@@ -49,6 +49,7 @@
  * --------------------------------------------------------------------------- */
 #include "buddy_cjk_font.h"
 #include "status_bar.h"
+#include "buddy_anim.h"
 #define FONT_M   (&buddy_font_m)
 #define FONT_S   (&buddy_font_s)
 
@@ -103,6 +104,10 @@ STATIC lv_obj_t *s_hdr_status  = NULL;
 
 /* Content row labels */
 STATIC lv_obj_t *s_rows[ROW_COUNT];
+
+/* Staggered reveal animation */
+STATIC lv_timer_t *s_reveal_timer = NULL;
+STATIC int32_t     s_reveal_idx   = 0;
 
 /* ---------------------------------------------------------------------------
  * State
@@ -459,6 +464,23 @@ VOID_T buddy_status_screen_update_state(const buddy_tama_state_t *state)
 }
 
 /* ---------------------------------------------------------------------------
+ * Staggered row reveal callback
+ *   Called every 40 ms; unhides one row per tick until all ROW_COUNT are shown.
+ * --------------------------------------------------------------------------- */
+STATIC VOID_T __reveal_cb(lv_timer_t *t)
+{
+    if (s_reveal_idx >= ROW_COUNT) {
+        lv_timer_del(t);
+        s_reveal_timer = NULL;
+        return;
+    }
+    if (s_rows[s_reveal_idx]) {
+        lv_obj_clear_flag(s_rows[s_reveal_idx], LV_OBJ_FLAG_HIDDEN);
+    }
+    s_reveal_idx++;
+}
+
+/* ---------------------------------------------------------------------------
  * Init
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __init(VOID_T)
@@ -484,6 +506,13 @@ STATIC VOID_T __init(VOID_T)
     __refresh_header();
     __refresh_content();
 
+    /* Hide all rows; __reveal_cb will unhide them one by one */
+    for (uint32_t i = 0; i < ROW_COUNT; i++) {
+        if (s_rows[i]) lv_obj_add_flag(s_rows[i], LV_OBJ_FLAG_HIDDEN);
+    }
+    s_reveal_idx   = 0;
+    s_reveal_timer = lv_timer_create(__reveal_cb, 40, NULL);
+
     /* Register key handler */
     lv_obj_add_event_cb(s_screen, __key_cb, LV_EVENT_KEY, NULL);
     lv_group_add_obj(lv_group_get_default(), s_screen);
@@ -500,6 +529,11 @@ STATIC VOID_T __init(VOID_T)
  * --------------------------------------------------------------------------- */
 STATIC VOID_T __deinit(VOID_T)
 {
+    if (s_reveal_timer) {
+        lv_timer_del(s_reveal_timer);
+        s_reveal_timer = NULL;
+    }
+
     if (s_screen) {
         lv_obj_remove_event_cb(s_screen, __key_cb);
         lv_group_remove_obj(s_screen);
