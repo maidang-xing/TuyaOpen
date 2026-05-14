@@ -17,9 +17,30 @@
  */
 
 #include "led_indicator.h"
-#include "tdl_led_manage.h"
 #include "tal_api.h"
 #include <stddef.h>
+
+/* ---------------------------------------------------------------------------
+ * Simulator stubs — tdl_led_manage.h is hardware-only; tuya_kconfig.h
+ * (pulled in via tuya_cloud_types.h) defines LVGL_PC_SIMULATOR=1 in the
+ * simulator build, not CONFIG_LVGL_PC_SIMULATOR.
+ * --------------------------------------------------------------------------- */
+#if defined(LVGL_PC_SIMULATOR) && LVGL_PC_SIMULATOR
+typedef void *TDL_LED_HANDLE_T;
+typedef int   TDL_LED_STATUS_E;
+typedef struct { int cnt; int start_stat; int end_stat;
+                 uint32_t first_half_cycle_time; uint32_t latter_half_cycle_time; } TDL_LED_BLINK_CFG_T;
+#define TDL_LED_OFF  0
+#define TDL_LED_ON   1
+static inline TDL_LED_HANDLE_T tdl_led_find_dev(char *n) { (void)n; return NULL; }
+static inline OPERATE_RET tdl_led_open(TDL_LED_HANDLE_T h) { (void)h; return OPRT_OK; }
+static inline OPERATE_RET tdl_led_close(TDL_LED_HANDLE_T h) { (void)h; return OPRT_OK; }
+static inline OPERATE_RET tdl_led_set_status(TDL_LED_HANDLE_T h, TDL_LED_STATUS_E s) { (void)h; (void)s; return OPRT_OK; }
+static inline OPERATE_RET tdl_led_flash(TDL_LED_HANDLE_T h, uint32_t ms) { (void)h; (void)ms; return OPRT_OK; }
+static inline OPERATE_RET tdl_led_blink(TDL_LED_HANDLE_T h, TDL_LED_BLINK_CFG_T *c) { (void)h; (void)c; return OPRT_OK; }
+#else
+#include "tdl_led_manage.h"
+#endif /* LVGL_PC_SIMULATOR */
 
 /* ---------------------------------------------------------------------------
  * Macros
