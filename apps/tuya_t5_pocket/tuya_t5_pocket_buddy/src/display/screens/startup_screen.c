@@ -6,7 +6,7 @@
  */
 
 #include "startup_screen.h"
-#include "main_screen.h"
+#include "config_screen.h"
 #include <stdio.h>
 
 #define SCREEN_TITLE_FONT   &lv_font_montserrat_24
@@ -24,7 +24,7 @@ Screen_t startup_screen = {
 
 static void startup_timer_cb(lv_timer_t *timer)
 {
-    screen_load(&buddy_main_screen);
+    screen_load(&buddy_config_screen);
 }
 
 static void keyboard_event_cb(lv_event_t *e)
