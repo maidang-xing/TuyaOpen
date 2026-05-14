@@ -23,6 +23,10 @@ OPERATE_RET buddy_ws_send_asr(const char *text, const char *sid);
 OPERATE_RET buddy_ws_send_hb_req(const char *page);
 OPERATE_RET buddy_ws_send_ack(const char *cmd);
 
+/* Set WebSocket server host and save to KV. Call buddy_ws_stop()+buddy_ws_start()
+   after this to reconnect. host must be <= BUDDY_WS_HOST_LEN chars. */
+OPERATE_RET buddy_ws_set_host(const char *host);
+
 #ifdef __cplusplus
 }
 #endif

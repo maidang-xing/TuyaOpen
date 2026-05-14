@@ -510,6 +510,14 @@ static void __load_kv_config(void)
     }
 }
 
+OPERATE_RET buddy_ws_set_host(const char *host)
+{
+    if (!host || strlen(host) > BUDDY_WS_HOST_LEN) return OPRT_INVALID_PARM;
+    strncpy(s_host, host, BUDDY_WS_HOST_LEN);
+    s_host[BUDDY_WS_HOST_LEN] = '\0';
+    return tal_kv_set(KV_KEY_HOST, (const uint8_t *)s_host, strlen(s_host) + 1);
+}
+
 /* ---- CLI commands ---- */
 
 static void __cli_ws_handler(int argc, char *argv[])
