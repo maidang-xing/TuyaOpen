@@ -776,18 +776,25 @@ STATIC VOID_T __persona_cycle(int8_t delta)
 
 STATIC uint8_t __load_persona_id(VOID_T)
 {
-    uint8_t v = 0; uint8_t *buf = NULL; size_t len = 0;
+    uint8_t v = 0;
+#ifndef LVGL_PC_SIMULATOR
+    uint8_t *buf = NULL; size_t len = 0;
     if (tal_kv_get(KV_KEY_PERSONA_ID, &buf, &len) == OPRT_OK && buf) {
         if (len) v = buf[0];
         tal_kv_free(buf);
     }
+#endif /* !LVGL_PC_SIMULATOR */
     return (v < BUDDY_PERSONA_COUNT) ? v : 0;
 }
 
 STATIC VOID_T __persist_persona_id(uint8_t id)
 {
+#ifndef LVGL_PC_SIMULATOR
     if (id < BUDDY_PERSONA_COUNT)
         (VOID_T)tal_kv_set(KV_KEY_PERSONA_ID, &id, sizeof(id));
+#else
+    (void)id;
+#endif /* !LVGL_PC_SIMULATOR */
 }
 
 /* ---------------------------------------------------------------------------
