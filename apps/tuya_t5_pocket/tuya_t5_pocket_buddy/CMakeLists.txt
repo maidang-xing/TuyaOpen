@@ -20,6 +20,12 @@ target_compile_options(${EXAMPLE_LIB}
 target_include_directories(${EXAMPLE_LIB}
     PRIVATE
         ${APP_PATH}/include
+        ${APP_PATH}/src/transport
+)
+
+target_sources(${EXAMPLE_LIB}
+    PRIVATE
+        ${APP_PATH}/src/transport/buddy_sim_stubs.c
 )
 
 add_subdirectory(${APP_PATH}/src/display)
@@ -33,6 +39,7 @@ set(APP_SRCS)
 aux_source_directory(${APP_PATH}/src APP_SRCS)
 aux_source_directory(${APP_PATH}/src/input INPUT_SRCS)
 aux_source_directory(${APP_PATH}/src/transport TRANSPORT_SRCS)
+list(FILTER TRANSPORT_SRCS EXCLUDE REGEX "buddy_sim_stubs")
 aux_source_directory(${APP_PATH}/src/protocol PROTOCOL_SRCS)
 aux_source_directory(${APP_PATH}/src/media MEDIA_SRCS)
 

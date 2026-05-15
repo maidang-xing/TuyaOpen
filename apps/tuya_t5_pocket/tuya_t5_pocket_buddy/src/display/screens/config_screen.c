@@ -251,7 +251,7 @@ STATIC void __poll_cb(lv_timer_t *t)
     (void)t;
     s_poll_count++;
 
-#if !defined(CONFIG_LVGL_PC_SIMULATOR) || !CONFIG_LVGL_PC_SIMULATOR
+#ifndef LVGL_PC_SIMULATOR
     if (buddy_ws_is_connected()) {
         /* Connected — stop poll, go to main */
         if (s_connect_poll) {
@@ -275,7 +275,7 @@ STATIC void __poll_cb(lv_timer_t *t)
         s_hint_restore_timer = lv_timer_create(__hint_restore_cb, 3000, NULL);
         lv_timer_set_repeat_count(s_hint_restore_timer, 1);
     }
-#endif /* !CONFIG_LVGL_PC_SIMULATOR */
+#endif /* !LVGL_PC_SIMULATOR */
 }
 
 /* ---------------------------------------------------------------------------
@@ -283,7 +283,7 @@ STATIC void __poll_cb(lv_timer_t *t)
  * --------------------------------------------------------------------------- */
 STATIC void __connect(void)
 {
-#ifdef CONFIG_LVGL_PC_SIMULATOR
+#ifdef LVGL_PC_SIMULATOR
     screen_load(&buddy_main_screen);
 #else
     char ip[32];
@@ -309,7 +309,7 @@ STATIC void __connect(void)
     }
     s_poll_count = 0;
     s_connect_poll = lv_timer_create(__poll_cb, POLL_INTERVAL_MS, NULL);
-#endif /* CONFIG_LVGL_PC_SIMULATOR */
+#endif /* LVGL_PC_SIMULATOR */
 }
 
 /* ---------------------------------------------------------------------------
@@ -382,13 +382,13 @@ STATIC void __build_header(lv_obj_t *parent)
 
     /* Update status bar */
     char sbuf[24];
-#if !defined(CONFIG_LVGL_PC_SIMULATOR) || !CONFIG_LVGL_PC_SIMULATOR
+#ifndef LVGL_PC_SIMULATOR
     buddy_status_bar_format(sbuf, sizeof(sbuf),
                             FALSE, buddy_ws_is_connected(),
                             BUDDY_BAT_PCT_UNKNOWN);
 #else
     buddy_status_bar_format(sbuf, sizeof(sbuf), FALSE, FALSE, BUDDY_BAT_PCT_UNKNOWN);
-#endif /* !CONFIG_LVGL_PC_SIMULATOR */
+#endif /* !LVGL_PC_SIMULATOR */
     lv_label_set_text(s_hdr_right, sbuf);
 }
 
