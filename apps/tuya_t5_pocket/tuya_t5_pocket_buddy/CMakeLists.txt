@@ -15,6 +15,7 @@ add_library(${EXAMPLE_LIB})
 target_compile_options(${EXAMPLE_LIB}
     PRIVATE
         "-DLV_LVGL_H_INCLUDE_SIMPLE"
+        "-DLVGL_PC_SIMULATOR=1"
 )
 
 target_include_directories(${EXAMPLE_LIB}

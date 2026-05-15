@@ -142,6 +142,7 @@ STATIC void __load_ip(void)
     s_digits[6]  = 0; s_digits[7]  = 0; s_digits[8]  = 1;
     s_digits[9]  = 0; s_digits[10] = 0; s_digits[11] = 1;
 
+#ifndef LVGL_PC_SIMULATOR
     uint8_t *buf = NULL;
     size_t   len = 0;
     if (tal_kv_get(KV_KEY_WS_HOST, &buf, &len) != OPRT_OK || !buf) return;
@@ -172,6 +173,7 @@ STATIC void __load_ip(void)
     s_digits[9]  = (uint8_t)((d / 100) % 10);
     s_digits[10] = (uint8_t)((d / 10)  % 10);
     s_digits[11] = (uint8_t)(d         % 10);
+#endif /* !LVGL_PC_SIMULATOR */
 }
 
 /* ---------------------------------------------------------------------------
