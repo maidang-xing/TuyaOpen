@@ -34,8 +34,11 @@ extern int tuya_ble_adv_update(void);
 static void __handle_net_cfg(void *data, void *user_data)
 {
     uint8_t result = 0;
-    uint8_t resp[5];
+    uint8_t resp[5] = {0};
 
+    if (data == NULL || len == 0) {
+        goto __exit;
+    }
     cJSON *json = cJSON_Parse(data);
     if (NULL == json) {
         PR_ERR(" json parse error.");
