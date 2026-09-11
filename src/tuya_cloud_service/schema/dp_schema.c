@@ -143,6 +143,9 @@ __err_exit:
  */
 dp_node_t *dp_node_find(dp_schema_t *schema, int id)
 {
+    if (schema == NULL || schema->num == 0) {
+        return NULL;
+    }
     int i;
     dp_node_t *dpnode = NULL;
 
