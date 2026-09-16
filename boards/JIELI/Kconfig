@@ -1,0 +1,22 @@
+config PLATFORM_CHOICE
+    string
+    default "JIELI"
+
+config CHIP_CHOICE
+    string
+    default "AC7916A"
+
+config BOARD_CHOICE
+    string
+    default "AC7916A"
+
+choice
+    prompt "Choice a board"
+
+    config BOARD_CHOICE_AC7916A
+        bool "AC7916A"
+        if (BOARD_CHOICE_AC7916A)
+            rsource "./AC7916A/Kconfig"
+        endif
+
+endchoice

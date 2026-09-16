@@ -1,0 +1,5 @@
+set(MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
+set(MODULE_NAME AC7916A)
+
+add_library(${MODULE_NAME} INTERFACE)
+target_include_directories(${MODULE_NAME} INTERFACE ${MODULE_PATH})

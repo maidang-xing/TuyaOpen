@@ -1,0 +1,39 @@
+menu "configure Jieli AC7916A"
+
+config PLATFORM_JIELI
+    bool
+    default y
+
+config OPERATING_SYSTEM
+    int
+    default 98
+    ---help---
+        98      /* RTOS */
+
+config LITTLE_END
+    int
+    default 1
+
+config ENABLE_UART
+    bool "ENABLE_UART --- use UART output"
+    default y
+
+config CONFIG_LOG_UART_PORT
+    int "Jieli log UART port"
+    default 0
+    range 0 5
+
+config CONFIG_LOG_UART_BAUDRATE
+    int "Jieli log UART baudrate"
+    default 115200
+    range 1200 4000000
+
+config ENABLE_WIFI
+    bool "ENABLE_WIFI --- use Wi-Fi"
+    default n
+
+config ENABLE_BLUETOOTH
+    bool "ENABLE_BLUETOOTH --- use Bluetooth"
+    default n
+
+endmenu

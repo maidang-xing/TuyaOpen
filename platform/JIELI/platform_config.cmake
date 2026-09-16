@@ -1,0 +1,9 @@
+message(STATUS "[JIELI] AC7916A/wl82 platform selected")
+
+set(JIELI_ADAPTER_PATH "${PLATFORM_PATH}/tuyaos/tuyaos_adapter")
+list(APPEND PLATFORM_PUBINC
+    "${JIELI_ADAPTER_PATH}/include"
+)
+set(PLATFORM_PUBINC "${PLATFORM_PUBINC}" PARENT_SCOPE)
+
+set(PLATFORM_NEED_LIBS "" PARENT_SCOPE)
