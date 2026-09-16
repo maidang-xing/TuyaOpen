@@ -20,6 +20,12 @@ class JieliConfigTest(unittest.TestCase):
         self.assertTrue(platform_kconfig.is_file())
         self.assertIn("PLATFORM_JIELI", platform_kconfig.read_text())
 
+        platform_config = ROOT / "platform" / "JIELI" / "platform_config.cmake"
+        self.assertIn("PLATFORM_SKIP_DEFAULT_COMPONENTS ON", platform_config.read_text())
+
+        root_cmake = ROOT / "CMakeLists.txt"
+        self.assertIn("PLATFORM_SKIP_DEFAULT_COMPONENTS", root_cmake.read_text())
+
         board_config = ROOT / "boards" / "JIELI" / "AC7916A" / "Kconfig"
         self.assertTrue(board_config.is_file())
         self.assertIn("CHIP_AC7916A", board_config.read_text())

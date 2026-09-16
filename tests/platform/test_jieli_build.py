@@ -30,7 +30,7 @@ class JieliBuildTest(unittest.TestCase):
         self.assertEqual(command[0:3], ["make", "-C", "/sdk/apps/demo/demo_hello/board/wl82"])
         self.assertIn("TOOL_DIR=/toolchain/bin", command)
         self.assertIn("-j3", command)
-        self.assertEqual(command[-2:], ["pre_build", "sdk.elf"])
+        self.assertEqual(command[-2:], ["pre_build", "../../../../../cpu/wl82/tools/sdk.elf"])
 
     def test_elf_alone_is_not_a_flash_artifact(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -45,6 +45,42 @@ class JieliBuildTest(unittest.TestCase):
             package = tools / "jl_isd.ufw"
             package.write_bytes(b"firmware")
             self.assertEqual(package, jieli_build.find_qio_artifact(tools))
+
+    def test_staging_tree_replaces_vendor_app_entry(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            sdk = root / "sdk"
+            demo = sdk / "apps/demo/demo_hello/board/wl82"
+            demo.mkdir(parents=True)
+            (demo / "Makefile").write_text(
+                "c_SRC_FILES := ../../../../../apps/demo/demo_hello/app_main.c\n"
+                "INCLUDES := -I../../../../../include_lib\n"
+                "c_OBJS    := $(c_SRC_FILES:%.c=%.c.o)\n"
+            )
+            (demo.parent / "app_main.c").write_text("void app_main(void) {}")
+            (sdk / "apps/common").mkdir(parents=True)
+            (sdk / "cpu").mkdir()
+            (sdk / "include_lib").mkdir()
+            (sdk / "lib").mkdir()
+            tuyaopen = root / "tuyaopen"
+            example = tuyaopen / "examples/get-started/jieli_uart_hello/src"
+            example.mkdir(parents=True)
+            (example / "example_jieli_uart_hello.c").write_text("void hello(void) {}")
+            jieli_platform = tuyaopen / "platform/JIELI"
+            jieli_platform.mkdir(parents=True)
+            (jieli_platform / "tuyaos_app_main.c").write_text("void app_main(void) {}")
+            adapter = tuyaopen / "platform/JIELI/tuyaos/tuyaos_adapter/src"
+            adapter.mkdir(parents=True)
+            (adapter / "tkl_output.c").write_text("void output(void) {}")
+            staging = root / "staging"
+
+            jieli_build.create_staging_tree(sdk, staging, tuyaopen)
+
+            staged_makefile = staging / "build/apps/demo/demo_hello/board/wl82/Makefile"
+            content = staged_makefile.read_text()
+            self.assertIn("../../../../../tuyaos_app_main.c", content)
+            self.assertIn("../../../../../tuyaopen_uart_hello.c", content)
+            self.assertIn("../../../../../tuyaos_adapter/src/tkl_output.c", content)
 
 
 if __name__ == "__main__":

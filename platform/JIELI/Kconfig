@@ -18,12 +18,12 @@ config ENABLE_UART
     bool "ENABLE_UART --- use UART output"
     default y
 
-config CONFIG_LOG_UART_PORT
+config LOG_UART_PORT
     int "Jieli log UART port"
     default 0
     range 0 5
 
-config CONFIG_LOG_UART_BAUDRATE
+config LOG_UART_BAUDRATE
     int "Jieli log UART baudrate"
     default 115200
     range 1200 4000000
