@@ -1,4 +1,4 @@
-"""Host-side helpers for the TuyaOpen AC7916A/wl82 build bridge."""
+"""Host-side helpers for the TuyaOpen Jieli wl82 build bridge."""
 
 from __future__ import annotations
 
@@ -90,6 +90,8 @@ def create_staging_tree(
     staging_root: Path,
     tuyaopen_root: Path,
     header_dir: Optional[Path] = None,
+    full_stack: bool = False,
+    tuya_lib_dir: Optional[Path] = None,
 ) -> Path:
     """Create a small overlay tree without modifying the vendor checkout."""
     if staging_root.exists():
@@ -109,15 +111,20 @@ def create_staging_tree(
     )
 
     platform_root = tuyaopen_root / "platform/JIELI"
-    shutil.copy2(platform_root / "tuyaos_app_main.c", build_root / "tuyaos_app_main.c")
-    shutil.copy2(
-        tuyaopen_root / "examples/get-started/jieli_uart_hello/src/example_jieli_uart_hello.c",
-        build_root / "tuyaopen_uart_hello.c",
-    )
+    entry_source = "tuyaos_switch_app_main.c" if full_stack else "tuyaos_app_main.c"
+    shutil.copy2(platform_root / entry_source, build_root / "tuyaos_app_main.c")
+    if not full_stack:
+        shutil.copy2(
+            tuyaopen_root / "examples/get-started/jieli_uart_hello/src/example_jieli_uart_hello.c",
+            build_root / "tuyaopen_uart_hello.c",
+        )
     shutil.copytree(
         platform_root / "tuyaos/tuyaos_adapter",
         build_root / "tuyaos_adapter",
     )
+    utilities_root = tuyaopen_root / "tools/porting/adapter/utilities"
+    if utilities_root.is_dir():
+        shutil.copytree(utilities_root, build_root / "tuya_utilities")
 
     makefile = apps_root / "demo/demo_hello/board/wl82/Makefile"
     content = makefile.read_text(encoding="utf-8")
@@ -125,13 +132,44 @@ def create_staging_tree(
     if vendor_main not in content:
         raise BuildError(f"AC79 demo Makefile has no app_main source: {makefile}")
     content = content.replace(vendor_main, "../../../../../tuyaos_app_main.c")
-    extra_sources = (
-        "c_SRC_FILES += \\\n"
-        "    ../../../../../tuyaopen_uart_hello.c \\\n"
+    extra_sources = "c_SRC_FILES += \\\n"
+    if not full_stack:
+        extra_sources += "    ../../../../../tuyaopen_uart_hello.c \\\n"
+    extra_sources += (
+        "    ../../../../../tuyaos_adapter/src/tal_system.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tal_uart.c \\\n"
         "    ../../../../../tuyaos_adapter/src/tkl_output.c \\\n"
         "    ../../../../../tuyaos_adapter/src/tkl_system.c \\\n"
-        "    ../../../../../tuyaos_adapter/src/tkl_uart.c\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_uart.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_thread.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_mutex.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_semaphore.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_queue.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_sleep.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_flash.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_ota.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_assert.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_bluetooth.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_network.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tkl_wifi.c \\\n"
+        "    ../../../../../tuyaos_adapter/src/tuyaopen_license.c \\\n"
+        "    ../../../../../tuya_utilities/src/tuya_hashmap.c \\\n"
+        "    ../../../../../tuya_utilities/src/tuya_list.c \\\n"
+        "    ../../../../../tuya_utilities/src/tuya_mem_heap.c \\\n"
+        "    ../../../../../tuya_utilities/src/tuya_queue.c \\\n"
+        "    ../../../../../tuya_utilities/src/tuya_ringbuf.c \\\n"
+        "    ../../../../../tuya_utilities/src/tuya_smartpointer.c \\\n"
+        "    ../../../../../tuya_utilities/src/tuya_tools.c\n"
     )
+    if full_stack:
+        extra_sources = extra_sources.rstrip("\n") + " \\\n"
+        extra_sources += (
+            "    ../../../../../apps/common/config/bt_profile_config.c \\\n"
+            "    ../../../../../apps/common/config/log_config/app_config.c \\\n"
+            "    ../../../../../apps/common/config/log_config/lib_btctrler_config.c \\\n"
+            "    ../../../../../apps/common/config/log_config/lib_btstack_config.c \\\n"
+            "    ../../../../../apps/common/net/wifi_conf.c\n"
+        )
     marker = "c_OBJS    :="
     if marker not in content:
         raise BuildError(f"AC79 demo Makefile has no object list marker: {makefile}")
@@ -142,11 +180,56 @@ def create_staging_tree(
     content += f"    -I{tuyaopen_root}/tools/porting/adapter/uart \\\n"
     content += f"    -I{tuyaopen_root}/tools/porting/adapter/init/include \\\n"
     content += f"    -I{tuyaopen_root}/tools/porting/adapter/utilities/include \\\n"
+    content += f"    -I{tuyaopen_root}/tools/porting/adapter/flash \\\n"
+    content += f"    -I{tuyaopen_root}/tools/porting/adapter/network \\\n"
+    content += f"    -I{tuyaopen_root}/tools/porting/adapter/wifi \\\n"
+    content += f"    -I{tuyaopen_root}/tools/porting/adapter/bluetooth \\\n"
+    content += f"    -I{tuyaopen_root}/tools/porting/adapter/timer \\\n"
+    content += f"    -I{tuyaopen_root}/tools/porting/adapter/security \\\n"
+    content += "    -I../../../../../apps/common/include \\\n"
+    content += "    -I../../../../../apps/common/config/include \\\n"
+    content += "    -I../../../../../include_lib/btstack \\\n"
+    content += "    -I../../../../../include_lib/btstack/le \\\n"
+    content += "    -I../../../../../include_lib/btctrler \\\n"
+    content += "    -I../../../../../include_lib/btctrler/port/wl82 \\\n"
     content += f"    -I{tuyaopen_root}/src/common/include\n"
     content += "INCLUDES += \\\n"
     content += "    -I../../../../../tuyaos_adapter/include \\\n"
     content += "    -I../../../../../include_lib/driver/device \\\n"
-    content += "    -I../../../../../include_lib/driver/cpu/wl82\n"
+    content += "    -I../../../../../include_lib/driver/cpu/wl82 \\\n"
+    content += "    -I../../../../../include_lib/net/lwip_2_2_0 \\\n"
+    content += "    -I../../../../../include_lib/net/lwip_2_2_0/lwip/src/include \\\n"
+    content += "    -I../../../../../include_lib/net/lwip_2_2_0/lwip/src/include/compat \\\n"
+    content += "    -I../../../../../include_lib/net/lwip_2_2_0/lwip/port \\\n"
+    content += "    -I../../../../../include_lib/system \\\n"
+    content += "    -I../../../../../include_lib/system/generic \\\n"
+    content += "    -I../../../../../include_lib/net \\\n"
+    content += "    -I../../../../../include_lib/utils \\\n"
+    content += "    -I../../../../../include_lib/utils/syscfg \\\n"
+    content += "    -I../../../../../include_lib/utils/event \\\n"
+    content += "    -I../../../../../include_lib\n"
+    content += "INCLUDES += -I../../../../../include_lib/net\n"
+    content += "CFLAGS += -include stdbool.h -DBOOL_DEFINE_CONFLICT\n"
+    if full_stack:
+        content += "DEFINES += -DCONFIG_NET_ENABLE=1 -DCONFIG_BT_ENABLE=1 -DCONFIG_TWS_ENABLE -DCONFIG_BTCTRLER_TASK_DEL_ENABLE -DCONFIG_LMP_CONN_SUSPEND_ENABLE -DCONFIG_LMP_REFRESH_ENCRYPTION_KEY_ENABLE\n"
+        if tuya_lib_dir is None:
+            raise BuildError("TuyaOpen library directory is required for the full wl82 image")
+        content += "LFLAGS += \\\n"
+        content += f"    --start-group {tuya_lib_dir}/libtuyaapp.a {tuya_lib_dir}/libtuyaos.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/hsm.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/wpasupplicant.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/http_cli.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/https_cli.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/json.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/libmbedtls_3_4_0.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/lwip_2_2_0_sfc.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/wl_wifi_sfc.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/wl_rf_common.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/btctrler.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/btstack.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/crypto_toolbox_Osize.a \\\n"
+        content += "    ../../../../../cpu/wl82/liba/lib_ccm_aes.a \\\n"
+        content += "    --end-group\n"
     if header_dir is not None:
         content += f"INCLUDES += -I{header_dir}\n"
     makefile.write_text(content, encoding="utf-8")

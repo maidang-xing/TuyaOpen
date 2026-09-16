@@ -28,6 +28,11 @@ else()
 
     list(APPEND LIB_SRCS "${MBEDTLS_SRCS}")
     list(APPEND LIB_PUBLIC_INC "${MODULE_PATH}/${MBEDTLS}/include")
+    list(APPEND LIB_PRIVATE_INC "${MODULE_PATH}/${MBEDTLS}/library")
+endif()
+
+if (CONFIG_PLATFORM_CHOICE STREQUAL "JIELI")
+    list(APPEND LIB_PRIVATE_INC "${TOP_SOURCE_DIR}/platform/JIELI")
 endif()
 
 ########################################
@@ -48,6 +53,13 @@ target_include_directories(${MODULE_NAME}
         ${LIB_PUBLIC_INC}
     )
 
+if (CONFIG_PLATFORM_CHOICE STREQUAL "JIELI")
+    target_compile_definitions(${MODULE_NAME}
+        PRIVATE
+            MBEDTLS_USER_CONFIG_FILE=\"tuya_mbedtls_wl82_config.h\"
+    )
+endif()
+
 
 ########################################
 # Layer Configure
@@ -56,4 +68,3 @@ list(APPEND COMPONENT_LIBS ${MODULE_NAME})
 set(COMPONENT_LIBS "${COMPONENT_LIBS}" PARENT_SCOPE)
 list(APPEND COMPONENT_PUBINC ${LIB_PUBLIC_INC})
 set(COMPONENT_PUBINC "${COMPONENT_PUBINC}" PARENT_SCOPE)
-

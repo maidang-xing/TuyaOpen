@@ -17,7 +17,7 @@ endif()
 set(CMAKE_C_COMPILER "${JIELI_TOOL_DIR}/clang")
 set(CMAKE_CXX_COMPILER "${JIELI_TOOL_DIR}/clang")
 set(CMAKE_AR "${JIELI_TOOL_DIR}/lto-ar")
-find_program(CMAKE_RANLIB NAMES ranlib REQUIRED)
+set(CMAKE_RANLIB "${PLATFORM_PATH}/jieli_ranlib.sh")
 
 set(JIELI_NEWLIB_INCLUDE "${JIELI_SDK_ROOT}/include_lib/newlib/include")
 set(JIELI_CPP_INCLUDE "${JIELI_SDK_ROOT}/include_lib/c++/include")
@@ -25,10 +25,10 @@ set(JIELI_C_INCLUDE_FLAGS "-isystem${JIELI_NEWLIB_INCLUDE}")
 set(JIELI_CXX_INCLUDE_FLAGS
     "-isystem${JIELI_NEWLIB_INCLUDE} -isystem${JIELI_CPP_INCLUDE}")
 set(JIELI_COMMON_DEFINES
-    "-DCONFIG_CPU_WL82 -DCONFIG_FREE_RTOS_ENABLE -DCONFIG_THREAD_ENABLE -D_GNU_SOURCE -D_XOPEN_SOURCE=700 -D__ELF__")
+    "-DCONFIG_CPU_WL82 -DCONFIG_FREE_RTOS_ENABLE -DCONFIG_THREAD_ENABLE -DBOOL_DEFINE_CONFLICT -DMBEDTLS_TCPIP_LWIP -D_GNU_SOURCE -D_XOPEN_SOURCE=700 -D__ELF__")
 
 set(CMAKE_C_FLAGS
-    "-target pi32v2 -integrated-as -mcpu=r3 -mfprev1 -Oz -flto -fno-common -ffunction-sections -fdata-sections -fno-unwind-tables -D__GCC_PI32V2__ ${JIELI_COMMON_DEFINES} ${JIELI_C_INCLUDE_FLAGS}")
+    "-target pi32v2 -integrated-as -mcpu=r3 -mfprev1 -Oz -flto -fno-common -ffunction-sections -fdata-sections -fno-unwind-tables -include stdbool.h -D__GCC_PI32V2__ ${JIELI_COMMON_DEFINES} ${JIELI_C_INCLUDE_FLAGS}")
 set(CMAKE_CXX_FLAGS
     "-target pi32v2 -integrated-as -mcpu=r3 -mfprev1 -Oz -flto -fno-common -ffunction-sections -fdata-sections -fno-unwind-tables -fno-exceptions -fno-rtti -std=gnu++14 -D__GCC_PI32V2__ ${JIELI_COMMON_DEFINES} ${JIELI_CXX_INCLUDE_FLAGS}")
 

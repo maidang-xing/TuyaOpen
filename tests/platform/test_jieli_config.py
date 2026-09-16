@@ -28,7 +28,7 @@ class JieliConfigTest(unittest.TestCase):
 
         board_config = ROOT / "boards" / "JIELI" / "AC7916A" / "Kconfig"
         self.assertTrue(board_config.is_file())
-        self.assertIn("CHIP_AC7916A", board_config.read_text())
+        self.assertIn("CHIP_WL82", board_config.read_text())
 
 
 if __name__ == "__main__":

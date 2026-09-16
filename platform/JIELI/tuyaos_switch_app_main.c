@@ -3,9 +3,8 @@
 #include "os/os_api.h"
 
 #include "tkl_init.h"
-#include "tkl_output.h"
 
-void example_jieli_uart_hello(void);
+void tuya_app_main(void);
 
 const struct irq_info irq_info_table[] = {
     { -1, -1, -1 },
@@ -19,18 +18,8 @@ const struct task_info task_info_table[] = {
     { 0, 0, 0, 0 },
 };
 
-static void jieli_hello_task(void *arg)
-{
-    (void)arg;
-    while (1) {
-        os_time_dly(200);
-    }
-}
-
 void app_main(void)
 {
-    tkl_init();
-    tkl_log_output("TuyaOpen Jieli wl82 (AC7916A board)\r\n");
-    example_jieli_uart_hello();
-    os_task_create(jieli_hello_task, NULL, 10, 1000, 0, "tuya_hello");
+    (void)tkl_init();
+    tuya_app_main();
 }

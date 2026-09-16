@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the host inputs needed by the AC7916A build bridge."""
+"""Validate the host inputs needed by the Jieli wl82 build bridge."""
 
 from __future__ import annotations
 

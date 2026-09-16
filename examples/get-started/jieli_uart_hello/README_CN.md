@@ -1,6 +1,6 @@
-# Jieli AC7916A UART Hello
+# Jieli wl82 UART Hello（AC7916A 开发板）
 
-这是 TuyaOpen 接入杰理 7916x 的最小验收示例，目标板为 AC7916A/wl82，
+这是 TuyaOpen 接入杰理 7916x 的最小验收示例，目标芯片为 wl82，目标板为 AC7916A，
 日志 UART 默认使用 115200 波特率。
 
 ```sh

@@ -10,7 +10,7 @@ EXAMPLE = ROOT / "examples" / "get-started" / "jieli_uart_hello" / "src" / "exam
 class JieliUartHelloTest(unittest.TestCase):
     def test_app_entry_has_uart_acceptance_messages(self):
         source = APP.read_text(encoding="utf-8") + EXAMPLE.read_text(encoding="utf-8")
-        self.assertIn("TuyaOpen Jieli AC7916A", source)
+        self.assertIn("TuyaOpen Jieli wl82", source)
         self.assertIn("UART Hello World", source)
         self.assertIn("tkl_log_output", source)
         self.assertIn("tkl_init", source)

@@ -1,4 +1,4 @@
-# Jieli AC7916A / wl82 平台
+# Jieli wl82 平台（AC7916A 开发板）
 
 当前平台适配的第一个里程碑是 `jieli_uart_hello`：使用 TuyaOpen 的
 `tos.py config/build/flash/monitor` 入口，最终链接仍由 AC79 SDK 的

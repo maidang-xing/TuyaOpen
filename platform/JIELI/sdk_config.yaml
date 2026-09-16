@@ -1,0 +1,63 @@
+sdk_name: AC79_AIoT_SDK
+vendor_board: wl82
+sdk_root_env: JIELI_SDK_ROOT
+toolchain_env: JIELI_TOOL_DIR
+
+required_tools:
+  - clang
+  - lto-wrapper
+  - lto-ar
+  - objcopy
+  - objdump
+  - objsizedump
+
+defines:
+  - __GCC_PI32V2__
+  - CONFIG_CPU_WL82
+  - CONFIG_FREE_RTOS_ENABLE
+  - CONFIG_THREAD_ENABLE
+  - CONFIG_SFC_ENABLE
+  - CONFIG_NEW_ECC_ENABLE
+  - _GNU_SOURCE
+  - _XOPEN_SOURCE=700
+  - __ELF__
+
+include_dirs:
+  - include_lib
+  - include_lib/c++
+  - include_lib/c++/include
+  - include_lib/newlib/include
+  - include_lib/driver
+  - include_lib/driver/device
+  - include_lib/driver/cpu/wl82
+  - include_lib/system
+  - include_lib/system/generic
+  - include_lib/btctrler
+  - include_lib/btctrler/port/wl82
+  - include_lib/btstack
+  - include_lib/btstack/third_party/common
+  - include_lib/btstack/third_party/rcsp
+  - include_lib/net
+  - include_lib/net/wifi
+  - include_lib/net/wireless_ext
+  - include_lib/utils
+  - include_lib/utils/event
+
+library_files:
+  - include_lib/newlib/pi32v2-lib/libm.a
+  - include_lib/newlib/pi32v2-lib/libc.a
+  - include_lib/newlib/pi32v2-lib/libcompiler_rt.a
+  - cpu/wl82/liba/cpu.a
+  - cpu/wl82/liba/event.a
+  - cpu/wl82/liba/system.a
+  - cpu/wl82/liba/cfg_tool.a
+  - cpu/wl82/liba/fs.a
+  - cpu/wl82/liba/common_lib.a
+  - cpu/wl82/liba/update.a
+
+stack_libraries:
+  - cpu/wl82/liba/wl_wifi_sta.a
+  - cpu/wl82/liba/wl_wifi_ap.a
+  - cpu/wl82/liba/wl_wifi_sfc.a
+  - cpu/wl82/liba/btctrler.a
+  - cpu/wl82/liba/btstack.a

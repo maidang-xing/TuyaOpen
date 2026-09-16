@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and package a TuyaOpen example with the Jieli AC79 SDK."""
+"""Build and package a TuyaOpen example with the Jieli wl82 SDK."""
 
 from __future__ import annotations
 
@@ -99,8 +99,15 @@ def build(params: dict[str, str]) -> Path:
     staging_root = output_dir.parent / "jieli-staging"
     header_dir_text = params.get("OPEN_HEADER_DIR", "").split()
     header_dir = Path(header_dir_text[0]) if header_dir_text else None
+    full_stack = params.get("CONFIG_JIELI_MINIMAL_HELLO") != "y"
+    tuya_lib_dir = Path(params.get("OPEN_LIBS_DIR", "")) if full_stack else None
     build_root = create_staging_tree(
-        sdk_root, staging_root, tuyaopen_root, header_dir
+        sdk_root,
+        staging_root,
+        tuyaopen_root,
+        header_dir,
+        full_stack=full_stack,
+        tuya_lib_dir=tuya_lib_dir,
     )
     jobs = max(1, int(os.environ.get("JIELI_BUILD_JOBS", "1")))
     env = os.environ.copy()

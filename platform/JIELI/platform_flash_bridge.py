@@ -43,7 +43,7 @@ def platform_flash(
         "binfile": str(image),
         "port": port,
         "baud": str(baud or 0),
-        "chip": using_data.get("CONFIG_CHIP_CHOICE", "AC7916A"),
+        "chip": using_data.get("CONFIG_CHIP_CHOICE", "wl82"),
         "board": using_data.get("CONFIG_BOARD_CHOICE", "AC7916A"),
     }
     try:

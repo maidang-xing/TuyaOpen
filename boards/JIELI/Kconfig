@@ -4,7 +4,7 @@ config PLATFORM_CHOICE
 
 config CHIP_CHOICE
     string
-    default "AC7916A"
+    default "wl82"
 
 config BOARD_CHOICE
     string

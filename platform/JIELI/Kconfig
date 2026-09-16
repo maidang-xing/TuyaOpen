@@ -1,4 +1,11 @@
-menu "configure Jieli AC7916A"
+menu "configure Jieli wl82"
+
+config JIELI_MINIMAL_HELLO
+    bool "Jieli minimal UART hello image"
+    default y
+    help
+        Keep the vendor bridge on the minimal UART image. Disable this for
+        applications that need the complete TuyaOpen component graph.
 
 config PLATFORM_JIELI
     bool
