@@ -1,0 +1,35 @@
+menu "sanoTTS serial configuration"
+
+    config SNT_UART_NUM
+        int "UART port number for SNT protocol"
+        default 0
+        range 0 2
+        help
+            UART port to use for communicating with host PC (0, 1, or 2).
+            Default is 0 (USB console UART on T5AI-Core).
+
+    config SNT_UART_BAUDRATE
+        int "UART baudrate"
+        default 115200
+        help
+            Baudrate for SNT protocol communication.
+
+    config SNT_AUDIO_OUTPUT_RATE
+        int "Audio output sample rate (Hz)"
+        default 16000
+        help
+            Sample rate sent to the onboard speaker hardware.
+
+    config SNT_RING_BUFFER_SIZE
+        int "Audio PCM ring buffer size (bytes)"
+        default 32768
+        help
+            Size of PCM16 ring buffer in PSRAM (32768 bytes = 1.024s at 16kHz mono).
+
+    config SNT_DIAGNOSTICS
+        bool "Enable diagnostics and PCM capture"
+        default n
+        help
+            Enable raw PCM base64 capture and diagnostics for GOLDEN verification.
+
+endmenu
