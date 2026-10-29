@@ -1,0 +1,209 @@
+{
+  "schema_version": "1.0.0",
+  "project": "TuyaOpen T5AI-Core sanoTTS",
+  "upstream": {
+    "repository": "https://github.com/Ampixa/sanoTTS.git",
+    "commit": "f73b8382bc98a1c8de3488ba30d727ab82587828",
+    "commit_date": "2026-10-27"
+  },
+  "voices": {
+    "en_us_e12nano": {
+      "voice_id": "en_us_e12nano",
+      "language": "en_US",
+      "architecture": "nano_int8",
+      "sample_rate": 24000,
+      "hop_size": 64,
+      "n_fft": 256,
+      "parameter_count": 294642,
+      "noise_seed": "2236265385529901705",
+      "license_file": "third_party/sanotts/LICENSE.MIT",
+      "license_type": "MIT",
+      "files": [
+        {
+          "name": "front_q8.bin",
+          "rel_path": "models/en_us_e12nano/front_q8.bin",
+          "role": "front_weights",
+          "sample_rate": 24000,
+          "bytes": 175456,
+          "sha256": "ec5538b3bb079dcff880ed2dcbd94f2a7587669cf05ad44844dcca50dcb4273b",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/test/fixtures/en_us_e12nano/front_q8.bin"
+        },
+        {
+          "name": "model_q8.bin",
+          "rel_path": "models/en_us_e12nano/model_q8.bin",
+          "role": "decoder_weights",
+          "sample_rate": 24000,
+          "bytes": 164224,
+          "sha256": "5d7fef542537263392cac522daf10b0e5039309d7985ef4e74bdced06a583c97",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/test/fixtures/en_us_e12nano/model_q8.bin"
+        },
+        {
+          "name": "nano_q8_meta.h",
+          "rel_path": "third_party/sanotts/models/en_us_e12nano/nano_q8_meta.h",
+          "role": "model_header",
+          "sample_rate": 24000,
+          "bytes": 6317,
+          "sha256": "bcfd0a68ccdd6cb97d268d4a79efed4eb72ed0d669ae5f656872fe0c621b1fa6",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/models/en_us_e12nano/nano_q8_meta.h"
+        },
+        {
+          "name": "r00_ids.bin",
+          "rel_path": "tests/fixtures/en_us_e12nano/r00_ids.bin",
+          "role": "golden_fixture_ids",
+          "sample_rate": 24000,
+          "bytes": 292,
+          "sha256": "0a5d32ab407fa11fe2c54b359e3e8b7712846d9a23493b5669073c1a03dc7564",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/test/fixtures/en_us_e12nano/r00_ids.bin"
+        },
+        {
+          "name": "r00_durs.bin",
+          "rel_path": "tests/fixtures/en_us_e12nano/r00_durs.bin",
+          "role": "golden_fixture_durs",
+          "sample_rate": 24000,
+          "bytes": 292,
+          "sha256": "0c940880d8952d010109c61991ecda3365d55da8cf54e457a9ef90f1778b8ac5",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/test/fixtures/en_us_e12nano/r00_durs.bin"
+        },
+        {
+          "name": "r00_audio.bin",
+          "rel_path": "tests/fixtures/en_us_e12nano/r00_audio.bin",
+          "role": "golden_fixture_audio",
+          "sample_rate": 24000,
+          "bytes": 423936,
+          "sha256": "ea4acae091da21a7d91bc1cebf79b9267ea4f75e20d0e3cb448c3a0c6eddda06",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/test/fixtures/en_us_e12nano/r00_audio.bin"
+        },
+        {
+          "name": "e2e_noise.bin",
+          "rel_path": "tests/fixtures/en_us_e12nano/e2e_noise.bin",
+          "role": "golden_fixture_noise",
+          "sample_rate": 24000,
+          "bytes": 6640,
+          "sha256": "686c0cb446fdf628964117ff5c6b45f571eb9b299069ae3b73c4a7d112fdcd6d",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/test/fixtures/en_us_e12nano/e2e_noise.bin"
+        },
+        {
+          "name": "e2e_uniform.bin",
+          "rel_path": "tests/fixtures/en_us_e12nano/e2e_uniform.bin",
+          "role": "golden_fixture_uniform",
+          "sample_rate": 24000,
+          "bytes": 256,
+          "sha256": "026e9f95935ee821fcf3376f9dd2e8aed2f686fd8503b7f8bd5bf726e5e4868e",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/test/fixtures/en_us_e12nano/e2e_uniform.bin"
+        },
+        {
+          "name": "rows.txt",
+          "rel_path": "tests/fixtures/en_us_e12nano/rows.txt",
+          "role": "golden_fixture_rows",
+          "sample_rate": 24000,
+          "bytes": 377,
+          "sha256": "13684556fc6f88bb90add0faa381d0188ccf3c3c008a346f34723381aaf8828a",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/test/fixtures/en_us_e12nano/rows.txt"
+        }
+      ]
+    },
+    "chinese": {
+      "voice_id": "chinese",
+      "language": "zh_CN",
+      "espeak_voice": "cmn",
+      "architecture": "piperlite_fp32",
+      "sample_rate": 22050,
+      "hop_size": 256,
+      "parameter_count": 1499481,
+      "license_file": "third_party/sanotts/LICENSE",
+      "license_type": "GPL-3.0 (runtime MIT, espeak GPL-3.0)",
+      "files": [
+        {
+          "name": "front_f32.bin",
+          "rel_path": "models/chinese/front_f32.bin",
+          "role": "front_weights",
+          "sample_rate": 22050,
+          "bytes": 3438220,
+          "sha256": "34e5d7498cd405e16039433d8ad09000643669c0bdfc91e0f81bcdf4e40bf218",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/web/voices/chinese/front_f32.bin"
+        },
+        {
+          "name": "dec_f32.bin",
+          "rel_path": "models/chinese/dec_f32.bin",
+          "role": "decoder_weights",
+          "sample_rate": 22050,
+          "bytes": 2560816,
+          "sha256": "c994f980de6df513b83db65aeedea70cbad250e4d9fc96b1541a2e71301be4d0",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/web/voices/chinese/dec_f32.bin"
+        },
+        {
+          "name": "meta.json",
+          "rel_path": "models/chinese/meta.json",
+          "role": "voice_meta",
+          "sample_rate": 22050,
+          "bytes": 1230,
+          "sha256": "e73aecc065b1d7fc8b71c87ab676024ec27d5723222ef1dc66d74451b231ea71",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/web/voices/chinese/meta.json"
+        },
+        {
+          "name": "cmn_dict",
+          "rel_path": "models/chinese/cmn_dict",
+          "role": "espeak_dict",
+          "sample_rate": 22050,
+          "bytes": 1566347,
+          "sha256": "2a41ddab7213d0284a984def6b40c72cbc40b346d3220db08c6ae324f46d59aa",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/ports/wasm/espeak-data-multi/cmn_dict"
+        },
+        {
+          "name": "phondata",
+          "rel_path": "models/chinese/phondata",
+          "role": "espeak_phondata",
+          "sample_rate": 22050,
+          "bytes": 4096,
+          "sha256": "fe985d7ed428c3b4f187a5b90c016409259dcea5f35614ff2903e2f9cdb1eeb6",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/ports/wasm/espeak-data-multi/phondata"
+        },
+        {
+          "name": "phonindex",
+          "rel_path": "models/chinese/phonindex",
+          "role": "espeak_phonindex",
+          "sample_rate": 22050,
+          "bytes": 44904,
+          "sha256": "ddaddb27c8f60d788631f219303fdedc894eed5d0499a6f93187e863a11af423",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/ports/wasm/espeak-data-multi/phonindex"
+        },
+        {
+          "name": "phontab",
+          "rel_path": "models/chinese/phontab",
+          "role": "espeak_phontab",
+          "sample_rate": 22050,
+          "bytes": 59520,
+          "sha256": "d15c42e99a6f792775c281173bbc82c86b490c2d4a939215a1d526768c1db8ce",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/ports/wasm/espeak-data-multi/phontab"
+        },
+        {
+          "name": "intonations",
+          "rel_path": "models/chinese/intonations",
+          "role": "espeak_intonations",
+          "sample_rate": 22050,
+          "bytes": 2312,
+          "sha256": "031a105bf6bb2ebcd73a2c579ccfb42469b27266db0078af65ae298fd3588b21",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/ports/wasm/espeak-data-multi/intonations"
+        },
+        {
+          "name": "cmn",
+          "rel_path": "models/chinese/cmn",
+          "role": "espeak_voice_file",
+          "sample_rate": 22050,
+          "bytes": 686,
+          "sha256": "a130a38e3b622735c2401cb37f6719f46995e84a133729185cef9a543ec0b072",
+          "source_url": "https://raw.githubusercontent.com/Ampixa/sanoTTS/f73b8382bc98a1c8de3488ba30d727ab82587828/mcu/ports/wasm/espeak-data-multi/lang/sit/cmn"
+        },
+        {
+          "name": "zh_golden.json",
+          "rel_path": "tests/fixtures/chinese/zh_golden.json",
+          "role": "golden_fixture_meta",
+          "sample_rate": 22050,
+          "bytes": 5897,
+          "sha256": "a33f2dc680544338846e0caa2b87f6cf1074b24e260b563d199261217b754e97",
+          "source_url": "local:generated_from_upstream_c99_reference"
+        }
+      ]
+    }
+  }
+}
