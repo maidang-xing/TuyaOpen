@@ -104,11 +104,13 @@ class SntClient:
 
 def run_suite_m0(client: SntClient) -> bool:
     print("\n=== Running Suite M0: Hardware & Protocol Smoke Test ===")
+    base_id = (int(time.time() * 10) % 900000) + 1000
 
     # 1. HELLO Test
-    print("\n--- Test 1: HELLO handshake ---")
-    client.send_line("HELLO\t1\n")
-    ev = client.read_event(req_id=1, event_type="hello")
+    req_hello = base_id + 1
+    print(f"\n--- Test 1: HELLO handshake (req_id={req_hello}) ---")
+    client.send_line(f"HELLO\t{req_hello}\n")
+    ev = client.read_event(req_id=req_hello, event_type="hello")
     assert ev.get("version") == "1.0.0", f"Unexpected version: {ev}"
     limits = ev.get("limits", {})
     assert limits.get("max_line") == 1024, f"Unexpected limits: {limits}"
@@ -116,13 +118,14 @@ def run_suite_m0(client: SntClient) -> bool:
     print("PASS: HELLO response valid.")
 
     # 2. 1-second 440 Hz test tone playback
-    print("\n--- Test 2: Audio playback & drain (GOLDEN) ---")
-    client.send_line("GOLDEN\t2\n")
-    ev_acc = client.read_event(req_id=2, event_type="accepted")
+    req_golden = base_id + 2
+    print(f"\n--- Test 2: Audio playback & drain (GOLDEN req_id={req_golden}) ---")
+    client.send_line(f"GOLDEN\t{req_golden}\n")
+    ev_acc = client.read_event(req_id=req_golden, event_type="accepted")
     print(f"PASS: Accepted (voice={ev_acc.get('voice')})")
 
     # Wait for completion after ~1 second playback
-    ev_done = client.read_event(req_id=2, event_type="done", timeout=5.0)
+    ev_done = client.read_event(req_id=req_golden, event_type="done", timeout=5.0)
     samples = ev_done.get("samples", 0)
     rate = ev_done.get("source_rate", 0)
     wall_us = ev_done.get("wall_us", 0)
@@ -130,24 +133,27 @@ def run_suite_m0(client: SntClient) -> bool:
     assert samples >= 15000, f"Expected ~16000 samples, got {samples}"
 
     # 3. STOP Priority Cancellation Test
-    print("\n--- Test 3: STOP priority cancellation ---")
-    client.send_line("GOLDEN\t3\n")
-    client.send_line("STOP\t4\n")
+    req_cancel = base_id + 3
+    req_stop = base_id + 4
+    print(f"\n--- Test 3: STOP priority cancellation (cancel={req_cancel}, stop={req_stop}) ---")
+    client.send_line(f"GOLDEN\t{req_cancel}\n")
+    client.send_line(f"STOP\t{req_stop}\n")
 
     # Expect request 3 cancelled
-    ev_cancel = client.read_event(req_id=3, event_type="cancelled", timeout=3.0)
-    print(f"PASS: Request 3 cancelled: {ev_cancel}")
+    ev_cancel = client.read_event(req_id=req_cancel, event_type="cancelled", timeout=3.0)
+    print(f"PASS: Request {req_cancel} cancelled: {ev_cancel}")
 
-    # Expect STOP 4 accepted and done
-    client.read_event(req_id=4, event_type="accepted", timeout=2.0)
-    client.read_event(req_id=4, event_type="done", timeout=2.0)
+    # Expect STOP accepted and done
+    client.read_event(req_id=req_stop, event_type="accepted", timeout=2.0)
+    client.read_event(req_id=req_stop, event_type="done", timeout=2.0)
     print("PASS: STOP completed successfully.")
 
     # 4. Pipeline recovery test after STOP
-    print("\n--- Test 4: Post-STOP recovery test ---")
-    client.send_line("GOLDEN\t5\n")
-    client.read_event(req_id=5, event_type="accepted", timeout=2.0)
-    ev_done5 = client.read_event(req_id=5, event_type="done", timeout=5.0)
+    req_recover = base_id + 5
+    print(f"\n--- Test 4: Post-STOP recovery test (req_id={req_recover}) ---")
+    client.send_line(f"GOLDEN\t{req_recover}\n")
+    client.read_event(req_id=req_recover, event_type="accepted", timeout=2.0)
+    ev_done5 = client.read_event(req_id=req_recover, event_type="done", timeout=5.0)
     print(f"PASS: Post-STOP playback successful (samples={ev_done5.get('samples')}).")
 
     print("\n==========================================")
@@ -160,11 +166,20 @@ def main():
     parser = argparse.ArgumentParser(description="sanoTTS serial smoke test")
     parser.add_argument("--port", type=str, default="/dev/ttyUSB0", help="Serial port")
     parser.add_argument("--baudrate", type=int, default=115200, help="Baud rate (default 115200)")
-    parser.add_argument("--suite", type=str, default="m0", choices=["m0", "hello", "soak"], help="Test suite")
+    parser.add_argument("--suite", type=str, default="m0", choices=["m0", "hello", "soak", "acceptance"], help="Test suite")
     parser.add_argument("--timeout", type=float, default=30.0, help="Timeout in seconds")
     parser.add_argument("--mock", action="store_true", help="Run in mock mode without physical serial port")
     parser.add_argument("--requests", type=int, default=10, help="Number of requests for soak suite")
+    parser.add_argument("--duration", type=int, default=1800, help="Max duration in seconds for soak suite")
     args = parser.parse_args()
+
+    if args.suite == "acceptance":
+        tools_dir = os.path.dirname(os.path.abspath(__file__))
+        if tools_dir not in sys.path:
+            sys.path.insert(0, tools_dir)
+        from test_m3_suite import run_suite
+        run_suite(port=args.port)
+        sys.exit(0)
 
     client = SntClient(args.port, args.baudrate, args.timeout, mock=args.mock)
     try:
@@ -172,8 +187,9 @@ def main():
         if args.suite == "m0":
             success = run_suite_m0(client)
         elif args.suite == "hello":
-            client.send_line("HELLO\t1\n")
-            ev = client.read_event(req_id=1, event_type="hello")
+            req_h = (int(time.time() * 10) % 900000) + 1000
+            client.send_line(f"HELLO\t{req_h}\n")
+            ev = client.read_event(req_id=req_h, event_type="hello")
             print("HELLO response:", json.dumps(ev))
             success = True
         elif args.suite == "soak":

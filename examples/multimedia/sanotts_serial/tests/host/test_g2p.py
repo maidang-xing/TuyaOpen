@@ -29,11 +29,14 @@ def ensure_harness(base_dir: Path) -> Path:
     c_harness = tools_dir / "snt_g2p_harness.c"
     src_dir = base_dir / "src"
     espeak_dir = base_dir / "third_party" / "espeak-ng"
+    miniz_dir = base_dir / "third_party" / "miniz"
 
     c_sources = [
         c_harness,
+        src_dir / "snt_assets.c",
         src_dir / "snt_text.c",
         src_dir / "snt_g2p.c",
+        miniz_dir / "miniz.c",
         *sorted((espeak_dir / "libespeak-ng").glob("*.c")),
         *sorted((espeak_dir / "ucd-tools").glob("*.c")),
     ]
@@ -58,6 +61,7 @@ def ensure_harness(base_dir: Path) -> Path:
             "-w",
             "-DHAVE_CONFIG_H",
             f"-I{src_dir}",
+            f"-I{miniz_dir}",
             f"-I{espeak_dir}",
             f"-I{espeak_dir / 'include'}",
             f"-I{espeak_dir / 'ucd-tools' / 'include'}",

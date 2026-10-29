@@ -28,8 +28,12 @@ void snt_engine_set_dur_override(const int32_t *durs, size_t n_durs);
 void snt_engine_set_chunk_config(const snt_chunk_config_t *cfg);
 
 /* Memory queries */
+int snt_engine_preallocate_arena(snt_voice_t voice);
+void *snt_engine_get_arena(size_t *size);
 size_t snt_engine_get_arena_peak(void);
 size_t snt_engine_get_arena_size(void);
+uint32_t snt_engine_get_sample_rate(void);
+snt_voice_t snt_engine_get_active_voice(void);
 
 #ifdef __cplusplus
 }

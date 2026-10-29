@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 #define SNT_SERIAL_MAX_LINE       1024
-#define SNT_SERIAL_MAX_PHONEMES   256
+#define SNT_SERIAL_MAX_PHONEMES   512
 #define SNT_SERIAL_ID_HISTORY_CAP 128
 
 typedef enum {
@@ -25,7 +25,8 @@ typedef enum {
     SNT_CMD_SAY,
     SNT_CMD_PHONEMES,
     SNT_CMD_GOLDEN,
-    SNT_CMD_STOP
+    SNT_CMD_STOP,
+    SNT_CMD_G2P
 } snt_cmd_type_t;
 
 typedef enum {
@@ -78,6 +79,8 @@ typedef struct {
     bool has_pending;
     snt_request_t pending_req;
 
+    snt_request_t temp_req;
+
     /* ID history for duplicate checking */
     uint32_t id_history[SNT_SERIAL_ID_HISTORY_CAP];
     size_t id_history_count;
@@ -99,6 +102,7 @@ void snt_serial_set_voice(snt_serial_t *snt, const char *voice_name);
 void snt_serial_feed(snt_serial_t *snt, const uint8_t *data, size_t len);
 
 /* Notify parser that active request has entered a new state */
+void snt_serial_send_phonemes(snt_serial_t *snt, uint32_t id, const int32_t *phonemes, size_t n);
 void snt_serial_notify_synthesizing(snt_serial_t *snt, uint32_t id);
 void snt_serial_notify_playing(snt_serial_t *snt, uint32_t id);
 void snt_serial_notify_done(snt_serial_t *snt, uint32_t id,

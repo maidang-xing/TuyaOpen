@@ -160,10 +160,7 @@ int snt_g2p_convert(const char *utf8, size_t bytes,
         return SNT_EINVAL;
     }
 
-    if (g_cancel_requested) {
-        *used = 0;
-        return SNT_ECANCELLED;
-    }
+    g_cancel_requested = 0;
 
     if (!g_initialized) {
         int rc = snt_g2p_init(SNT_VOICE_ZH);

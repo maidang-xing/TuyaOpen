@@ -11,24 +11,28 @@
 #include "snt_front_f32.h"
 #include "snt_piperlite.h"
 #include "snt_chinese_chunk.h"
+#include "snt_assets.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#if defined(ENABLE_EXT_RAM) && (ENABLE_EXT_RAM == 1)
-#include "tal_system.h"
+#include "tuya_cloud_types.h"
+#if defined(BEKEN_PLATFORM) || defined(__arm__) || (defined(OPERATING_SYSTEM) && OPERATING_SYSTEM != SYSTEM_LINUX)
+#include "tal_api.h"
 #define SNT_ARENA_ALLOC(sz) tal_psram_malloc(sz)
 #define SNT_ARENA_FREE(p)   tal_psram_free(p)
 #else
 #define SNT_ARENA_ALLOC(sz) malloc(sz)
 #define SNT_ARENA_FREE(p)   free(p)
+#define PR_NOTICE(...) printf(__VA_ARGS__); printf("\n")
+#define PR_ERR(...)    fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
 #endif
 
 #define ARENA_ALIGNMENT 16
 #define EN_NANO_ARENA_BYTES (512 * 1024)
-#define ZH_ARENA_BYTES      (5 * 1024 * 1024)
+#define ZH_ARENA_BYTES      (3600 * 1024)
 
 /* Arena structure preserving raw allocation pointer for leak-free deallocation */
 typedef struct {
@@ -237,12 +241,30 @@ void snt_engine_set_chunk_config(const snt_chunk_config_t *cfg) {
     }
 }
 
+int snt_engine_preallocate_arena(snt_voice_t voice) {
+    size_t sz = (voice == SNT_VOICE_ZH) ? ZH_ARENA_BYTES : EN_NANO_ARENA_BYTES;
+    return arena_init(&s_arena, sz);
+}
+
+void *snt_engine_get_arena(size_t *size) {
+    if (size) *size = s_arena.size;
+    return s_arena.aligned_ptr;
+}
+
 size_t snt_engine_get_arena_peak(void) {
     return s_arena.peak;
 }
 
 size_t snt_engine_get_arena_size(void) {
     return s_arena.size;
+}
+
+uint32_t snt_engine_get_sample_rate(void) {
+    return (s_active_voice == SNT_VOICE_ZH) ? 22050 : 24000;
+}
+
+snt_voice_t snt_engine_get_active_voice(void) {
+    return s_active_voice;
 }
 
 void snt_engine_request_cancel(void) {
@@ -272,10 +294,22 @@ int snt_engine_init(snt_voice_t voice) {
             s_front_blob_owned = true;
             s_dec_blob_owned = true;
         } else if (voice == SNT_VOICE_ZH) {
-            s_front_blob = try_load_model_file("chinese/front_f32.bin", &s_front_size);
-            s_dec_blob = try_load_model_file("chinese/dec_f32.bin", &s_dec_size);
-            s_front_blob_owned = true;
-            s_dec_blob_owned = true;
+            size_t f_sz = 0, d_sz = 0;
+            const void *f_data = snt_assets_get("front_f32.bin", &f_sz);
+            const void *d_data = snt_assets_get("dec_f32.bin", &d_sz);
+            if (f_data && d_data) {
+                s_front_blob = f_data;
+                s_front_size = f_sz;
+                s_dec_blob = d_data;
+                s_dec_size = d_sz;
+                s_front_blob_owned = false;
+                s_dec_blob_owned = false;
+            } else {
+                s_front_blob = try_load_model_file("chinese/front_f32.bin", &s_front_size);
+                s_dec_blob = try_load_model_file("chinese/dec_f32.bin", &s_dec_size);
+                s_front_blob_owned = true;
+                s_dec_blob_owned = true;
+            }
         } else {
             return SNT_EUNSUPPORTED;
         }
@@ -291,27 +325,36 @@ int snt_engine_init(snt_voice_t voice) {
             return SNT_ENOMEM;
         }
     } else if (voice == SNT_VOICE_ZH) {
-        size_t front_meta_sz, front_weight_floats;
-        size_t dec_meta_sz, dec_weight_floats;
-        if (front_blob_extents((const uint8_t *)s_front_blob, &front_meta_sz, &front_weight_floats) != 0 ||
-            piperlite_blob_extents((const uint8_t *)s_dec_blob, &dec_meta_sz, &dec_weight_floats) != 0) {
+        size_t front_meta_sz = 0, front_weight_floats = 0;
+        size_t dec_meta_sz = 0, dec_weight_floats = 0;
+        int r1 = front_blob_extents((const uint8_t *)s_front_blob, &front_meta_sz, &front_weight_floats);
+        int r2 = piperlite_blob_extents((const uint8_t *)s_dec_blob, &dec_meta_sz, &dec_weight_floats);
+        if (r1 != 0 || r2 != 0) {
+            PR_ERR("snt_engine: blob_extents failed: r1=%d r2=%d f_blob=%p d_blob=%p",
+                   r1, r2, s_front_blob, s_dec_blob);
             return SNT_EINVAL;
         }
 
         const float *front_weights = (const float *)((const uint8_t *)s_front_blob + front_meta_sz);
         const float *dec_weights = (const float *)((const uint8_t *)s_dec_blob + dec_meta_sz);
 
-        if (snt_front_init(&s_fm, s_front_blob, front_meta_sz, front_weights, front_weight_floats) != 0) {
+        int r3 = snt_front_init(&s_fm, s_front_blob, front_meta_sz, front_weights, front_weight_floats);
+        if (r3 != 0) {
+            PR_ERR("snt_engine: snt_front_init failed: %d", r3);
             return SNT_EINVAL;
         }
-        if (snt_piperlite_init(&s_pm, s_dec_blob, dec_meta_sz, dec_weights, dec_weight_floats) != 0) {
+        int r4 = snt_piperlite_init(&s_pm, s_dec_blob, dec_meta_sz, dec_weights, dec_weight_floats);
+        if (r4 != 0) {
+            PR_ERR("snt_engine: snt_piperlite_init failed: %d", r4);
             return SNT_EINVAL;
         }
         s_zh_models_loaded = true;
 
         if (arena_init(&s_arena, ZH_ARENA_BYTES) != 0) {
+            PR_ERR("snt_engine: arena_init failed for %u bytes", (unsigned)ZH_ARENA_BYTES);
             return SNT_ENOMEM;
         }
+        PR_NOTICE("snt_engine: Chinese models initialized successfully (arena %u B)", (unsigned)ZH_ARENA_BYTES);
     } else {
         return SNT_EUNSUPPORTED;
     }
@@ -462,7 +505,8 @@ int snt_engine_synthesize(const int32_t *ids, size_t n_ids,
         }
 
         /* 1. Duration calculation */
-        int32_t *durations = (int32_t *)malloc(n_ids * sizeof(int32_t));
+        int32_t dur_stack[256];
+        int32_t *durations = (n_ids <= 256) ? dur_stack : (int32_t *)malloc(n_ids * sizeof(int32_t));
         if (!durations) return SNT_ENOMEM;
 
         long frames = 0;
@@ -472,24 +516,30 @@ int snt_engine_synthesize(const int32_t *ids, size_t n_ids,
         } else {
             size_t dur_arena_n = snt_front_duration_arena_floats(&s_fm, (int)n_ids);
             float *dur_arena = (float *)s_arena.aligned_ptr;
-            int32_t *dur_ids = (int32_t *)malloc(n_ids * sizeof(int32_t));
-            if (!dur_ids) { free(durations); return SNT_ENOMEM; }
+            int32_t dur_ids_stack[256];
+            int32_t *dur_ids = (n_ids <= 256) ? dur_ids_stack : (int32_t *)malloc(n_ids * sizeof(int32_t));
+            if (!dur_ids) {
+                if (durations != dur_stack) free(durations);
+                return SNT_ENOMEM;
+            }
 
             for (size_t i = 0; i < n_ids; i++) {
                 dur_ids[i] = (ids[i] >= 0 && ids[i] < s_fm.d_vocab) ? ids[i] : (59 < s_fm.d_vocab ? 59 : 0);
             }
             frames = snt_front_durations(&s_fm, dur_ids, (int)n_ids, 1.0f,
                                         durations, dur_arena, dur_arena_n);
-            free(dur_ids);
+            if (dur_ids != dur_ids_stack) free(dur_ids);
         }
 
+        PR_NOTICE("snt_engine: ZH durations calculated: %ld frames", frames);
+
         if (frames <= 0) {
-            free(durations);
+            if (durations != dur_stack) free(durations);
             return SNT_EINVAL;
         }
 
         if (s_cancel_requested) {
-            free(durations);
+            if (durations != dur_stack) free(durations);
             return SNT_ECANCELLED;
         }
 
@@ -505,20 +555,26 @@ int snt_engine_synthesize(const int32_t *ids, size_t n_ids,
         size_t total_lat_needed = latent_n + lat_arena_n;
 
         if (total_lat_needed * sizeof(float) > s_arena.size) {
-            free(durations);
+            if (durations != dur_stack) free(durations);
             return SNT_ENOMEM;
         }
 
-        int32_t *ac_ids = (int32_t *)malloc(n_ids * sizeof(int32_t));
-        if (!ac_ids) { free(durations); return SNT_ENOMEM; }
+        int32_t ac_ids_stack[256];
+        int32_t *ac_ids = (n_ids <= 256) ? ac_ids_stack : (int32_t *)malloc(n_ids * sizeof(int32_t));
+        if (!ac_ids) {
+            if (durations != dur_stack) free(durations);
+            return SNT_ENOMEM;
+        }
         for (size_t i = 0; i < n_ids; i++) {
             ac_ids[i] = (ids[i] >= 0 && ids[i] < s_fm.a_vocab) ? ids[i] : (59 < s_fm.a_vocab ? 59 : 0);
         }
 
         int rc = snt_front_latent(&s_fm, ac_ids, durations, (int)n_ids, frames,
                                   latent, lat_arena, lat_arena_n);
-        free(ac_ids);
-        free(durations);
+        if (ac_ids != ac_ids_stack) free(ac_ids);
+        if (durations != dur_stack) free(durations);
+
+        PR_NOTICE("snt_engine: ZH latent calculated: rc=%d", rc);
 
         if (rc != 0) {
             return SNT_EIO;
@@ -533,6 +589,9 @@ int snt_engine_synthesize(const int32_t *ids, size_t n_ids,
          */
         float *dec_arena = latent + latent_n;
         size_t dec_arena_floats = (s_arena.size / sizeof(float)) - latent_n;
+
+        PR_NOTICE("snt_engine: ZH starting chunked synthesis (frames=%ld, dec_arena_floats=%zu)...",
+                  frames, dec_arena_floats);
 
         uint64_t first_pcm_us = 0;
         rc = snt_chinese_chunk_synthesize(&s_pm, latent, (int)frames,

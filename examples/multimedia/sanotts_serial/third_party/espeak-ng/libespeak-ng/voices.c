@@ -28,11 +28,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include "snt_assets.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
-#else
+#elif !defined(__arm__)
 #include <dirent.h>
+#define HAVE_DIRENT_H 1
 #endif
 
 #include <espeak-ng/espeak_ng.h>
@@ -397,6 +399,23 @@ void ReadNumbers(char *p, int *flags, int maxValue,  const MNEM_TAB *keyword_tab
 	}
 }
 
+static const char *mem_gets_strip(char *out, size_t max_len, const char **p_mem, const char *end)
+{
+	if (!p_mem || !*p_mem || *p_mem >= end) return NULL;
+	size_t i = 0;
+	while (*p_mem < end && **p_mem != '\n' && **p_mem != '\r') {
+		if (i < max_len - 1) {
+			out[i++] = **p_mem;
+		}
+		(*p_mem)++;
+	}
+	out[i] = '\0';
+	while (*p_mem < end && (**p_mem == '\n' || **p_mem == '\r')) {
+		(*p_mem)++;
+	}
+	return out;
+}
+
 voice_t *LoadVoice(const char *vname, int control)
 {
 	// control, bit 0  1= no_default
@@ -470,12 +489,17 @@ voice_t *LoadVoice(const char *vname, int control)
 
 	f_voice = fopen(buf, "r");
 
+	size_t asset_vsz = 0;
+	const char *asset_vdata = (const char *)snt_assets_get(voicename, &asset_vsz);
+	const char *mem_cur = asset_vdata;
+	const char *mem_end = asset_vdata ? (asset_vdata + asset_vsz) : NULL;
+
         if (!(control & 8)/*compiling phonemes*/)
             language_type = ESPEAKNG_DEFAULT_VOICE; // default
         else
             language_type = "";
 
-	if (f_voice == NULL) {
+	if (f_voice == NULL && asset_vdata == NULL) {
 		if (control & 3)
 			return NULL; // can't open file
 
@@ -509,7 +533,8 @@ voice_t *LoadVoice(const char *vname, int control)
 	}
 	VoiceReset(tone_only);
 
-	while ((f_voice != NULL) && (fgets_strip(buf, sizeof(buf), f_voice) != NULL)) {
+	while (((f_voice != NULL) && (fgets_strip(buf, sizeof(buf), f_voice) != NULL)) ||
+	       ((asset_vdata != NULL) && (mem_gets_strip(buf, sizeof(buf), &mem_cur, mem_end) != NULL))) {
 		// isolate the attribute name
 		for (p = buf; (*p != 0) && !isspace(*p); p++) ;
 		*p++ = 0;
@@ -1216,7 +1241,7 @@ static void GetVoices(const char *path, int len_path_voices, int is_language_fil
 		}
 	} while (FindNextFileA(hFind, &FindFileData) != 0);
 	FindClose(hFind);
-#else
+#elif defined(HAVE_DIRENT_H)
 	DIR *dir;
 	struct dirent *ent;
 
@@ -1239,6 +1264,11 @@ static void GetVoices(const char *path, int len_path_voices, int is_language_fil
 
 	}
 	closedir(dir);
+#else
+	(void)path;
+	(void)len_path_voices;
+	(void)is_language_file;
+	return;
 #endif
 }
 

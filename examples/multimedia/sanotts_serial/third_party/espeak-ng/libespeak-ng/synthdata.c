@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include <espeak-ng/espeak_ng.h>
+#include "snt_assets.h"
 #include <espeak-ng/speak_lib.h>
 #include <espeak-ng/encoding.h>
 
@@ -66,6 +67,15 @@ int seq_len_adjust;
 static espeak_ng_STATUS ReadPhFile(void **ptr, const char *fname, int *size, espeak_ng_ERROR_CONTEXT *context)
 {
 	if (!ptr) return EINVAL;
+
+	size_t asset_sz = 0;
+	const void *asset_data = snt_assets_get(fname, &asset_sz);
+	if (asset_data && asset_sz > 0) {
+		if (*ptr != NULL && !snt_assets_is_resident(*ptr)) free(*ptr);
+		*ptr = (void *)asset_data;
+		if (size != NULL) *size = (int)asset_sz;
+		return ENS_OK;
+	}
 
 	FILE *f_in;
 	int length;
@@ -166,10 +176,10 @@ espeak_ng_STATUS LoadPhData(int *srate, espeak_ng_ERROR_CONTEXT *context)
 
 void FreePhData(void)
 {
-	free(phoneme_tab_data);
-	free(phoneme_index);
-	free(phondata_ptr);
-	free(tunes);
+	if (phoneme_tab_data && !snt_assets_is_resident(phoneme_tab_data)) free(phoneme_tab_data);
+	if (phoneme_index && !snt_assets_is_resident(phoneme_index)) free(phoneme_index);
+	if (phondata_ptr && !snt_assets_is_resident(phondata_ptr)) free(phondata_ptr);
+	if (tunes && !snt_assets_is_resident(tunes)) free(tunes);
 	phoneme_tab_data = NULL;
 	phoneme_index = NULL;
 	phondata_ptr = NULL;

@@ -27,6 +27,7 @@
 #include <wctype.h>
 #include <wchar.h>
 #include <assert.h>
+#include "snt_assets.h"
 
 #include <espeak-ng/espeak_ng.h>
 #include <espeak-ng/speak_lib.h>
@@ -215,8 +216,20 @@ int LoadDictionary(Translator *tr, const char *name, int no_error)
 	size = GetFileLength(fname);
 
 	if (tr->data_dictlist != NULL) {
-		free(tr->data_dictlist);
+		if (!snt_assets_is_resident(tr->data_dictlist)) {
+			free(tr->data_dictlist);
+		}
 		tr->data_dictlist = NULL;
+	}
+
+	char asset_dict_name[48];
+	snprintf(asset_dict_name, sizeof(asset_dict_name), "%s_dict", name);
+	size_t asset_sz = 0;
+	const void *asset_dict = snt_assets_get(asset_dict_name, &asset_sz);
+	if (asset_dict && asset_sz > 0) {
+		tr->data_dictlist = (char *)asset_dict;
+		size = (int)asset_sz;
+		goto parse_dict_data;
 	}
 
 	f = fopen(fname, "rb");
@@ -235,6 +248,7 @@ int LoadDictionary(Translator *tr, const char *name, int no_error)
 	size = fread(tr->data_dictlist, 1, size, f);
 	fclose(f);
 
+parse_dict_data:
 	pw = (int *)(tr->data_dictlist);
 	length = Reverse4Bytes(pw[1]);
 

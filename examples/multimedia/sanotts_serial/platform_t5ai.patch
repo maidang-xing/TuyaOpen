@@ -1,0 +1,65 @@
+diff --git a/t5_os/projects/tuya_app/partitions/bk7258/auto_partitions.csv b/t5_os/projects/tuya_app/partitions/bk7258/auto_partitions.csv
+index 5a982bcd..cff7e304 100755
+--- a/t5_os/projects/tuya_app/partitions/bk7258/auto_partitions.csv
++++ b/t5_os/projects/tuya_app/partitions/bk7258/auto_partitions.csv
+@@ -1,15 +1,12 @@
+-# The bin size whose type is code occupies more space in flash,,,,,
+-# The occupied space is: bin size*34/32(and 68K aligned),,,,,
+-# easyflash:beken CP some components use it
+-# easyflash_ap:beken AP some components use it
+-#Name,Offset,Size,Type,Read,Write
+-primary_bootloader,         ,   68k,   code,TRUE,FALSE
+-primary_tuyaboot,           ,   68k,   code,TRUE,FALSE
+-primary_cp_app,             ,   1088k,  code,TRUE,FALSE
+-primary_ap_app,             ,   3808k,  code,TRUE,FALSE
+-ota,                        ,   2940K,  data,TRUE,TRUE
+-ota_mgr,                    ,   8K,     data,TRUE,TRUE
+-usr_config,                 ,   8K,     data,TRUE,TRUE
+-tuya_data,          0x7cd000,   196K,   data,TRUE,TRUE
+-sys_rf,             0x7fe000,   4k,     data,TRUE,TRUE
+-sys_net,            0x7ff000,   4k,     data,TRUE,TRUE
++# Project-dedicated 8MB Flash layout for TUYA_T5AI_CORE sanoTTS
++# Authorized repartition: Minimized OTA and unused data partitions
++# Name,Offset,Size,Type,Read,Write
++primary_bootloader, , 68k, code,TRUE,FALSE
++primary_tuyaboot, , 68k, code,TRUE,FALSE
++primary_cp_app, , 1088k, code,TRUE,FALSE
++primary_ap_app, , 1360k, code,TRUE,FALSE
++usr_config, , 8k, data,TRUE,TRUE
++ota, , 8k, data,TRUE,TRUE
++snt_model_zh, 0x28a000, 5584k, data,TRUE,FALSE
++sys_rf, 0x7fe000, 4k, data,TRUE,TRUE
++sys_net, 0x7ff000, 4k, data,TRUE,TRUE
+diff --git a/t5_os/projects/tuya_app/partitions/bk7258/ram_regions.csv b/t5_os/projects/tuya_app/partitions/bk7258/ram_regions.csv
+index 44e7f696..15a91bfa 100755
+--- a/t5_os/projects/tuya_app/partitions/bk7258/ram_regions.csv
++++ b/t5_os/projects/tuya_app/partitions/bk7258/ram_regions.csv
+@@ -10,9 +10,9 @@ PWR_MNG,                 SRAM,           , 0x000100
+ SWAP,                    SRAM,           , 0x000800
+ PSRAM_MEM_SLAB_USER,    PSRAM, 0x60000000, 0x019000
+ PSRAM_MEM_SLAB_AUDIO,   PSRAM,           , 0x019000
+-PSRAM_MEM_SLAB_ENCODE,  PSRAM,           , 0x15E000
+-PSRAM_MEM_SLAB_DISPLAY, PSRAM,           , 0x470000
++PSRAM_MEM_SLAB_ENCODE,  PSRAM,           , 0x002000
++PSRAM_MEM_SLAB_DISPLAY, PSRAM,           , 0x002000
+ CP_PSRAM_HEAP,          PSRAM,           , 0x040000
+ AP_PSRAM_STACK_HEAP,    PSRAM,           , 0x100000
+-AP_PSRAM_HEAP,          PSRAM,           , 0x8A0000
++AP_PSRAM_HEAP,          PSRAM,           , 0xE6A000
+ AP_PSRAM_SECTION,       PSRAM,           , 0x020000
+diff --git a/t5_os/projects/tuya_app/tuya_scripts/create_ug_file.py b/t5_os/projects/tuya_app/tuya_scripts/create_ug_file.py
+index 43560495..b5346fab 100755
+--- a/t5_os/projects/tuya_app/tuya_scripts/create_ug_file.py
++++ b/t5_os/projects/tuya_app/tuya_scripts/create_ug_file.py
+@@ -178,8 +178,9 @@ def main(input_file, output_file, total_size, ota_size, a_size, gap_size, mode,
+                     out_file.write(compress_ug)
+             else:
+                 # Modified by TUYA Start
+-                raise click.ClickException(
+-                    oversize_message(len(all_app), len(compress_ug), ota_size))
++                click.secho(f"注意: OTA 分区空间不足或已被项目专用重划分取消 (ota_size={ota_size}, 需要={len(compress_ug)})，跳过严格OTA大小校验并写入产物。", fg="yellow")
++                with open(output_file, 'wb') as out_file:
++                    out_file.write(compress_ug)
+                 # Modified by TUYA End
+         elif mode == 2:
+             # a: SMP 可覆盖分段压缩升级

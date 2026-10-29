@@ -18,6 +18,7 @@
  */
 
 #include "config.h"
+#include "snt_assets.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -246,6 +247,7 @@ int sync_espeak_terminated_msg(uint32_t unique_identifier, void *user_data)
 
 static int check_data_path(const char *path, int allow_directory)
 {
+	if (snt_assets_is_chinese_ready()) return 1;
 	if (!path) return 0;
 
 	snprintf(path_home, sizeof(path_home), "%s/espeak-ng-data", path);

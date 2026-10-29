@@ -7,6 +7,13 @@
 #include "snt_chinese_chunk.h"
 #include "snt_port.h"
 
+#if defined(BEKEN_PLATFORM) || defined(__arm__) || (defined(OPERATING_SYSTEM) && OPERATING_SYSTEM != SYSTEM_LINUX)
+#include "tal_api.h"
+#define CHUNK_LOG(fmt, ...) PR_NOTICE(fmt, ##__VA_ARGS__)
+#else
+#define CHUNK_LOG(fmt, ...) printf(fmt "\n", ##__VA_ARGS__)
+#endif
+
 #include <string.h>
 #include <stdio.h>
 
@@ -102,8 +109,12 @@ int snt_chinese_chunk_synthesize(const snt_piperlite_model *m,
             memcpy(dst, src, (size_t)chunk_frames * sizeof(float));
         }
 
+        CHUNK_LOG("snt_chunk: running [%d..%d]/%d (chunk_frames=%d)", f_start, f_end, total_frames, chunk_frames);
+        int64_t t_chunk0 = snt_now_us();
         int rc = snt_piperlite_synthesize(m, sub_z, chunk_frames, chunk_audio,
                                          dec_arena, dec_arena_avail);
+        int64_t t_chunk1 = snt_now_us();
+        CHUNK_LOG("snt_chunk: synthesized chunk in %lld ms (rc=%d)", (long long)((t_chunk1 - t_chunk0) / 1000), rc);
         if (rc != 0) {
             return SNT_EIO;
         }

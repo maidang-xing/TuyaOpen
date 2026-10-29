@@ -10,7 +10,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#if defined(TARGET_T5AI) || defined(TUYA_OS) || defined(OPEN_SDK_ROOT)
+#if defined(BEKEN_PLATFORM) || defined(__arm__) || (defined(OPERATING_SYSTEM) && OPERATING_SYSTEM != SYSTEM_LINUX) || defined(TARGET_T5AI) || defined(TUYA_OS)
+#include "tal_api.h"
 #include "tal_system.h"
 #else
 #include <time.h>
@@ -29,7 +30,7 @@ int snt_scratch_id(void) {
 }
 
 int64_t snt_now_us(void) {
-#if defined(TARGET_T5AI) || defined(TUYA_OS)
+#if defined(BEKEN_PLATFORM) || defined(__arm__) || (defined(OPERATING_SYSTEM) && OPERATING_SYSTEM != SYSTEM_LINUX)
     return (int64_t)tal_system_get_millisecond() * 1000LL;
 #elif defined(CLOCK_MONOTONIC)
     struct timespec ts;

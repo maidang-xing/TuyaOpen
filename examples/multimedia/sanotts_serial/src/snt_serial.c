@@ -169,6 +169,8 @@ static void parse_and_process_line(snt_serial_t *snt, char *line)
         cmd_type = SNT_CMD_PHONEMES;
     } else if (strcmp(verb, "GOLDEN") == 0) {
         cmd_type = SNT_CMD_GOLDEN;
+    } else if (strcmp(verb, "G2P") == 0) {
+        cmd_type = SNT_CMD_G2P;
     } else {
         snt_serial_send_json(snt, "{\"id\":%u,\"event\":\"error\",\"code\":%d,\"msg\":\"unknown command verb\"}",
                              id, SNT_EINVAL);
@@ -187,7 +189,7 @@ static void parse_and_process_line(snt_serial_t *snt, char *line)
         }
         snt_serial_send_json(snt,
             "{\"id\":%u,\"event\":\"hello\",\"version\":\"1.0.0\",\"voice\":\"%s\","
-            "\"commands\":[\"HELLO\",\"SAY\",\"PHONEMES\",\"GOLDEN\",\"STOP\"],"
+            "\"commands\":[\"HELLO\",\"SAY\",\"PHONEMES\",\"GOLDEN\",\"STOP\",\"G2P\"],"
             "\"limits\":{\"max_line\":%d,\"max_phonemes\":%d}}",
             id, snt->voice_name ? snt->voice_name : "en-nano",
             SNT_SERIAL_MAX_LINE, SNT_SERIAL_MAX_PHONEMES);
@@ -230,26 +232,26 @@ static void parse_and_process_line(snt_serial_t *snt, char *line)
     }
 
     /* Prepare request object */
-    snt_request_t req;
-    memset(&req, 0, sizeof(req));
-    req.type = cmd_type;
-    req.id = id;
-    req.state = SNT_REQ_STATE_ACCEPTED;
+    snt_request_t *req = &snt->temp_req;
+    memset(req, 0, sizeof(*req));
+    req->type = cmd_type;
+    req->id = id;
+    req->state = SNT_REQ_STATE_ACCEPTED;
 
-    if (cmd_type == SNT_CMD_SAY) {
+    if (cmd_type == SNT_CMD_SAY || cmd_type == SNT_CMD_G2P) {
         if (!payload || *payload == '\0') {
             snt_serial_send_json(snt, "{\"id\":%u,\"event\":\"error\",\"code\":%d,\"msg\":\"empty SAY text\"}",
                                  id, SNT_EINVAL);
             return;
         }
         size_t p_len = strlen(payload);
-        if (p_len >= sizeof(req.text)) {
+        if (p_len >= sizeof(req->text)) {
             snt_serial_send_json(snt, "{\"id\":%u,\"event\":\"error\",\"code\":%d,\"msg\":\"text too long\"}",
                                  id, SNT_E2BIG);
             return;
         }
-        memcpy(req.text, payload, p_len + 1);
-        req.text_len = p_len;
+        memcpy(req->text, payload, p_len + 1);
+        req->text_len = p_len;
     } else if (cmd_type == SNT_CMD_PHONEMES) {
         if (!payload || *payload == '\0') {
             snt_serial_send_json(snt, "{\"id\":%u,\"event\":\"error\",\"code\":%d,\"msg\":\"empty PHONEMES list\"}",
@@ -281,7 +283,7 @@ static void parse_and_process_line(snt_serial_t *snt, char *line)
                                      id, SNT_E2BIG);
                 return;
             }
-            req.phonemes[count++] = (int32_t)val;
+            req->phonemes[count++] = (int32_t)val;
             token = strtok(NULL, ",");
         }
         if (parse_err || count == 0) {
@@ -289,12 +291,14 @@ static void parse_and_process_line(snt_serial_t *snt, char *line)
                                  id, SNT_EINVAL);
             return;
         }
-        req.n_phonemes = count;
+        req->n_phonemes = count;
     } else if (cmd_type == SNT_CMD_GOLDEN) {
         if (payload && *payload != '\0') {
-            snt_serial_send_json(snt, "{\"id\":%u,\"event\":\"error\",\"code\":%d,\"msg\":\"extra parameter in GOLDEN\"}",
-                                 id, SNT_EINVAL);
-            return;
+            size_t p_len = strlen(payload);
+            if (p_len < sizeof(req->text)) {
+                memcpy(req->text, payload, p_len + 1);
+                req->text_len = p_len;
+            }
         }
     }
 
@@ -310,13 +314,13 @@ static void parse_and_process_line(snt_serial_t *snt, char *line)
                          id, snt->voice_name ? snt->voice_name : "en-nano");
 
     if (!snt->has_active) {
-        snt->active_req = req;
+        snt->active_req = *req;
         snt->has_active = true;
         if (snt->exec_fn) {
             snt->exec_fn(&snt->active_req, snt->exec_user);
         }
     } else {
-        snt->pending_req = req;
+        snt->pending_req = *req;
         snt->has_pending = true;
     }
 }
@@ -353,6 +357,18 @@ void snt_serial_feed(snt_serial_t *snt, const uint8_t *data, size_t len)
             }
         }
     }
+}
+
+void snt_serial_send_phonemes(snt_serial_t *snt, uint32_t id, const int32_t *phonemes, size_t n)
+{
+    char buf[2560];
+    int len = snprintf(buf, sizeof(buf), "{\"id\":%u,\"event\":\"phonemes\",\"n_phonemes\":%u,\"phonemes\":[",
+                       (unsigned)id, (unsigned)n);
+    for (size_t i = 0; i < n && len < (int)sizeof(buf) - 16; i++) {
+        len += snprintf(buf + len, sizeof(buf) - len, "%s%d", (i > 0) ? "," : "", (int)phonemes[i]);
+    }
+    snprintf(buf + len, sizeof(buf) - len, "]}");
+    snt_serial_send_json(snt, "%s", buf);
 }
 
 void snt_serial_notify_synthesizing(snt_serial_t *snt, uint32_t id)
@@ -431,5 +447,5 @@ bool snt_serial_is_active_cancelled(snt_serial_t *snt, uint32_t id)
     if (snt->has_active && snt->active_req.id == id) {
         return (snt->active_req.state == SNT_REQ_STATE_CANCELLED);
     }
-    return true;
+    return false;
 }

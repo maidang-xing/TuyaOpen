@@ -27,6 +27,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>
+#include "snt_assets.h"
 
 #include <espeak-ng/espeak_ng.h>
 #include <espeak-ng/speak_lib.h>
@@ -116,8 +117,10 @@ void DeleteTranslator(Translator *tr)
 {
 	if (!tr) return;
 
-	if (tr->data_dictlist != NULL)
-		free(tr->data_dictlist);
+	if (tr->data_dictlist != NULL) {
+		if (!snt_assets_is_resident(tr->data_dictlist))
+			free(tr->data_dictlist);
+	}
 	free(tr);
 }
 
