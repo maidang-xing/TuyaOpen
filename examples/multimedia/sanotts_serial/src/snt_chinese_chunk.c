@@ -78,6 +78,8 @@ int snt_chinese_chunk_synthesize(const snt_piperlite_model *m,
     size_t total_needed = sub_z_floats + chunk_audio_floats + dec_arena_floats;
 
     if (arena_floats < total_needed) {
+        PR_ERR("snt_chunk: arena_floats (%zu) < total_needed (%zu) [avail %zu KB < needed %zu KB]",
+               arena_floats, total_needed, (arena_floats * 4) / 1024, (total_needed * 4) / 1024);
         return SNT_ENOMEM;
     }
 

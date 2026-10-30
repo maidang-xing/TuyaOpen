@@ -24,10 +24,11 @@ def send_say_command(ser, text, req_id, is_g2p_only=False, timeout=180.0):
     
     ser.reset_input_buffer()
     ser.write(cmd_str.encode("utf-8"))
-    print(f">> 发送指令: {cmd_verb} (ID: {req_id}) -> \"{text}\"")
+    print(f">> 发送指令: {cmd_verb} (ID: {req_id}) -> \"{text}\"", flush=True)
 
     t0 = time.time()
-    while time.time() - t0 < timeout:
+    effective_timeout = timeout
+    while time.time() - t0 < effective_timeout:
         line = ser.readline()
         if not line:
             continue
@@ -41,14 +42,18 @@ def send_say_command(ser, text, req_id, is_g2p_only=False, timeout=180.0):
 
             event_type = evt.get("event")
             if event_type == "accepted":
-                print(f"   [接受] 板端已接收请求 (声部: {evt.get('voice')})")
+                print(f"   [接受] 板端已接收请求 (声部: {evt.get('voice')})", flush=True)
             elif event_type == "phonemes":
                 n_ph = evt.get("n_phonemes", 0)
-                print(f"   [音素] 板端 G2P 转换完成: 共 {n_ph} 个音素 ID")
+                # 动态自适应超时: 单核标量C下每个音素对应约 3~4 秒计算时长
+                if not is_g2p_only and n_ph > 0:
+                    est_timeout = max(timeout, n_ph * 4.5)
+                    effective_timeout = est_timeout
+                print(f"   [音素] 板端 G2P 转换完成: 共 {n_ph} 个音素 ID", flush=True)
             elif event_type == "synthesizing":
-                print(f"   [合成] sanoTTS 神经模型推理中 (请稍候)...")
+                print(f"   [合成] sanoTTS 神经模型推理中 (请稍候)...", flush=True)
             elif event_type == "playing":
-                print(f"   [播放] 板载扬声器开始物理发声...")
+                print(f"   [播放] 板载扬声器开始物理发声...", flush=True)
             elif event_type == "done":
                 samples = evt.get("samples", 0)
                 sr = evt.get("source_rate", 22050)
@@ -56,18 +61,18 @@ def send_say_command(ser, text, req_id, is_g2p_only=False, timeout=180.0):
                 wall_s = evt.get("wall_us", 0) / 1000000.0
                 underruns = evt.get("underruns", 0)
                 dur_s = samples / sr if sr > 0 else 0
-                print(f"   [完成] 播放结束！音频时长: {dur_s:.3f}秒 ({samples} 采样点), 耗时: {wall_s:.2f}秒, 欠载: {underruns}次")
+                print(f"   [完成] 播放结束！音频时长: {dur_s:.3f}秒 ({samples} 采样点), 耗时: {wall_s:.2f}秒, 欠载: {underruns}次", flush=True)
                 return True
             elif event_type == "error":
-                print(f"   [错误] 板端返回错误: code={evt.get('code')}, msg={evt.get('msg')}")
+                print(f"   [错误] 板端返回错误: code={evt.get('code')}, msg={evt.get('msg')}", flush=True)
                 return False
             elif event_type == "cancelled":
-                print(f"   [取消] 请求已被中止")
+                print(f"   [取消] 请求已被中止", flush=True)
                 return False
         except Exception as e:
             pass
 
-    print(f"   [超时] 等待板端响应超时 ({timeout}秒)")
+    print(f"   [超时] 等待板端响应超时 ({effective_timeout:.0f}秒)", flush=True)
     return False
 
 def main():

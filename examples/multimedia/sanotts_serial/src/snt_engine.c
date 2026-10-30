@@ -32,7 +32,7 @@
 
 #define ARENA_ALIGNMENT 16
 #define EN_NANO_ARENA_BYTES (512 * 1024)
-#define ZH_ARENA_BYTES      (3600 * 1024)
+#define ZH_ARENA_BYTES      (4800 * 1024)
 
 /* Arena structure preserving raw allocation pointer for leak-free deallocation */
 typedef struct {
@@ -619,7 +619,8 @@ int snt_engine_synthesize(const int32_t *ids, size_t n_ids,
             return SNT_ECANCELLED;
         }
         if (rc != 0) {
-            return SNT_EIO;
+            PR_ERR("snt_engine: snt_chinese_chunk_synthesize failed with rc=%d", rc);
+            return rc;
         }
         return SNT_OK;
     }
