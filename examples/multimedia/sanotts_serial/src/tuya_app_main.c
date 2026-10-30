@@ -52,6 +52,45 @@ typedef struct {
     double max_err;
 } m1_eval_ctx_t;
 
+/* PCM accumulation buffer for "compute-all-then-play" strategy.
+ * Synthesis writes all float32 PCM into PSRAM; playback starts only after
+ * the entire sentence is computed — giving gapless, continuous audio output
+ * even when RTF >> 1 (as on Cortex-M33 with FP32 piperlite). */
+typedef struct {
+    float  *buf;        /* PSRAM-allocated float32 buffer               */
+    size_t  capacity;   /* max samples (float32) that fit in buf        */
+    size_t  count;      /* samples written so far                       */
+    bool    overflow;   /* set when count would exceed capacity         */
+} pcm_accum_t;
+
+/* PCM accumulation buffer limits.
+ * Upper bound: 512 KB float32 = 131072 samples ≈ 5.9s @ 22050Hz.
+ * In practice each phoneme produces ~256 samples, so 512 phonemes ≈ 131072 samples.
+ * We dynamically size the buffer to n_ids * 512 samples (worst-case duration) + margin,
+ * capped at SNT_PCM_ACCUM_MAX_SAMPLES. This keeps PSRAM pressure low. */
+#define SNT_PCM_ACCUM_MAX_SAMPLES (131072u)          /* 512 KB float32 ≈ 5.9s @ 22050Hz */
+#define SNT_PCM_ACCUM_MAX_BYTES   (SNT_PCM_ACCUM_MAX_SAMPLES * sizeof(float))
+#define SNT_PCM_SAMPLES_PER_PHONEME 512u             /* conservative per-phoneme estimate */
+
+static int pcm_accum_sink(const float *pcm, size_t n, uint32_t rate, void *user)
+{
+    (void)rate;
+    pcm_accum_t *acc = (pcm_accum_t *)user;
+    if (acc->overflow) {
+        return SNT_OK; /* silently drop on overflow — prefer no crash */
+    }
+    if (acc->count + n > acc->capacity) {
+        n = acc->capacity - acc->count;
+        acc->overflow = true;
+        PR_ERR("snt_app: PCM accumulation overflow — audio will be truncated");
+    }
+    if (n > 0) {
+        memcpy(acc->buf + acc->count, pcm, n * sizeof(float));
+        acc->count += n;
+    }
+    return SNT_OK;
+}
+
 static int m1_eval_sink(const float *pcm, size_t n, uint32_t rate, void *user)
 {
     m1_eval_ctx_t *ctx = (m1_eval_ctx_t *)user;
@@ -292,7 +331,16 @@ static void snt_worker_task(void *arg)
                                        metrics.compute_us, wall_us, underruns);
             }
         } else if (type == SNT_CMD_SAY) {
-            /* Chinese G2P + sanoTTS inference */
+            /* Chinese G2P + sanoTTS inference
+             *
+             * Strategy: "compute-all-then-play"
+             *   Because RTF >> 1 on Cortex-M33, streaming chunk-by-chunk leaves
+             *   the speaker idle between chunks (long silence gaps).  Instead we:
+             *   1. Run the full synthesis into a PSRAM PCM accumulation buffer.
+             *   2. Only open the audio pipeline and start playing AFTER all PCM
+             *      is ready — giving a continuous, gap-free playback experience.
+             */
+
             int32_t phoneme_ids[SNT_SERIAL_MAX_PHONEMES];
             size_t n_ids = 0;
             int g2p_ret = snt_g2p_convert(req.text, req.text_len, phoneme_ids, SNT_SERIAL_MAX_PHONEMES, &n_ids);
@@ -303,32 +351,132 @@ static void snt_worker_task(void *arg)
 
             snt_serial_send_phonemes(&g_serial, id, phoneme_ids, n_ids);
 
-            uint32_t sr = snt_engine_get_sample_rate();
-            int begin_ret = snt_audio_begin(id, sr);
-            if (begin_ret != SNT_OK) {
-                snt_serial_notify_error(&g_serial, id, begin_ret, "audio begin failed");
+            /* Dynamically estimate buffer size: each phoneme ≈ SNT_PCM_SAMPLES_PER_PHONEME
+             * float32 samples + 25% margin, capped at SNT_PCM_ACCUM_MAX_SAMPLES. */
+            size_t est_samples = n_ids * SNT_PCM_SAMPLES_PER_PHONEME;
+            if (est_samples > SNT_PCM_ACCUM_MAX_SAMPLES)
+                est_samples = SNT_PCM_ACCUM_MAX_SAMPLES;
+            /* Round up to next 4KB boundary */
+            est_samples = (est_samples + 1023u) & ~1023u;
+            size_t alloc_bytes = est_samples * sizeof(float);
+
+            /* Allocate PSRAM accumulation buffer */
+            float *pcm_accum_buf = (float *)tal_psram_malloc(alloc_bytes);
+            if (!pcm_accum_buf) {
+                /* Fallback: try smaller size (half) */
+                alloc_bytes /= 2;
+                est_samples /= 2;
+                pcm_accum_buf = (float *)tal_psram_malloc(alloc_bytes);
+            }
+
+            if (!pcm_accum_buf) {
+                /* Final fallback: stream directly to audio (old behavior, gapped) */
+                PR_ERR("snt_app: PSRAM alloc failed for PCM buffer, falling back to streaming");
+                uint32_t sr_fb = snt_engine_get_sample_rate();
+                int begin_ret_fb = snt_audio_begin(id, sr_fb);
+                if (begin_ret_fb != SNT_OK) {
+                    snt_serial_notify_error(&g_serial, id, begin_ret_fb, "audio begin failed");
+                    continue;
+                }
+                snt_serial_notify_synthesizing(&g_serial, id);
+                snt_serial_notify_playing(&g_serial, id);
+                snt_metrics_t metrics_fb;
+                memset(&metrics_fb, 0, sizeof(metrics_fb));
+                int synth_ret_fb = snt_engine_synthesize(phoneme_ids, n_ids,
+                                                         snt_audio_sink, NULL, &metrics_fb);
+                int finish_ret_fb = snt_audio_finish(10000);
+                uint32_t t1_fb = (uint32_t)tal_system_get_millisecond();
+                uint64_t wall_us_fb = (uint64_t)(t1_fb - t0) * 1000ULL;
+                if (synth_ret_fb == SNT_ECANCELLED || finish_ret_fb == SNT_ECANCELLED ||
+                    snt_serial_is_active_cancelled(&g_serial, id)) {
+                    PR_NOTICE("Worker: req %u cancelled (fallback stream)", (unsigned)id);
+                } else if (synth_ret_fb != SNT_OK) {
+                    snt_serial_notify_error(&g_serial, id, synth_ret_fb, "synthesis failed");
+                } else {
+                    uint32_t underruns_fb = snt_audio_get_underruns();
+                    snt_serial_notify_done(&g_serial, id, metrics_fb.samples,
+                                          metrics_fb.source_rate, metrics_fb.compute_us,
+                                          wall_us_fb, underruns_fb);
+                }
                 continue;
             }
 
+            PR_NOTICE("snt_app: PCM accum buffer allocated: %zu samples (%zu KB) from PSRAM",
+                      est_samples, alloc_bytes / 1024);
+
+            pcm_accum_t accum;
+            accum.buf      = pcm_accum_buf;
+            accum.capacity = est_samples;
+            accum.count    = 0;
+            accum.overflow = false;
+
             snt_serial_notify_synthesizing(&g_serial, id);
-            snt_serial_notify_playing(&g_serial, id);
 
             snt_metrics_t metrics;
             memset(&metrics, 0, sizeof(metrics));
 
+            /* Phase 1: Full synthesis into PSRAM buffer (no audio output yet) */
             int synth_ret = snt_engine_synthesize(phoneme_ids, n_ids,
-                                                  snt_audio_sink, NULL, &metrics);
+                                                  pcm_accum_sink, &accum, &metrics);
 
-            int finish_ret = snt_audio_finish(10000);
+            if (synth_ret == SNT_ECANCELLED ||
+                snt_serial_is_active_cancelled(&g_serial, id)) {
+                PR_NOTICE("Worker: req %u cancelled during synthesis", (unsigned)id);
+                tal_psram_free(pcm_accum_buf);
+                continue;
+            }
+
+            if (synth_ret != SNT_OK) {
+                snt_serial_notify_error(&g_serial, id, synth_ret, "synthesis failed");
+                tal_psram_free(pcm_accum_buf);
+                continue;
+            }
+
+            PR_NOTICE("snt_app: synthesis done, %zu samples @ %u Hz, starting playback",
+                      accum.count, (unsigned)metrics.source_rate);
+
+            /* Phase 2: Open audio pipeline and play accumulated PCM in one pass */
+            uint32_t sr = metrics.source_rate ? metrics.source_rate : snt_engine_get_sample_rate();
+            int begin_ret = snt_audio_begin(id, sr);
+            if (begin_ret != SNT_OK) {
+                snt_serial_notify_error(&g_serial, id, begin_ret, "audio begin failed");
+                tal_psram_free(pcm_accum_buf);
+                continue;
+            }
+
+            snt_serial_notify_playing(&g_serial, id);
+
+            /* Feed accumulated PCM to audio sink in chunks to respect backpressure */
+            const size_t FEED_CHUNK = 4096u; /* float32 samples per feed iteration */
+            size_t fed = 0;
+            int feed_ret = SNT_OK;
+            while (fed < accum.count) {
+                if (snt_serial_is_active_cancelled(&g_serial, id)) {
+                    feed_ret = SNT_ECANCELLED;
+                    break;
+                }
+                size_t chunk = accum.count - fed;
+                if (chunk > FEED_CHUNK) chunk = FEED_CHUNK;
+                feed_ret = snt_audio_sink(accum.buf + fed, chunk, sr, NULL);
+                if (feed_ret != SNT_OK) break;
+                fed += chunk;
+            }
+
+            tal_psram_free(pcm_accum_buf);
+
+            /* Calculate finish timeout based on remaining audio at 16kHz output rate */
+            uint32_t finish_timeout_ms = 10000u + (uint32_t)((accum.count * 1000ULL) / (sr ? sr : 22050));
+            int finish_ret = (feed_ret == SNT_OK) ? snt_audio_finish(finish_timeout_ms) : SNT_ECANCELLED;
 
             uint32_t t1 = (uint32_t)tal_system_get_millisecond();
             uint64_t wall_us = (uint64_t)(t1 - t0) * 1000ULL;
 
-            if (synth_ret == SNT_ECANCELLED || finish_ret == SNT_ECANCELLED ||
+            if (feed_ret == SNT_ECANCELLED || finish_ret == SNT_ECANCELLED ||
                 snt_serial_is_active_cancelled(&g_serial, id)) {
-                PR_NOTICE("Worker: req %u cancelled", (unsigned)id);
-            } else if (synth_ret != SNT_OK) {
-                snt_serial_notify_error(&g_serial, id, synth_ret, "synthesis failed");
+                PR_NOTICE("Worker: req %u cancelled during playback", (unsigned)id);
+            } else if (feed_ret != SNT_OK || finish_ret != SNT_OK) {
+                snt_serial_notify_error(&g_serial, id,
+                    (feed_ret != SNT_OK) ? feed_ret : finish_ret, "playback failed");
             } else {
                 uint32_t underruns = snt_audio_get_underruns();
                 snt_serial_notify_done(&g_serial, id, metrics.samples, metrics.source_rate,

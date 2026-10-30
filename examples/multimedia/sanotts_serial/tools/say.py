@@ -45,11 +45,19 @@ def send_say_command(ser, text, req_id, is_g2p_only=False, timeout=180.0):
                 print(f"   [接受] 板端已接收请求 (声部: {evt.get('voice')})", flush=True)
             elif event_type == "phonemes":
                 n_ph = evt.get("n_phonemes", 0)
-                # 动态自适应超时: 单核标量C下每个音素对应约 3~4 秒计算时长
+                # 动态自适应超时 (基于实测数据标定):
+                #   "你好" 19音素→30帧→68s → 2.28s/帧, 1.58帧/音素
+                #   每音素估算: 1.6帧 × 2.4s/帧 ≈ 3.84s + 安全余量
+                #   长句 front_latent 开销随帧数增加, 额外加 120s 固定余量
                 if not is_g2p_only and n_ph > 0:
-                    est_timeout = max(timeout, n_ph * 4.5)
+                    frames_est = n_ph * 1.7          # empirical: frames per phoneme
+                    compute_est = frames_est * 2.5   # empirical: seconds per decoder frame
+                    est_timeout = max(timeout, compute_est + 120)
                     effective_timeout = est_timeout
-                print(f"   [音素] 板端 G2P 转换完成: 共 {n_ph} 个音素 ID", flush=True)
+                    print(f"   [音素] 板端 G2P 转换完成: 共 {n_ph} 个音素 ID  "
+                          f"(预估推理 {compute_est:.0f}s, 等待超时 {effective_timeout:.0f}s)", flush=True)
+                else:
+                    print(f"   [音素] 板端 G2P 转换完成: 共 {n_ph} 个音素 ID", flush=True)
             elif event_type == "synthesizing":
                 print(f"   [合成] sanoTTS 神经模型推理中 (请稍候)...", flush=True)
             elif event_type == "playing":
