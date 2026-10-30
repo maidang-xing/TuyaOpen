@@ -45,13 +45,12 @@ def send_say_command(ser, text, req_id, is_g2p_only=False, timeout=180.0):
                 print(f"   [接受] 板端已接收请求 (声部: {evt.get('voice')})", flush=True)
             elif event_type == "phonemes":
                 n_ph = evt.get("n_phonemes", 0)
-                # 动态自适应超时 (基于实测数据标定):
-                #   "你好" 19音素→30帧→68s → 2.28s/帧, 1.58帧/音素
-                #   每音素估算: 1.6帧 × 2.4s/帧 ≈ 3.84s + 安全余量
-                #   长句 front_latent 开销随帧数增加, 额外加 120s 固定余量
+                # 动态自适应超时 (基于两组实测数据拟合，含 front_latent 超线性开销):
+                #   "你好"     19音素 →  68s  (3.6s/音素)
+                #   "你好…。" 141音素 → 650s  (4.6s/音素)
+                #   拟合: t ≈ 0.033 × n² + 1.5 × n  (s)，安全余量 +120s
                 if not is_g2p_only and n_ph > 0:
-                    frames_est = n_ph * 1.7          # empirical: frames per phoneme
-                    compute_est = frames_est * 2.5   # empirical: seconds per decoder frame
+                    compute_est = 0.033 * n_ph * n_ph + 1.5 * n_ph
                     est_timeout = max(timeout, compute_est + 120)
                     effective_timeout = est_timeout
                     print(f"   [音素] 板端 G2P 转换完成: 共 {n_ph} 个音素 ID  "
