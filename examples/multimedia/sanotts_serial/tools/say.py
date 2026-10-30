@@ -45,13 +45,15 @@ def send_say_command(ser, text, req_id, is_g2p_only=False, timeout=180.0):
                 print(f"   [接受] 板端已接收请求 (声部: {evt.get('voice')})", flush=True)
             elif event_type == "phonemes":
                 n_ph = evt.get("n_phonemes", 0)
-                # 动态自适应超时 (基于两组实测数据拟合，含 front_latent 超线性开销):
-                #   "你好"     19音素 →  68s  (3.6s/音素)
-                #   "你好…。" 141音素 → 650s  (4.6s/音素)
-                #   拟合: t ≈ 0.033 × n² + 1.5 × n  (s)，安全余量 +120s
+                # 动态超时公式 (三点实测二次拟合，含 front_latent 超线性开销):
+                #   n=19  → 68s  实测 (你好)
+                #   n=91  → 343s 实测 (今天天气真好。)
+                #   n=141 → 650s 实测 (你好，欢迎使用涂鸦智能语音。)
+                #   t_compute ≈ 0.0192 × n² + 1.699 × n + 29  (s)
+                #   timeout   = t_compute × 1.25 + 60          (25% 余量 + 60s 固定)
                 if not is_g2p_only and n_ph > 0:
-                    compute_est = 0.033 * n_ph * n_ph + 1.5 * n_ph
-                    est_timeout = max(timeout, compute_est + 120)
+                    compute_est = 0.0192 * n_ph * n_ph + 1.699 * n_ph + 29
+                    est_timeout = max(timeout, compute_est * 1.25 + 60)
                     effective_timeout = est_timeout
                     print(f"   [音素] 板端 G2P 转换完成: 共 {n_ph} 个音素 ID  "
                           f"(预估推理 {compute_est:.0f}s, 等待超时 {effective_timeout:.0f}s)", flush=True)
