@@ -29,9 +29,7 @@ set(LIB_PUBLIC_INC
     )
 
 if (CONFIG_ENABLE_BUTTON_ADC STREQUAL "y")
-    if (NOT CONFIG_PLATFORM_CHOICE STREQUAL "JIELI")
-        list(APPEND LIB_PRIVATE_INC ${TOP_SOURCE_DIR}/tools/porting/adapter/adc)
-    endif()
+    list(APPEND LIB_PRIVATE_INC ${PLATFORM_TKL_ROOT}/adc)
 endif()
 
 

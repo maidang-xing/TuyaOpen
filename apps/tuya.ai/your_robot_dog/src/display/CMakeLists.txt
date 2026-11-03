@@ -29,9 +29,9 @@ set(APP_MODULE_INC
     ${APP_MODULE_PATH}/emotion
 )
 
-if (NOT CONFIG_PLATFORM_CHOICE STREQUAL "JIELI")
+if (EXISTS ${PLATFORM_TKL_ROOT}/display)
     list(APPEND APP_MODULE_INC
-        ${PROJECT_SOURCE_DIR}/tools/porting/adapter/display
+        ${PLATFORM_TKL_ROOT}/display
     )
 endif()
 
