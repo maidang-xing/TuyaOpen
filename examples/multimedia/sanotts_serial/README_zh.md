@@ -1,5 +1,7 @@
 # sanoTTS 串口离线语音合成系统 (TUYA_T5AI_CORE)
 
+> **2026-11-03 归档说明：** 源码、现有固件、完整 platform 补丁、校验清单和本次复核结果见 [交付快照](artifacts/2026-11-03/README.md)。本次完整 host 测试未通过（chunk 编译、G2P 取消及协议边界测试存在问题），未重新验收真机。下文和历史报告保留原阶段记录；固件身份和资源大小以快照及模型 manifest 为准。
+
 本项目基于涂鸦智能 TuyaOpen 物联网操作系统与 sanoTTS 神经语音合成技术，在 **TUYA_T5AI_CORE**（Beken BK7258 双核 Cortex-M33F，8MB Flash，16MB PSRAM）硬件上实现了**纯离线、零依赖、端到端**的本地中英文语音合成。
 
 电脑仅作为串口终端工具；运行完全脱离电脑提供音素/PCM、脱离预录音频，且不依赖任何云端 TTS 或网络服务。本功能为纯本地语音合成朗读，无需联网、配网、PID、UUID 或云端授权。
@@ -185,4 +187,4 @@ python3 examples/multimedia/sanotts_serial/tools/serial_smoke.py --port /dev/tty
 6. **STOP 瞬时取消与无缝接续恢复**
 7. **100 轮连续循环浸泡与稳定性测试**
 
-详细测试数据与结果请参见验收报告：[`reports/acceptance.md`](../../reports/acceptance.md) 与 [`reports/m3-hardware-eval.md`](reports/m3-hardware-eval.md)。
+详细测试数据与结果请参见历史验收报告：[`reports/acceptance.md`](reports/acceptance.md) 与 [`reports/m3-hardware-eval.md`](reports/m3-hardware-eval.md)。本次复核结果见上述交付快照。

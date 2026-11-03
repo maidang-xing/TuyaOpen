@@ -1,0 +1,1 @@
+PASS: 9 assets round-trip decompressed and match source bytes; model fits partition; QIO ends before model offset.

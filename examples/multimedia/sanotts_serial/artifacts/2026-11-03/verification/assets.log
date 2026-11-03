@@ -1,0 +1,24 @@
+TuyaOpen sanoTTS Asset Manager
+Base dir: /home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial
+Manifest: /home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/models/manifest.json
+[OK] models/en_us_e12nano/front_q8.bin                ( 175456 B) SHA-256 verified
+[OK] models/en_us_e12nano/model_q8.bin                ( 164224 B) SHA-256 verified
+[OK] third_party/sanotts/models/en_us_e12nano/nano_q8_meta.h (   6317 B) SHA-256 verified
+[OK] tests/fixtures/en_us_e12nano/r00_ids.bin         (    292 B) SHA-256 verified
+[OK] tests/fixtures/en_us_e12nano/r00_durs.bin        (    292 B) SHA-256 verified
+[OK] tests/fixtures/en_us_e12nano/r00_audio.bin       ( 423936 B) SHA-256 verified
+[OK] tests/fixtures/en_us_e12nano/e2e_noise.bin       (   6640 B) SHA-256 verified
+[OK] tests/fixtures/en_us_e12nano/e2e_uniform.bin     (    256 B) SHA-256 verified
+[OK] tests/fixtures/en_us_e12nano/rows.txt            (    377 B) SHA-256 verified
+[OK] models/chinese/front_f32.bin                     (3438220 B) SHA-256 verified
+[OK] models/chinese/dec_f32.bin                       (2560816 B) SHA-256 verified
+[OK] models/chinese/meta.json                         (   1230 B) SHA-256 verified
+[OK] models/chinese/cmn_dict                          (1566347 B) SHA-256 verified
+[OK] models/chinese/phondata                          (   4096 B) SHA-256 verified
+[OK] models/chinese/phonindex                         (  44904 B) SHA-256 verified
+[OK] models/chinese/phontab                           (  59520 B) SHA-256 verified
+[OK] models/chinese/intonations                       (   2312 B) SHA-256 verified
+[OK] models/chinese/cmn                               (    686 B) SHA-256 verified
+[OK] tests/fixtures/chinese/zh_golden.json            (   5897 B) SHA-256 verified
+
+All assets verified successfully against manifest (SHA-256 and size match).

@@ -1,0 +1,41 @@
+{
+  "snapshot_date": "2026-11-03",
+  "branch": "md/t5-sanotts",
+  "source_commit": "7dd9329e545fb2c06c23a63020a13f40f89cf33c",
+  "source_patch_base": "695e571fb4f62932dbf86a86fde664fcb7f2c0b4",
+  "fork": "https://github.com/maidang-xing/TuyaOpen.git",
+  "platform": {
+    "repository": "https://github.com/tuya/TuyaOpen-T5AI",
+    "base_commit": "69793c66bebf58ef4f886282626c2ea96a28f9a2",
+    "modified_files": [
+      "t5_os/projects/tuya_app/partitions/bk7258/auto_partitions.csv",
+      "t5_os/projects/tuya_app/partitions/bk7258/ram_regions.csv",
+      "t5_os/projects/tuya_app/tuya_scripts/create_ug_file.py"
+    ],
+    "patch_sha256": "c340a56c6269c6e8cefdc6fc5670100fcb3d3a88c19bea26502662acc9757404"
+  },
+  "firmware": {
+    "freshly_rebuilt": false,
+    "origin": "existing dist/sanotts_serial_1.0.0 output; preserved without rebuilding",
+    "embedded_open_commit": "1664a43b0ab4c2934ed508f7e752e04731b1df9e"
+  },
+  "model": {
+    "path": "../../models/chinese/snt_zh_assets.bin",
+    "sha256": "0ad010a6d6f717d9dc8851c28de702ea5122d82a430adfc8a4349d8ee11aade7",
+    "bytes": 5681608,
+    "flash_offset": "0x28a000",
+    "assets": [
+      "front_f32.bin",
+      "dec_f32.bin",
+      "cmn_dict",
+      "phontab",
+      "phonindex",
+      "phondata",
+      "intonations",
+      "cmn",
+      "meta.json"
+    ]
+  },
+  "hardware_tests_rerun": false,
+  "host_tests": "verification/host-tests.json"
+}

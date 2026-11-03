@@ -1,0 +1,113 @@
+[
+  {
+    "test": "test_assets.py",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/tests/host",
+      "-p",
+      "test_assets.py",
+      "-v"
+    ],
+    "exit_code": 0,
+    "log": "verification/test_assets.log",
+    "tail": [
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 13 tests in 0.019s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "test": "test_chunk.py",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/tests/host",
+      "-p",
+      "test_chunk.py",
+      "-v"
+    ],
+    "exit_code": 1,
+    "log": "verification/test_chunk.log",
+    "tail": [
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 0 tests in 2.468s",
+      "",
+      "FAILED (errors=1)"
+    ]
+  },
+  {
+    "test": "test_g2p.py",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/tests/host",
+      "-p",
+      "test_g2p.py",
+      "-v"
+    ],
+    "exit_code": 1,
+    "log": "verification/test_g2p.log",
+    "tail": [
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 11 tests in 0.416s",
+      "",
+      "FAILED (failures=1)"
+    ]
+  },
+  {
+    "test": "test_protocol.py",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/tests/host",
+      "-p",
+      "test_protocol.py",
+      "-v"
+    ],
+    "exit_code": -6,
+    "log": "verification/test_protocol.log",
+    "tail": [
+      "test_1024_byte_boundary (test_protocol.TestSntSerialProtocol.test_1024_byte_boundary) ... Fatal glibc error: malloc.c:2371 (sysmalloc): assertion failed: (old_top == initial_top (av) && old_size == 0) || ((unsigned long) (old_size) >= MINSIZE && prev_inuse (old_top) && ((unsigned long) old_end & (pagesize - 1)) == 0)"
+    ]
+  },
+  {
+    "test": "test_resampler.py",
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/tests/host",
+      "-p",
+      "test_resampler.py",
+      "-v"
+    ],
+    "exit_code": 0,
+    "log": "verification/test_resampler.log",
+    "tail": [
+      "----------------------------------------------------------------------",
+      "Ran 6 tests in 0.023s",
+      "",
+      "OK",
+      "Anti-aliasing attenuation at 9.5 kHz: -42.2 dB"
+    ]
+  }
+]

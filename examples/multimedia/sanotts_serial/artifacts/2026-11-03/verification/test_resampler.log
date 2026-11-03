@@ -1,0 +1,12 @@
+test_anti_aliasing_attenuation (test_resampler.TestSntResampler.test_anti_aliasing_attenuation) ... ok
+test_chunked_processing_continuity (test_resampler.TestSntResampler.test_chunked_processing_continuity) ... ok
+test_float_to_pcm16 (test_resampler.TestSntResampler.test_float_to_pcm16) ... ok
+test_passthrough (test_resampler.TestSntResampler.test_passthrough) ... ok
+test_resample_22050_to_16000 (test_resampler.TestSntResampler.test_resample_22050_to_16000) ... ok
+test_resample_24000_to_16000 (test_resampler.TestSntResampler.test_resample_24000_to_16000) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.023s
+
+OK
+Anti-aliasing attenuation at 9.5 kHz: -42.2 dB

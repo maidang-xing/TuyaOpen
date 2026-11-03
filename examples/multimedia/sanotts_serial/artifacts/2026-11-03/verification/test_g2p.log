@@ -1,0 +1,32 @@
+test_all_30_sentences_consistency (test_g2p.TestChineseG2P30Dataset.test_all_30_sentences_consistency)
+Verifies all 30 sentences against the frozen reference fixture. ... ok
+test_each_golden_sentence_individually (test_g2p.TestChineseG2PGolden.test_each_golden_sentence_individually)
+Verifies each sentence output JSON against zh_golden.json bit-exact. ... ok
+test_golden_harness_cli (test_g2p.TestChineseG2PGolden.test_golden_harness_cli)
+Runs the built-in golden verification command in snt_g2p_harness. ... ok
+test_long_multiclause_text_segmentation (test_g2p.TestForeachSegmentation.test_long_multiclause_text_segmentation)
+A 465-ID text must be split into multiple segments each <= 256 IDs. ... ok
+test_unpunctuated_long_sentence_segmentation (test_g2p.TestForeachSegmentation.test_unpunctuated_long_sentence_segmentation)
+A long Chinese text without any punctuation must be safely split with segments <= 256. ... ok
+test_cancellation_request (test_g2p.TestRobustnessAndEdgeCases.test_cancellation_request) ... FAIL
+test_empty_string (test_g2p.TestRobustnessAndEdgeCases.test_empty_string) ... ok
+test_fullwidth_digits_and_colon (test_g2p.TestRobustnessAndEdgeCases.test_fullwidth_digits_and_colon)
+Full-width ０８：３０ must be normalized and yield identical IDs as 08:30. ... ok
+test_invalid_utf8_sequence (test_g2p.TestRobustnessAndEdgeCases.test_invalid_utf8_sequence)
+Invalid UTF-8 byte sequences must be safely sanitized without crashes. ... ok
+test_normalization_modes (test_g2p.TestRobustnessAndEdgeCases.test_normalization_modes) ... ok
+test_whitespace_only (test_g2p.TestRobustnessAndEdgeCases.test_whitespace_only) ... ok
+
+======================================================================
+FAIL: test_cancellation_request (test_g2p.TestRobustnessAndEdgeCases.test_cancellation_request)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/tests/host/test_g2p.py", line 239, in test_cancellation_request
+    self.assertEqual(res.returncode, 0)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.416s
+
+FAILED (failures=1)

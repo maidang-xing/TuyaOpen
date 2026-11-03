@@ -1,0 +1,26 @@
+setUpClass (test_chunk.TestTaskCEngineAndChunking) ... ERROR
+
+======================================================================
+ERROR: setUpClass (test_chunk.TestTaskCEngineAndChunking)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/tests/host/test_chunk.py", line 85, in setUpClass
+    cls.harness = get_harness_path()
+                  ~~~~~~~~~~~~~~~~^^
+  File "/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/tests/host/test_chunk.py", line 75, in get_harness_path
+    raise RuntimeError(f"Harness compilation failed:\n{res.stderr}")
+RuntimeError: Harness compilation failed:
+/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/src/snt_engine.c:21:10: fatal error: tuya_cloud_types.h: No such file or directory
+   21 | #include "tuya_cloud_types.h"
+      |          ^~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/src/snt_chinese_chunk.c: In function ‘snt_chinese_chunk_synthesize’:
+/home/share/samba/tyopen/TuyaOpen/examples/multimedia/sanotts_serial/src/snt_chinese_chunk.c:81:9: error: implicit declaration of function ‘PR_ERR’ [-Wimplicit-function-declaration]
+   81 |         PR_ERR("snt_chunk: arena_floats (%zu) < total_needed (%zu) [avail %zu KB < needed %zu KB]",
+      |         ^~~~~~
+
+
+----------------------------------------------------------------------
+Ran 0 tests in 2.468s
+
+FAILED (errors=1)
