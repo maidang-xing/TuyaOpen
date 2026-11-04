@@ -198,7 +198,6 @@ OPERATE_RET tuya_authorize_read(tuya_iot_license_t *license)
 
     uuid_rt = tal_kv_get(KVKEY_TYOPEN_UUID, (uint8_t **)&uuid, &uuid_readlen);
     authkey_rt = tal_kv_get(KVKEY_TYOPEN_AUTHKEY, (uint8_t **)&authkey, &authkey_readlen);
-    PR_NOTICE("[AUTH] KV read uuid_rt:%d authkey_rt:%d", uuid_rt, authkey_rt);
     if ((OPRT_OK == uuid_rt) && (OPRT_OK == authkey_rt) && (uuid_readlen >= UUID_LENGTH) &&
         (authkey_readlen >= AUTHKEY_LENGTH)) {
         // KV read

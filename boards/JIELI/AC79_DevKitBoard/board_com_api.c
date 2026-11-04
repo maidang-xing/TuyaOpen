@@ -1,3 +1,11 @@
+/**
+ * @file board_com_api.c
+ * @author Tuya Inc.
+ * @brief Board-level hardware registration for the AC79 devkit.
+ *
+ * @copyright Copyright (c) 2021-2026 Tuya Inc. All Rights Reserved.
+ */
+
 #include "board_com_api.h"
 
 #if defined(ENABLE_JIELI_ADKEY_BUTTON) && (ENABLE_JIELI_ADKEY_BUTTON == 1)

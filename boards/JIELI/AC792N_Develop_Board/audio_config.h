@@ -1,3 +1,11 @@
+/**
+ * @file audio_config.h
+ * @author Tuya Inc.
+ * @brief AC792N dev board audio routing: DAC/ADC platform data and PA control.
+ *
+ * @copyright Copyright (c) 2021-2026 Tuya Inc. All Rights Reserved.
+ */
+
 #ifndef AC792N_DEVELOP_BOARD_AUDIO_CONFIG_H
 #define AC792N_DEVELOP_BOARD_AUDIO_CONFIG_H
 

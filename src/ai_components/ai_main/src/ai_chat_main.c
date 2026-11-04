@@ -418,10 +418,6 @@ OPERATE_RET ai_chat_init(AI_CHAT_MODE_CFG_T *cfg)
 
 #if (defined(ENABLE_COMP_AI_MODE_WAKEUP) && (ENABLE_COMP_AI_MODE_WAKEUP == 1)) || \
     (defined(ENABLE_COMP_AI_MODE_FREE) && (ENABLE_COMP_AI_MODE_FREE == 1))
-    /* KWS is optional: a platform that has not ported it returns
-     * OPRT_NOT_SUPPORTED, and the HOLD/oneshot modes work without it. Failing
-     * here would abort the rest of the mode init -- including the mode task and
-     * the button registration below -- so log and carry on. */
     TUYA_CALL_ERR_LOG(tkl_kws_init());
 #endif
 

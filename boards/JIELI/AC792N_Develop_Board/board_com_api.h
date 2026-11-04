@@ -1,3 +1,11 @@
+/**
+ * @file board_com_api.h
+ * @author Tuya Inc.
+ * @brief Common board-level hardware registration API for the AC792N dev board.
+ *
+ * @copyright Copyright (c) 2021-2026 Tuya Inc. All Rights Reserved.
+ */
+
 #ifndef __JIELI_BOARD_COM_API_H__
 #define __JIELI_BOARD_COM_API_H__
 

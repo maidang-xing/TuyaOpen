@@ -55,9 +55,8 @@ static uint16_t iotdns_split_host_port(const char *url, char *host, size_t host_
         return 443;
     }
 
-    /* The pi32v2 libc does not implement the sscanf %[ scan-set conversion,
-     * so the previous sscanf("%63[^:]:%u") based split returned an empty
-     * host on this platform (2026-09-18 log). Split by hand instead. */
+    /* Not every libc implements the sscanf %[ scan-set conversion, so split by
+     * hand instead of relying on sscanf("%63[^:]:%u"). */
     colon = strchr(url, ':');
     if (colon == NULL) {
         snprintf(host, host_len, "%s", url);
@@ -97,8 +96,7 @@ static int iotdns_response_decode(const uint8_t *input, size_t ilen, tuya_endpoi
     PR_DEBUG("httpsSelfUrl:%s", httpsSelfUrl);
     PR_DEBUG("mqttsSelfUrl:%s", mqttsSelfUrl);
 
-    /* ATOP url decode: https://host[:port][/path]
-     * Hand-rolled for the same scan-set reason as iotdns_split_host_port(). */
+    /* ATOP url decode: https://host[:port][/path] */
     {
         const char *body = httpsSelfUrl;
         const char *host_end;

@@ -27,7 +27,6 @@ else()
     file(GLOB_RECURSE MBEDTLS_SRCS "${MODULE_PATH}/${MBEDTLS}/library/*.c")
 
     list(APPEND LIB_SRCS "${MBEDTLS_SRCS}")
-    list(APPEND LIB_PRIVATE_INC "${MODULE_PATH}/${MBEDTLS}/library")
     list(APPEND LIB_PUBLIC_INC "${MODULE_PATH}/${MBEDTLS}/include")
 endif()
 
@@ -49,8 +48,8 @@ target_include_directories(${MODULE_NAME}
         ${LIB_PUBLIC_INC}
     )
 
-# A platform that needs its own mbedtls configuration names the header here.
-# It lives in this module's port directory, which is already a public include.
+# A platform may name the mbedtls configuration to use instead of letting
+# build_info.h layer the upstream desktop-oriented defaults on top.
 if(DEFINED PLATFORM_MBEDTLS_CONFIG_FILE)
     target_compile_definitions(${MODULE_NAME}
         PUBLIC
