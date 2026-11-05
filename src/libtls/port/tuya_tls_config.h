@@ -651,9 +651,7 @@
  * This option is independent of \c MBEDTLS_AES_FEWER_TABLES.
  *
  */
-#ifdef ENABLE_MBEDTLS_AES_ROM_TABLES
-#define MBEDTLS_AES_ROM_TABLES
-#endif
+//#define MBEDTLS_AES_ROM_TABLES
 
 /**
  * \def MBEDTLS_AES_FEWER_TABLES
