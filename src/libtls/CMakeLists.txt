@@ -48,15 +48,6 @@ target_include_directories(${MODULE_NAME}
         ${LIB_PUBLIC_INC}
     )
 
-# A platform may name the mbedtls configuration to use instead of letting
-# build_info.h layer the upstream desktop-oriented defaults on top.
-if(DEFINED PLATFORM_MBEDTLS_CONFIG_FILE)
-    target_compile_definitions(${MODULE_NAME}
-        PUBLIC
-            MBEDTLS_CONFIG_FILE=\"${PLATFORM_MBEDTLS_CONFIG_FILE}\"
-    )
-endif()
-
 
 ########################################
 # Layer Configure
