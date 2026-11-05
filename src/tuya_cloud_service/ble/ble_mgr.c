@@ -999,7 +999,6 @@ static void tal_ble_event_callback(void *data)
 
     case TAL_BLE_EVT_PERIPHERAL_CONNECT: {
         if (msg->ble_event.connect.result == 0) {
-            tuya_ble_crypto_reset();
             memcpy(&ble->peer_info, &msg->ble_event.connect.peer, sizeof(TAL_BLE_PEER_INFO_T));
             ble->recv_sn = 0;
             ble->send_sn = 1;
@@ -1011,7 +1010,6 @@ static void tal_ble_event_callback(void *data)
     } break;
 
     case TAL_BLE_EVT_DISCONNECT: {
-        tuya_ble_crypto_reset();
         memset(&ble->peer_info, 0x00, sizeof(TAL_BLE_PEER_INFO_T));
         memset(ble->pair_rand, 0x00, sizeof(ble->pair_rand));
         tal_sw_timer_stop(ble->pair_timer);
@@ -1118,11 +1116,7 @@ static void tal_ble_event_on_worq(TAL_BLE_EVT_PARAMS_T *msg)
         return;
     }
 
-    OPERATE_RET rt = tal_workq_schedule(WORKQ_HIGHTPRI, tal_ble_event_callback, data);
-    if (rt != OPRT_OK) {
-        PR_ERR("ble event queue schedule failed:%d", rt);
-        ble_event_msg_free(data);
-    }
+    tal_workq_schedule(WORKQ_HIGHTPRI, tal_ble_event_callback, data);
 }
 
 /**
