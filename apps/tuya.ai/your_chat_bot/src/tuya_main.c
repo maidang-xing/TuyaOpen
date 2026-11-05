@@ -447,8 +447,9 @@ static void tuya_app_thread(void *arg)
 void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
-    /* The mbedtls handshake runs on this thread. 4 KB overflowed on JieLi
-     * during the iotdns TLS connect; 8 KB keeps ~2x headroom over the need. */
+    /* The mbedtls handshake runs on this thread. JieLi's toolchain gives the
+     * same mbedtls calls ~3 KB of frames on top of the 1.5 KB already in use,
+     * so 4 KB overflowed during the iotdns TLS connect; 8 KB is the headroom. */
     thrd_param.stackDepth   = 1024 * 8;
     thrd_param.priority     = 4;
     thrd_param.thrdname     = "tuya_app_main";

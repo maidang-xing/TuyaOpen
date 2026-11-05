@@ -237,7 +237,7 @@ def _get_platform_bridge_path(using_data) -> str:
     return os.path.join(params["platforms_root"], platform, "platform_flash_bridge.py")
 
 
-def _try_platform_flash(using_data, debug: bool, port: str, baud: int, mode: str = "auto"):
+def _try_platform_flash(using_data, debug: bool, port: str, baud: int):
     """
     Call platform_flash_bridge.py when present.
 
@@ -246,8 +246,6 @@ def _try_platform_flash(using_data, debug: bool, port: str, baud: int, mode: str
     platform = using_data.get("CONFIG_PLATFORM_CHOICE", "")
     bridge_path = _get_platform_bridge_path(using_data)
 
-    # Prioritize platform_flash_bridge.py when present (e.g. JIELI cross-platform
-    # USB zero-touch flasher and vendor tools). Falls back to tyutool if absent.
     if not os.path.isfile(bridge_path) or os.path.getsize(bridge_path) == 0:
         return None
 
@@ -272,10 +270,6 @@ def _try_platform_flash(using_data, debug: bool, port: str, baud: int, mode: str
 
     params = get_global_params()
     logger.info(f"Using platform flash bridge: {platform}/platform_flash_bridge.py")
-
-    # Set mode in environment if specified
-    if mode:
-        os.environ["JIELI_FLASH_MODE"] = mode
 
     result = bridge.platform_flash(
         using_data=using_data,
@@ -321,11 +315,6 @@ def get_configure_baudrate(using_data, key, baudrate: int) -> int:
 _DEVICE_ALIAS = {
     "T5AI": "t5",
     "BK7231X": "bk7231n",
-    "JIELI": "jieli",
-    "WL82": "jieli",
-    "WL83": "jieli",
-    "AC791N": "jieli",
-    "AC792N": "jieli",
 }
 
 
@@ -382,11 +371,7 @@ def get_flash_cmd(using_data,
 @click.option('-b', '--baud',
               type=int, default=0,
               help="Uart baud rate.")
-@click.option('-m', '--mode',
-              type=click.Choice(['auto', 'usb', 'serial'], case_sensitive=False),
-              default='auto',
-              help="Flash mode: auto (default), usb (Mass Storage BOT), serial (UART).")
-def cli(debug, port, baud, mode):
+def cli(debug, port, baud):
     logger = get_logger()
     check_proj_dir()
 
@@ -397,7 +382,7 @@ def cli(debug, port, baud, mode):
     if not check_bin_file(using_data):
         sys.exit(1)
 
-    bridge_result = _try_platform_flash(using_data, debug, port, baud, mode)
+    bridge_result = _try_platform_flash(using_data, debug, port, baud)
     if bridge_result is not None:
         sys.exit(0 if bridge_result else 1)
 

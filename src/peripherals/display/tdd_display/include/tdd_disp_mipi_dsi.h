@@ -1,5 +1,5 @@
 /**
- * @file tdd_display_mipi.h
+ * @file tdd_disp_mipi_dsi.h
  * @brief MIPI-DSI display TDD interface
  *
  * A MIPI-DSI panel has no GRAM of its own: the host refreshes it continuously

@@ -22,7 +22,7 @@
 #endif
 
 #if defined(ENABLE_MIPI_DSI) && (ENABLE_MIPI_DSI == 1)
-#include "tdd_display_mipi.h"
+#include "tdd_disp_mipi_dsi.h"
 
 #ifndef DISPLAY_NAME
 #define DISPLAY_NAME "display"

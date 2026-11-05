@@ -1,5 +1,5 @@
 /**
- * @file tdd_display_mipi.c
+ * @file tdd_disp_mipi_dsi.c
  * @brief MIPI-DSI display TDD driver
  *
  * Sits between TDL (which the application talks to by device name) and the
@@ -10,7 +10,7 @@
  * @copyright Copyright (c) 2021-2026 Tuya Inc. All Rights Reserved.
  */
 
-#include "tdd_display_mipi.h"
+#include "tdd_disp_mipi_dsi.h"
 
 #include "tkl_mipi_dsi.h"
 #include "tal_log.h"
