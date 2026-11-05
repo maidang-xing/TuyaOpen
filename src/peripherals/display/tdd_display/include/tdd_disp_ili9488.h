@@ -112,15 +112,6 @@ OPERATE_RET tdd_disp_rgb_ili9488_set_init_seq(const uint8_t *init_seq);
 OPERATE_RET tdd_disp_rgb_ili9488_register(char *name, DISP_RGB_DEVICE_CFG_T *dev_cfg);
 
 /**
- * @brief Sets the initialization sequence for the ILI9488 MCU8080 display
- *
- * @param init_seq Pointer to the initialization sequence array
- *
- * @return OPERATE_RET Returns OPRT_OK on success, or OPRT_INVALID_PARM if init_seq is NULL
- */
-OPERATE_RET tdd_disp_mcu8080_ili9488_set_init_seq(const uint32_t *init_seq);
-
-/**
  * @brief Registers an ILI9488 TFT display device using the MCU8080 interface
  *
  * Configures an ILI9488 panel driven over the 8080 parallel bus. The default

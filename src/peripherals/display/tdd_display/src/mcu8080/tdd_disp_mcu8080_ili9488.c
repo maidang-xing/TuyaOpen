@@ -67,24 +67,6 @@ static TDD_DISP_MCU8080_CFG_T sg_disp_mcu8080_cfg = {
 ***********************function define**********************
 ***********************************************************/
 /**
- * @brief Sets the initialization sequence for the ILI9488 MCU8080 display
- *
- * @param init_seq Pointer to the initialization sequence array
- *
- * @return OPERATE_RET Returns OPRT_OK on success, or OPRT_INVALID_PARM if init_seq is NULL
- */
-OPERATE_RET tdd_disp_mcu8080_ili9488_set_init_seq(const uint32_t *init_seq)
-{
-    if (NULL == init_seq) {
-        return OPRT_INVALID_PARM;
-    }
-
-    sg_disp_mcu8080_cfg.init_seq = init_seq;
-
-    return OPRT_OK;
-}
-
-/**
  * @brief Registers an ILI9488 TFT display device using the MCU8080 interface
  *
  * @param name Name of the display device (used for identification).
