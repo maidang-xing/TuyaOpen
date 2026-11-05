@@ -40,42 +40,63 @@
     "\"mqttsSelfUrl\",\"need_ca\":true}],\"env\":\"%s\"}"
 
 /**
- * @brief Split register-center style "host" or "host:port"
- * @param[in] url input host string
+ * @brief Parse "scheme://host[:port][/path]" into host, port and path.
+ * @param[in] url input url, scheme and path are optional
  * @param[out] host output hostname buffer
  * @param[in] host_len size of host buffer
- * @return resolved port, 443 when url has no port suffix
+ * @param[out] path output path buffer, may be NULL
+ * @param[in] path_len size of path buffer
+ * @param[out] port output port, 0 when the url has no port suffix
  */
-static uint16_t iotdns_split_host_port(const char *url, char *host, size_t host_len)
+static void iotdns_parse_url(const char *url, char *host, size_t host_len, char *path, size_t path_len,
+                             uint16_t *port)
 {
+    const char *body;
     const char *colon;
-    unsigned long port;
+    const char *slash;
+    const char *host_end;
+    unsigned long value;
+    size_t len;
 
-    if (url == NULL || host == NULL || host_len == 0) {
-        return 443;
+    if (url == NULL || host == NULL || host_len == 0 || port == NULL) {
+        return;
     }
 
-    /* Not every libc implements the sscanf %[ scan-set conversion, so split by
-     * hand instead of relying on sscanf("%63[^:]:%u"). */
-    colon = strchr(url, ':');
-    if (colon == NULL) {
-        snprintf(host, host_len, "%s", url);
-        return 443;
+    body = strstr(url, "://");
+    body = (body != NULL) ? body + 3 : url;
+
+    slash = strchr(body, '/');
+    colon = strchr(body, ':');
+    if (colon != NULL && slash != NULL && colon > slash) {
+        colon = NULL;
     }
 
-    port = strtoul(colon + 1, NULL, 10);
-    if (port > 0 && port <= 65535) {
-        size_t len = (size_t)(colon - url);
-        if (len >= host_len) {
-            len = host_len - 1;
+    *port = 0;
+    if (colon != NULL) {
+        value = strtoul(colon + 1, NULL, 10);
+        if (value > 0 && value <= 65535) {
+            *port = (uint16_t)value;
         }
-        memcpy(host, url, len);
-        host[len] = '\0';
-        return (uint16_t)port;
     }
 
-    snprintf(host, host_len, "%s", url);
-    return 443;
+    host_end = (colon != NULL) ? colon : ((slash != NULL) ? slash : body + strlen(body));
+    len = (size_t)(host_end - body);
+    if (len >= host_len) {
+        len = host_len - 1;
+    }
+    memcpy(host, body, len);
+    host[len] = '\0';
+
+    if (path != NULL && path_len > 0) {
+        len = (slash != NULL) ? strlen(slash) : 0;
+        if (len >= path_len) {
+            len = path_len - 1;
+        }
+        if (len != 0) {
+            memcpy(path, slash, len);
+        }
+        path[len] = '\0';
+    }
 }
 
 static int iotdns_response_decode(const uint8_t *input, size_t ilen, tuya_endpoint_t *endport)
@@ -97,54 +118,20 @@ static int iotdns_response_decode(const uint8_t *input, size_t ilen, tuya_endpoi
     PR_DEBUG("mqttsSelfUrl:%s", mqttsSelfUrl);
 
     /* ATOP url decode: https://host[:port][/path] */
-    {
-        const char *body = httpsSelfUrl;
-        const char *host_end;
-        const char *path_begin;
-        unsigned long port;
-
-        if (strncmp(body, "https://", 8) == 0) {
-            body += 8;
-        }
-        host_end = strchr(body, ':');
-        path_begin = strchr(body, '/');
-
-        if (host_end != NULL && (path_begin == NULL || host_end < path_begin)) {
-            port = strtoul(host_end + 1, NULL, 10);
-            if (port == 0 || port > 65535) {
-                port = 443;
-            }
-        } else {
-            port = 443;
-            host_end = (path_begin != NULL) ? path_begin : (body + strlen(body));
-        }
-        endport->atop.port = (uint16_t)port;
-
-        {
-            size_t len = (size_t)(host_end - body);
-            if (len >= sizeof(endport->atop.host)) {
-                len = sizeof(endport->atop.host) - 1;
-            }
-            memcpy(endport->atop.host, body, len);
-            endport->atop.host[len] = '\0';
-        }
-        if (path_begin != NULL) {
-            size_t len = strlen(path_begin);
-            if (len >= sizeof(endport->atop.path)) {
-                len = sizeof(endport->atop.path) - 1;
-            }
-            memcpy(endport->atop.path, path_begin, len);
-            endport->atop.path[len] = '\0';
-        } else {
-            endport->atop.path[0] = '\0';
-        }
+    iotdns_parse_url(httpsSelfUrl, endport->atop.host, sizeof(endport->atop.host), endport->atop.path,
+                     sizeof(endport->atop.path), &endport->atop.port);
+    if (endport->atop.port == 0) {
+        endport->atop.port = 443;
     }
     PR_DEBUG("endport->atop.host = \"%s\"", endport->atop.host);
     PR_DEBUG("endport->atop.port = %d", endport->atop.port);
     PR_DEBUG("endport->atop.path = \"%s\"", endport->atop.path);
 
     /* MQTT host decode */
-    endport->mqtt.port = iotdns_split_host_port(mqttsSelfUrl, endport->mqtt.host, sizeof(endport->mqtt.host));
+    iotdns_parse_url(mqttsSelfUrl, endport->mqtt.host, sizeof(endport->mqtt.host), NULL, 0, &endport->mqtt.port);
+    if (endport->mqtt.port == 0) {
+        endport->mqtt.port = 443;
+    }
     PR_DEBUG("endport->mqtt.host = \"%s\"", endport->mqtt.host);
     PR_DEBUG("endport->mqtt.port = %d", endport->mqtt.port);
 
@@ -195,7 +182,10 @@ static int iotdns_base_request(char *body, char *path, http_client_response_t *h
     if (rcs_url == NULL) {
         return OPRT_INVALID_PARM;
     }
-    rcs_port = iotdns_split_host_port(rcs_url, rcs_host, sizeof(rcs_host));
+    iotdns_parse_url(rcs_url, rcs_host, sizeof(rcs_host), NULL, 0, &rcs_port);
+    if (rcs_port == 0) {
+        rcs_port = 443;
+    }
 
     /* HTTP Request send */
     PR_DEBUG("http request send!");
@@ -290,7 +280,10 @@ int iotdns_cloud_endpoint_get(const char *region, const char *env, tuya_endpoint
         tal_free(body_buffer);
         return OPRT_INVALID_PARM;
     }
-    rcs_port = iotdns_split_host_port(rcs_url, rcs_host, sizeof(rcs_host));
+    iotdns_parse_url(rcs_url, rcs_host, sizeof(rcs_host), NULL, 0, &rcs_port);
+    if (rcs_port == 0) {
+        rcs_port = 443;
+    }
 
     /* HTTP Request send */
     PR_DEBUG("http request send!");
