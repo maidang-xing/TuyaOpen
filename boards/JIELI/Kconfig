@@ -68,13 +68,13 @@ config JIELI_UART_LOG_BAUDRATE
 
 config ENABLE_JIELI_USB_CDC_LOG
     bool "Route log output to USB CDC virtual serial port"
-    # A board-level fact, on by default: both boards carry a USB device port, so
-    # one cable carries flashing and the log. A board that wants its hardware
-    # UART as the console sets this to n in boards/JIELI/config/<board>.config;
-    # tkl_log_output then falls back to the debug UART the board's
-    # JIELI_UART_LOG_PORT names. The CDC class and cdc_write_data() are staged
-    # from usb/device/cdc.c on both chips.
-    default y
+    # A board-level fact, off by default: the hardware UART is the console
+    # unless the board's config says otherwise, because moving the log to USB
+    # takes the console away from a board with no USB host attached. A board
+    # that wants the CDC console sets this to y in
+    # boards/JIELI/config/<board>.config. The CDC class and cdc_write_data()
+    # are staged from usb/device/cdc.c on both chips.
+    default n
     help
         When enabled, tkl_log_output routes system logs to the USB CDC-ACM
         virtual serial port instead of the default hardware UART port.
