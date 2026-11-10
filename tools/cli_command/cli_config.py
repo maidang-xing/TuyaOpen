@@ -96,7 +96,10 @@ def _newest_kconfig_mtime(*roots):
                 if name not in (".git", ".build", "dist", "__pycache__")
             ]
             for name in filenames:
-                if not name.startswith("Kconfig"):
+                # A catalog also sources files that only end in Kconfig
+                # (boards/<platform>/TKL_Kconfig, OS_SERVICE_Kconfig), and those
+                # carry defaults the build depends on.
+                if not (name.startswith("Kconfig") or name.endswith("Kconfig")):
                     continue
                 try:
                     newest = max(newest, os.path.getmtime(os.path.join(dirpath, name)))
