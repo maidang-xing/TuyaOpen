@@ -129,3 +129,30 @@ config JIELI_BOARD_PWM3_H_PIN
 config JIELI_BOARD_PWM3_L_PIN
     int "PWM3 (MCPWM3) L pin (flat GPIO number)"
     default 29
+
+# TKL IIC pins. IIC0/IIC1 are the hardware ports; IIC2 is the software
+# (bit-banged) one, whose pins the SDK takes from platform data rather than the
+# crossbar. All six are staged into tuya_board_periph_config.h.
+config JIELI_BOARD_IIC0_SCL_PIN
+    int "IIC0 SCL pin (flat GPIO number)"
+    default 4
+
+config JIELI_BOARD_IIC0_SDA_PIN
+    int "IIC0 SDA pin (flat GPIO number)"
+    default 5
+
+config JIELI_BOARD_IIC1_SCL_PIN
+    int "IIC1 SCL pin (flat GPIO number)"
+    default 6
+
+config JIELI_BOARD_IIC1_SDA_PIN
+    int "IIC1 SDA pin (flat GPIO number)"
+    default 7
+
+config JIELI_BOARD_IIC2_SCL_PIN
+    int "IIC2 (software IIC) SCL pin (flat GPIO number)"
+    default 2
+
+config JIELI_BOARD_IIC2_SDA_PIN
+    int "IIC2 (software IIC) SDA pin (flat GPIO number)"
+    default 3

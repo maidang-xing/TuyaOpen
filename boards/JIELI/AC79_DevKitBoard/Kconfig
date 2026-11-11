@@ -73,3 +73,21 @@ config JIELI_BOARD_HAS_DISPLAY
 config JIELI_BOARD_PWM0_PIN
     int "PWM0 (TIMER2 output) pin (flat GPIO number)"
     default 114
+
+# TKL IIC pins. IIC0 is the software (bit-banged) port on this chip and IIC1
+# the hardware one; both take their pins from platform data.
+config JIELI_BOARD_IIC0_SCL_PIN
+    int "IIC0 (software IIC) SCL pin (flat GPIO number)"
+    default 0
+
+config JIELI_BOARD_IIC0_SDA_PIN
+    int "IIC0 (software IIC) SDA pin (flat GPIO number)"
+    default 1
+
+config JIELI_BOARD_IIC1_SCL_PIN
+    int "IIC1 SCL pin (flat GPIO number)"
+    default 7
+
+config JIELI_BOARD_IIC1_SDA_PIN
+    int "IIC1 SDA pin (flat GPIO number)"
+    default 8
