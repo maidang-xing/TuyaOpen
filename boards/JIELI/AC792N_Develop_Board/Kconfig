@@ -86,48 +86,59 @@ endif
 # tkl_io_pinmux_config() before the first tkl_spi_init().
 config JIELI_BOARD_SPI1_CLK_PIN
     int "SPI1 CLK pin (flat GPIO number)"
+    range 0 127
     default 32
 
 config JIELI_BOARD_SPI1_DO_PIN
     int "SPI1 MOSI/DO pin (flat GPIO number)"
+    range 0 127
     default 33
 
 config JIELI_BOARD_SPI1_DI_PIN
     int "SPI1 MISO/DI pin (flat GPIO number)"
+    range 0 127
     default 34
 
 # TKL PWM pins, one complementary H/L pair per MCPWM channel. Staged into
 # tuya_board_periph_config.h like the SPI pins.
 config JIELI_BOARD_PWM0_H_PIN
     int "PWM0 (MCPWM0) H pin (flat GPIO number)"
+    range 0 127
     default 24
 
 config JIELI_BOARD_PWM0_L_PIN
     int "PWM0 (MCPWM0) L pin (flat GPIO number)"
+    range 0 127
     default 25
 
 config JIELI_BOARD_PWM1_H_PIN
     int "PWM1 (MCPWM1) H pin (flat GPIO number)"
+    range 0 127
     default 8
 
 config JIELI_BOARD_PWM1_L_PIN
     int "PWM1 (MCPWM1) L pin (flat GPIO number)"
+    range 0 127
     default 10
 
 config JIELI_BOARD_PWM2_H_PIN
     int "PWM2 (MCPWM2) H pin (flat GPIO number)"
+    range 0 127
     default 26
 
 config JIELI_BOARD_PWM2_L_PIN
     int "PWM2 (MCPWM2) L pin (flat GPIO number)"
+    range 0 127
     default 27
 
 config JIELI_BOARD_PWM3_H_PIN
     int "PWM3 (MCPWM3) H pin (flat GPIO number)"
+    range 0 127
     default 28
 
 config JIELI_BOARD_PWM3_L_PIN
     int "PWM3 (MCPWM3) L pin (flat GPIO number)"
+    range 0 127
     default 29
 
 # TKL IIC pins. IIC0/IIC1 are the hardware ports; IIC2 is the software
@@ -135,24 +146,30 @@ config JIELI_BOARD_PWM3_L_PIN
 # crossbar. All six are staged into tuya_board_periph_config.h.
 config JIELI_BOARD_IIC0_SCL_PIN
     int "IIC0 SCL pin (flat GPIO number)"
+    range 0 127
     default 4
 
 config JIELI_BOARD_IIC0_SDA_PIN
     int "IIC0 SDA pin (flat GPIO number)"
+    range 0 127
     default 5
 
 config JIELI_BOARD_IIC1_SCL_PIN
     int "IIC1 SCL pin (flat GPIO number)"
+    range 0 127
     default 6
 
 config JIELI_BOARD_IIC1_SDA_PIN
     int "IIC1 SDA pin (flat GPIO number)"
+    range 0 127
     default 7
 
 config JIELI_BOARD_IIC2_SCL_PIN
     int "IIC2 (software IIC) SCL pin (flat GPIO number)"
+    range 0 127
     default 2
 
 config JIELI_BOARD_IIC2_SDA_PIN
     int "IIC2 (software IIC) SDA pin (flat GPIO number)"
+    range 0 127
     default 3
