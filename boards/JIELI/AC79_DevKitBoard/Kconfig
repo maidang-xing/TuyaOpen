@@ -68,3 +68,8 @@ endif
 config JIELI_BOARD_HAS_DISPLAY
     bool
     default n
+
+# TKL PWM0 is the TIMER2 output, which takes a single pin (no H/L pair).
+config JIELI_BOARD_PWM0_PIN
+    int "PWM0 (TIMER2 output) pin (flat GPIO number)"
+    default 114

@@ -79,3 +79,53 @@ if JIELI_BOARD_HAS_DISPLAY
         string
         default "IO_PORTB_01"
 endif
+
+# TKL SPI1 pins. The board states them once here; the platform stages them
+# into tuya_board_periph_config.h, which the adapter uses to build its SPI1
+# platform data. An application can still move them at run time with
+# tkl_io_pinmux_config() before the first tkl_spi_init().
+config JIELI_BOARD_SPI1_CLK_PIN
+    int "SPI1 CLK pin (flat GPIO number)"
+    default 32
+
+config JIELI_BOARD_SPI1_DO_PIN
+    int "SPI1 MOSI/DO pin (flat GPIO number)"
+    default 33
+
+config JIELI_BOARD_SPI1_DI_PIN
+    int "SPI1 MISO/DI pin (flat GPIO number)"
+    default 34
+
+# TKL PWM pins, one complementary H/L pair per MCPWM channel. Staged into
+# tuya_board_periph_config.h like the SPI pins.
+config JIELI_BOARD_PWM0_H_PIN
+    int "PWM0 (MCPWM0) H pin (flat GPIO number)"
+    default 24
+
+config JIELI_BOARD_PWM0_L_PIN
+    int "PWM0 (MCPWM0) L pin (flat GPIO number)"
+    default 25
+
+config JIELI_BOARD_PWM1_H_PIN
+    int "PWM1 (MCPWM1) H pin (flat GPIO number)"
+    default 8
+
+config JIELI_BOARD_PWM1_L_PIN
+    int "PWM1 (MCPWM1) L pin (flat GPIO number)"
+    default 10
+
+config JIELI_BOARD_PWM2_H_PIN
+    int "PWM2 (MCPWM2) H pin (flat GPIO number)"
+    default 26
+
+config JIELI_BOARD_PWM2_L_PIN
+    int "PWM2 (MCPWM2) L pin (flat GPIO number)"
+    default 27
+
+config JIELI_BOARD_PWM3_H_PIN
+    int "PWM3 (MCPWM3) H pin (flat GPIO number)"
+    default 28
+
+config JIELI_BOARD_PWM3_L_PIN
+    int "PWM3 (MCPWM3) L pin (flat GPIO number)"
+    default 29
