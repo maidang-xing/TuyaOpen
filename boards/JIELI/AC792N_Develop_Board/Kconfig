@@ -45,6 +45,15 @@ config JIELI_BOARD_EXTERNAL_DDR
         Whether the board populates the external DDR. The vendor SDK disables
         it with CONFIG_NO_SDRAM_ENABLE unless this says otherwise.
 
+config JIELI_BOARD_DUAL_BANK
+    bool
+    default y
+    help
+        Build the vendor dual-bank (A/B) OTA engine: stages
+        CONFIG_DOUBLE_BANK_ENABLE into the vendor app config, so
+        support_dual_bank_update_en is 1 and tkl_ota can write the inactive
+        bank. Needs a second application bank in the flash map.
+
 config JIELI_BOARD_LOG_UART_PORT
     int
     default 0
@@ -80,10 +89,26 @@ if JIELI_BOARD_HAS_DISPLAY
         default "IO_PORTB_01"
 endif
 
-# TKL SPI1 pins. The board states them once here; the platform stages them
-# into tuya_board_periph_config.h, which the adapter uses to build its SPI1
-# platform data. An application can still move them at run time with
-# tkl_io_pinmux_config() before the first tkl_spi_init().
+# TKL SPI pins, one block per controller. The board states them once here; the
+# platform stages them into tuya_board_periph_config.h, which the adapter uses
+# to build the platform data for spi0/spi1/spi2. An application can still move
+# them at run time with tkl_io_pinmux_config() before the matching
+# tkl_spi_init().
+config JIELI_BOARD_SPI0_CLK_PIN
+    int "SPI0 CLK pin (flat GPIO number)"
+    range 0 127
+    default 35
+
+config JIELI_BOARD_SPI0_DO_PIN
+    int "SPI0 MOSI/DO pin (flat GPIO number)"
+    range 0 127
+    default 36
+
+config JIELI_BOARD_SPI0_DI_PIN
+    int "SPI0 MISO/DI pin (flat GPIO number)"
+    range 0 127
+    default 37
+
 config JIELI_BOARD_SPI1_CLK_PIN
     int "SPI1 CLK pin (flat GPIO number)"
     range 0 127
@@ -98,6 +123,21 @@ config JIELI_BOARD_SPI1_DI_PIN
     int "SPI1 MISO/DI pin (flat GPIO number)"
     range 0 127
     default 34
+
+config JIELI_BOARD_SPI2_CLK_PIN
+    int "SPI2 CLK pin (flat GPIO number)"
+    range 0 127
+    default 50
+
+config JIELI_BOARD_SPI2_DO_PIN
+    int "SPI2 MOSI/DO pin (flat GPIO number)"
+    range 0 127
+    default 51
+
+config JIELI_BOARD_SPI2_DI_PIN
+    int "SPI2 MISO/DI pin (flat GPIO number)"
+    range 0 127
+    default 52
 
 # TKL PWM pins, one complementary H/L pair per MCPWM channel. Staged into
 # tuya_board_periph_config.h like the SPI pins.
