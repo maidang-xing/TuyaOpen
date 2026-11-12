@@ -47,12 +47,14 @@ config JIELI_BOARD_EXTERNAL_DDR
 
 config JIELI_BOARD_DUAL_BANK
     bool
-    default y
+    default n
     help
         Build the vendor dual-bank (A/B) OTA engine: stages
         CONFIG_DOUBLE_BANK_ENABLE into the vendor app config, so
         support_dual_bank_update_en is 1 and tkl_ota can write the inactive
-        bank. Needs a second application bank in the flash map.
+        bank. Needs the flasher to split the application area in two, which
+        halves it to 1.42 MiB; code plus resources have to fit that. Off by
+        default because the chat bot demo alone is 2.46 MiB.
 
 config JIELI_BOARD_LOG_UART_PORT
     int
