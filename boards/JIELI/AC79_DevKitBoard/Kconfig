@@ -34,6 +34,17 @@ config JIELI_BOARD_EXTERNAL_DDR
         Whether the board populates the external DDR. The vendor SDK disables
         it with CONFIG_NO_SDRAM_ENABLE unless this says otherwise.
 
+config JIELI_BOARD_DUAL_BANK
+    bool
+    default n
+    help
+        Build the vendor dual-bank (A/B) OTA engine: stages
+        CONFIG_DOUBLE_BANK_ENABLE into the vendor app config, so
+        support_dual_bank_update_en is 1. The flasher then lays out two 64 KiB
+        uboot copies, two application banks and a 32 KiB VM below 0x300000.
+        Off by default: the wl82 boundaries have not been measured on this
+        board, so read them from the flasher's FLASH INFO the first time.
+
 config JIELI_BOARD_LOG_UART_PORT
     int
     default 1
