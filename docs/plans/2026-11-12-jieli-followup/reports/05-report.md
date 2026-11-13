@@ -401,14 +401,22 @@ GC6133  Sensor ID : 0xff
   符号化：`0x1c06754/0x1c06782` 在 `os_sem_post` / `xQueueGiveFromISR`，即崩溃发生在相机回调 `tal_semaphore_post(sg_preview_sem)` 周围；`0x5075b60` 落在 PSRAM 数据区（不可符号化）。旧页码测试在打开相机前先 `tkl_system_malloc(614400)` 彩条缓冲再 `tkl_system_free`，堆布局与稳定预览版不同；判断是堆/信号量对象被破坏，而不是显示或转换算法。
 - 修复方向：新测试**先建信号量、先开相机**，再使用静态 614400 B 缓冲，不再在相机打开前做大块 malloc/free，堆状态与稳定预览版一致。
 
+**厂商 SDK 的格式证据（2026-11-13，静态）**
+
+- `include_lib/utils/yuv_to_rgb.h:11` 提供 `yuv422p_quto_rgb565(unsigned char *yuvBuffer_in, unsigned char *rgbBuffer_out, int width, int height, char be)`，其中 `be=1` 为大端 RGB565；同文件还有 `yuv422p_quto_rotate_rgb565()`。
+- `include_lib/utils/yuv_soft_scalling.h` 单独提供 `YUYV422ToYUV422p()` / `YVYU422ToYUV422p()`，说明 packed 是**另一种输入**，厂商内部/编码统一用平面 YUV422P。
+- 平面 YUV422P 尺寸 = 640×480（Y）+ 2×320×480（U/V）= **614400 B**，与相机实测帧长完全一致。
+- 该函数位于 `cpu/wl82/liba/common_lib.a`，已随 staging 链接；本次镜像符号 `yuv422p_quto_rgb565` 已出现在 `sdk.elf` 中。
+- 结论：厂商 ISP 的 `VIDEO_PIX_FMT_YUV422` 按 **YUV422P（Y 平面 + U/V 平面，水平 2:1）** 解释；此前按 packed YUYV 解析是**分块与偏色的根因**。
+
 **候选布局页码版（已构建，待烧）**
 
-- 镜像 `a9bd5338a0e9193770732b17301b0dd5487b08cee8c2e8f6a4e1df246db21602`，407.5 KiB。
-- `example_camera.c` 新增 `__yuv422_layout_to_rgb565()`，按 6 种布局各出一页（每页 5 s，左上角页码，底部保留渐变+对角线带）：
-  - 11 packed-YUYV；12 packed-YVYU；13 planar-YUV（Y+U+V）；14 planar-YVU（Y+V+U）；15 semi-UV（Y+交错 UV）；16 semi-VU（Y+交错 VU）。
-- 颜色/字节序固定使用 `sg_display_info.is_swap`；布局页用于同时判定**连续性与 U/V 方向**。若某页整幅连续、颜色自然，该布局即为厂商 `VIDEO_PIX_FMT_YUV422` 的真实内存布局。
-- 新增日志 `[PAGE] cb data=... len=...`、`[PAGE] n frame/convert/flush`，若再次异常可定位到具体阶段。
-- 状态：已构建、格式检查通过；**等待 main 放行 COM8 后烧录，并由用户报告 11–16 中画面连续且颜色自然的页码**。未烧录前不得把任一布局写成已验收。
+- 镜像 `e821333b37cac04360e14c990f1b61614e7b8b00f80d1de86265718d7e3296bd`，409.9 KiB。
+- 主路径改为厂商 `yuv422p_quto_rgb565()`：先把 640×480 帧左侧 320 列按平面逐行重排成 320×480 YUV422P（`__crop_planar_left_half()`），再以 `width=320` 调用厂商函数写入 fb；页码 11 传 `be=1`、12 传 `be=0`，用于同时确认厂商字节序语义。
+- 13–16 页保留自写 `__yuv422_layout_to_rgb565()` 作为对照：13 planar-YUV、14 planar-YVU、15 semi-UV、16 semi-VU；每页 5 s，左上角页码，底部保留渐变+对角线带。
+- `__yuv422_layout_to_rgb565()` 支持 packed/planar/semi-planar 六种布局；packed 两页不再显示，仅保留代码便于后续排查。
+- 新增日志 `[PAGE] cb data=... len=...`、`[PAGE] n frame/convert/flush` 及 `vendor-422p-be1/be0`、`planar-YUV` 等名称，若再次异常可定位到具体阶段。
+- 状态：已构建、格式检查通过；**等待 main 放行 COM8 后烧录，并由用户报告 11–16 中画面连续、颜色自然的页码**。未烧录前不得把任一布局写成已验收；页面 11/12 与 13/14 互为“厂商函数 / 自写平面转换”的交叉验证。
 
 ### 0.11 DVP 实机结果（2026-11-13 16:18–16:22）
 

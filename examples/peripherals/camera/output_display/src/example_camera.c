@@ -464,6 +464,34 @@ static OPERATE_RET __preview_run(void)
 #define YUV_LAYOUT_SEMI_VU     5
 #define YUV_LAYOUT_NUM         6
 
+/* 320-column planar YUV422P crop, fed to the vendor converter. The panel is
+ * 320x480, so the left half of the 640x480 frame is re-packed row by row: the
+ * vendor helper assumes the plane stride matches the width it is given. */
+static uint8_t sg_planar_crop[(EXAMPLE_CAMERA_WIDTH / 2) * EXAMPLE_CAMERA_HEIGHT * 2] __attribute__((aligned(32)));
+
+#if defined(JIELI_SELECTED_CHIP_WL82)
+/* common_lib.a: be = 1 stores RGB565 big-endian, matching is_swap=1. */
+extern void yuv422p_quto_rgb565(unsigned char *yuvBuffer_in, unsigned char *rgbBuffer_out, int width, int height,
+                                char be);
+#endif
+
+static void __crop_planar_left_half(const uint8_t *src, int src_w, int src_h, uint8_t *dst)
+{
+    int            dst_w = src_w / 2;
+    size_t         src_y = (size_t)src_w * (size_t)src_h;
+    size_t         dst_y = (size_t)dst_w * (size_t)src_h;
+    const uint8_t *src_u = src + src_y;
+    const uint8_t *src_v = src + src_y + src_y / 2u;
+    uint8_t       *dst_u = dst + dst_y;
+    uint8_t       *dst_v = dst + dst_y + dst_y / 2u;
+
+    for (int y = 0; y < src_h; y++) {
+        memcpy(dst + (size_t)y * (size_t)dst_w, src + (size_t)y * (size_t)src_w, (size_t)dst_w);
+        memcpy(dst_u + (size_t)y * (size_t)(dst_w / 2), src_u + (size_t)y * (size_t)(src_w / 2), (size_t)(dst_w / 2));
+        memcpy(dst_v + (size_t)y * (size_t)(dst_w / 2), src_v + (size_t)y * (size_t)(src_w / 2), (size_t)(dst_w / 2));
+    }
+}
+
 static void __yuv422_layout_to_rgb565(const uint8_t *src, int src_w, int src_h, uint8_t *dst, int dst_w, int dst_h,
                                       int layout, int swap)
 {
@@ -560,12 +588,18 @@ static OPERATE_RET __page_test_run(void)
     cfg.out_fmt      = TDL_CAMERA_FMT_YUV422;
     cfg.get_frame_cb = __preview_frame_cb;
     TUYA_CALL_ERR_RETURN(tdl_camera_dev_open(sg_tdl_camera_hdl, &cfg));
-    printf("[PAGE] camera opened, layouts 11-%d swap=%d\n", 10 + YUV_LAYOUT_NUM, sg_display_info.is_swap);
+    printf("[PAGE] camera opened, pages 11-16 swap=%d\n", sg_display_info.is_swap);
 
-    for (int layout = 0; layout < YUV_LAYOUT_NUM; layout++) {
-        int page = 11 + layout;
+    for (int page = 11; page <= 16; page++) {
+        const char *name = NULL;
 
-        printf("[PAGE] %d wait layout=%s\n", page, s_layout_name[layout]);
+        if (page <= 12) {
+            name = (page == 11) ? "vendor-422p-be1" : "vendor-422p-be0";
+        } else {
+            name = s_layout_name[YUV_LAYOUT_PLANAR_UV + (page - 13)];
+        }
+
+        printf("[PAGE] %d wait %s\n", page, name);
         if (tal_semaphore_wait(sg_preview_sem, 5000) != OPRT_OK) {
             printf("[PAGE] %d no frame\n", page);
             continue;
@@ -579,14 +613,24 @@ static OPERATE_RET __page_test_run(void)
             continue;
         }
 
-        printf("[PAGE] %d convert\n", page);
-        __yuv422_layout_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
-                                  fb->height, layout, sg_display_info.is_swap);
+        printf("[PAGE] %d convert %s\n", page, name);
+        if (page <= 12) {
+            /* Primary path: the SDK's own planar YUV422P -> RGB565 converter.
+             * Re-pack the left 320 columns first so the helper's implicit
+             * stride (width) matches the source planes. */
+            __crop_planar_left_half(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, sg_planar_crop);
+            yuv422p_quto_rgb565(sg_planar_crop, fb->frame, EXAMPLE_CAMERA_WIDTH / 2, EXAMPLE_CAMERA_HEIGHT,
+                                (page == 11) ? 1 : 0);
+        } else {
+            int layout = YUV_LAYOUT_PLANAR_UV + (page - 13);
+            __yuv422_layout_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
+                                      fb->height, layout, sg_display_info.is_swap);
+        }
         __draw_page_marker(fb->frame, fb->width, fb->height, page, sg_display_info.is_swap);
         printf("[PAGE] %d flush\n", page);
         tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
         sg_preview_ready = 0;
-        printf("[PAGE] %d camera layout=%s\n", page, s_layout_name[layout]);
+        printf("[PAGE] %d camera %s\n", page, name);
         tal_system_sleep(5000);
     }
 
