@@ -47,7 +47,7 @@
 /* Page test: numbered pages, one per candidate memory layout for the vendor's
  * 614400-byte YUV422 frame, so the operator can name the page that looks
  * right instead of recalling a fast sequence. */
-#define EXAMPLE_PAGE_TEST 1
+#define EXAMPLE_PAGE_TEST 0
 
 /* The final preview architecture: the vendor callback only caches + copies a
  * frame into a static buffer, and the Tuya main thread converts and flushes it
@@ -180,6 +180,44 @@ static void __yuv422_crop_to_rgb565(const uint8_t *src, int src_w, int src_h, ui
             row += 4;
             out[x]     = __yuv_to_rgb565(y0, u, v, swap);
             out[x + 1] = __yuv_to_rgb565(y1, u, v, swap);
+        }
+    }
+}
+
+/* Planar YUV422P (the layout the SDK's own yuv422p_* helpers consume) to
+ * RGB565 with nearest-neighbour scaling, so the source size can be lowered for
+ * frame rate without changing the panel geometry. The column map is
+ * precomputed because the divide per pixel is far too slow at 320x480. */
+static uint16_t s_sx_map[480];
+static int      s_sx_map_sw = -1;
+static int      s_sx_map_dw = -1;
+
+static void __yuv422p_scale_to_rgb565(const uint8_t *src, int src_w, int src_h, uint8_t *dst, int dst_w, int dst_h,
+                                      int swap)
+{
+    size_t         y_size  = (size_t)src_w * (size_t)src_h;
+    const uint8_t *u_plane = src + y_size;
+    const uint8_t *v_plane = src + y_size + y_size / 2u;
+    int            dw      = (dst_w < 480) ? dst_w : 480;
+
+    if (s_sx_map_sw != src_w || s_sx_map_dw != dst_w) {
+        for (int x = 0; x < dw; x++) {
+            s_sx_map[x] = (uint16_t)((x * src_w) / dst_w);
+        }
+        s_sx_map_sw = src_w;
+        s_sx_map_dw = dst_w;
+    }
+
+    for (int y = 0; y < dst_h; y++) {
+        int            sy   = (y * src_h) / dst_h;
+        const uint8_t *yrow = src + (size_t)sy * (size_t)src_w;
+        const uint8_t *urow = u_plane + (size_t)sy * (size_t)(src_w / 2);
+        const uint8_t *vrow = v_plane + (size_t)sy * (size_t)(src_w / 2);
+        uint16_t      *out  = (uint16_t *)(dst + (size_t)y * (size_t)dst_w * 2u);
+
+        for (int x = 0; x < dw; x++) {
+            int sx = s_sx_map[x];
+            out[x] = __yuv_to_rgb565(yrow[sx], urow[sx >> 1], vrow[sx >> 1], swap);
         }
     }
 }
@@ -357,7 +395,15 @@ static volatile uint32_t sg_preview_len      = 0;
 static volatile uint8_t  sg_preview_ready    = 0;
 static uint32_t          sg_preview_frames   = 0;
 static uint32_t          sg_preview_start_ms = 0;
-static uint8_t           sg_preview_buf[EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2] __attribute__((aligned(32)));
+static uint32_t          sg_window_start_ms  = 0;
+static uint32_t          sg_conv_ms_sum      = 0;
+static uint32_t          sg_conv_ms_max      = 0;
+/* Sized for the largest source the DVP path can deliver, independent of the
+ * configured capture size, so a resolution change cannot overflow it. */
+static uint8_t           sg_preview_buf[640 * 480 * 2] __attribute__((aligned(32)));
+static volatile uint8_t *sg_preview_ptr = NULL;
+static volatile uint32_t sg_preview_w   = 0;
+static volatile uint32_t sg_preview_h   = 0;
 
 static OPERATE_RET __preview_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_T *frame)
 {
@@ -380,10 +426,23 @@ static OPERATE_RET __preview_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_
     }
 #endif
 #if defined(JIELI_SELECTED_CHIP_WL82)
-    flushinv_dcache(frame->data, (int)len);
+    /* The preview reads the vendor buffer directly, so the whole delivered
+     * frame must be invalidated, not just the part that fits our copy. */
+    flushinv_dcache(frame->data, (int)frame->data_len);
 #endif
+#if EXAMPLE_PAGE_TEST
     memcpy(sg_preview_buf, frame->data, len);
-    sg_preview_len   = len;
+    sg_preview_len = len;
+#else
+    /* Copy the frame on the vendor thread: reading the vendor buffer from
+     * another thread while the ISP refills it ended in a device drop, so the
+     * copy stays even though it costs an extra pass over SDRAM. */
+    memcpy(sg_preview_buf, frame->data, len);
+    sg_preview_ptr = sg_preview_buf;
+    sg_preview_len = len;
+    sg_preview_w   = frame->width;
+    sg_preview_h   = frame->height;
+#endif
     sg_preview_ready = 1;
     tal_semaphore_post(sg_preview_sem);
 
@@ -418,6 +477,7 @@ static OPERATE_RET __preview_run(void)
     TUYA_CALL_ERR_RETURN(tdl_camera_dev_open(sg_tdl_camera_hdl, &cfg));
     printf("[PREVIEW] camera opened, loop start\n");
     sg_preview_start_ms = (uint32_t)tal_system_get_millisecond();
+    sg_window_start_ms  = sg_preview_start_ms;
 
     while (1) {
         if (tal_semaphore_wait(sg_preview_sem, 1000) != OPRT_OK) {
@@ -435,17 +495,40 @@ static OPERATE_RET __preview_run(void)
             continue;
         }
 
-        __yuv422_crop_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
-                                fb->height, YUV_ORDER_YUYV, sg_display_info.is_swap);
+        uint32_t conv_start = (uint32_t)tal_system_get_millisecond();
+
+#if defined(JIELI_SELECTED_CHIP_WL82)
+        /* Planar YUV422P, read straight from the vendor buffer. */
+        __yuv422p_scale_to_rgb565(sg_preview_ptr ? sg_preview_ptr : sg_preview_buf,
+                                  sg_preview_w ? (int)sg_preview_w : EXAMPLE_CAMERA_WIDTH,
+                                  sg_preview_h ? (int)sg_preview_h : EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
+                                  fb->height, sg_display_info.is_swap);
+#else
+        __yuv422p_scale_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
+                                    fb->height, sg_display_info.is_swap);
+#endif
         tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
         sg_preview_ready = 0;
 
         sg_preview_frames++;
+        {
+            uint32_t spent = (uint32_t)tal_system_get_millisecond() - conv_start;
+            sg_conv_ms_sum += spent;
+            if (spent > sg_conv_ms_max) {
+                sg_conv_ms_max = spent;
+            }
+        }
         if ((sg_preview_frames % 30u) == 0u) {
             uint32_t now = (uint32_t)tal_system_get_millisecond();
-            uint32_t ms  = now - sg_preview_start_ms;
-            printf("[PREVIEW] fps=%u frames=%u\n", (unsigned)((sg_preview_frames * 1000u) / (ms ? ms : 1u)),
-                   (unsigned)sg_preview_frames);
+            uint32_t win = now - sg_window_start_ms;
+            printf("[PREVIEW] fps=%u frames=%u conv_avg=%ums conv_max=%ums src=%ux%u len=%u\n",
+                   (unsigned)((sg_preview_frames * 1000u) / (win ? win : 1u)), (unsigned)sg_preview_frames,
+                   (unsigned)(sg_conv_ms_sum / (sg_preview_frames ? sg_preview_frames : 1u)), (unsigned)sg_conv_ms_max,
+                   (unsigned)sg_preview_w, (unsigned)sg_preview_h, (unsigned)sg_preview_len);
+            sg_conv_ms_sum     = 0;
+            sg_conv_ms_max     = 0;
+            sg_preview_frames  = 0;
+            sg_window_start_ms = now;
         }
     }
 }
