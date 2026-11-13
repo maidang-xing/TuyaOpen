@@ -301,6 +301,25 @@ GC6133  Sensor ID : 0xff
   之后无 exception、无重启，板子留在应用里。
 - 结论：**真实相机帧可被 CPU 读取、cache 维护后转换/flush 正常**。此前 worker 版“全波特率 0 字节”的现场是板子停在 `WL80UBOOT1.00`（USB UDISK）而非 worker 代码初始化失败；该镜像 `7a8e51ee…` 已放弃，不再烧。
 - 下一步：把同一逻辑放回 worker（回调 cache+memcpy+post，worker convert+flush），首行 `[DISP_WORKER] init`，做连续预览；LCD 出画面/颜色待用户确认。转换函数只裁剪不缩放，640x480 → 320x480 只显示左侧 320 列。
+
+**连续预览 worker 版（2026-11-13 17:58–17:59）**
+
+- 用户确认单帧版 **LCD 有画面但颜色不对**，符合 GC2145 输出 YUYV、TDD 报 `yuv_order=0`（UYVY）不匹配。镜像改为 `sg_yuv_order = TUYA_YUV422_YUYV` 并打印 `cam_info.yuv_order=0, using YUYV`。
+- 镜像 `47dc9cd84b02bf26b82dd75819ca801895ed6abac1bd3d626f63643cfaa6d9ac`；从 CAMTEST 健康固件直接烧录，`Device online` → `Download completed` → `-reboot 2000` 自动重启。
+- 启动与连续帧：
+  ```
+  [CAMTEST] begin
+  [DISP_WORKER] init
+  [DISP_WORKER] cam_info.yuv_order=0, using YUYV
+  thread_create name:camera_disp,stackDepth:8192,priority:2
+  [camera] sensor: GC2145 / first frame 640x480 len=614400
+  [DISP_WORKER] cb data=42208e0 len=614400
+  [DISP_WORKER] convert 640x480 → convert done, flush → flush done
+  ...
+  ```
+- 连续运行 30 s：**0 次 exception / 0 次重启**，162 帧 / 19.86 s ≈ **8.1 fps**（含每帧串口打印；单缓冲、worker 忙时丢帧）。这是 **DVP + LCD 端到端第一次连续成立**。
+- 待用户确认：颜色是否正常（若仍偏色，下一步试 `is_swap=0` 或 RGB565 字节交换），画面是否连续（预期仍是左侧 320 列裁剪）。
+- 旧 worker 镜像 `7a8e51ee…` 的现场是 UBOOT 模式，已标为放弃；`dbfbef21…`（CAMTEST 单帧）为第一次端到端出画面。
 - **双烧撞车**：协调方与我几乎同时向同一台设备发起 `isd_download`，其日志在写完数据后报 `ERROR: Failed to query data crc, address = 0x0`；我的同一时刻日志为 `Download completed`（EXIT=0），板子随后启动的 `setup_arch 17:25:54` 与我的镜像一致，故判断 CRC 错误由并发访问导致，镜像本身已正常启动并跑完自检。后续烧录改为单人操作。
 - 厂商路径对照（静态）：`lcd_ili9488.c:59-63` 的 `LCD_DrawToDev`/`ILI9488_lvgl_Fill` 最终都走 `WriteDAT_DMA` → `lcd_send_map` → `dev_write(emi, buf, len)`，传入的也是 `malloc` 得到的缓冲；`10-touch` 的 `tdd_display_mcu8080.c` 与 05 逐字节一致，且 `app_display_camera_flush` 用的就是同一个 `tdl_disp_convert_yuv422_to_fb`（宏封装）。因此“厂商用了特殊显示缓冲、SDRAM 帧不能写”这一假设被排除；剩余重点是**相机回调线程（厂商 `raw_flow_task`，8 KB 栈）上下文**或 TDD 输入帧的内存属性。
 - 显示分辨率：`tdl_disp_convert_yuv422_to_fb` 的软件转换只做裁剪（`width=min(in,out)`），不做缩放；640x480 → 320x480 会取左侧 320 列、保留全部 480 行。若后续需要整幅画面，必须另加缩放，不能指望该函数。

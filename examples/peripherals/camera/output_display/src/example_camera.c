@@ -42,13 +42,13 @@
  * YUV422->RGB565 conversion and the panel flush there hangs/faults on this
  * board, while the identical calls work on a Tuya thread. Hand each frame to a
  * worker instead: the callback only copies, the worker converts and flushes. */
-#define EXAMPLE_DISPLAY_WORKER 0
+#define EXAMPLE_DISPLAY_WORKER 1
 
 /* Single-frame bring-up test, entirely on the Tuya main thread: the camera
  * callback only copies one real frame (after cache maintenance), then
  * user_main converts and flushes it. No worker thread, no conversion on the
  * vendor raw_flow_task. */
-#define EXAMPLE_CAMTEST 1
+#define EXAMPLE_CAMTEST 0
 
 #if defined(EXAMPLE_CAMERA_IMG_ROTATION_0) && (EXAMPLE_CAMERA_IMG_ROTATION_0 == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_0
@@ -319,7 +319,7 @@ static OPERATE_RET __camtest_run(void)
 
     TDL_CAMERA_DEV_INFO_T cam_info = {0};
     tdl_camera_dev_get_info(sg_tdl_camera_hdl, &cam_info);
-    sg_yuv_order = cam_info.yuv_order;
+    sg_yuv_order = TUYA_YUV422_YUYV;
 
     TDL_CAMERA_CFG_T cfg;
     memset(&cfg, 0, sizeof(TDL_CAMERA_CFG_T));
@@ -378,7 +378,10 @@ static OPERATE_RET __camera_init(void)
     /* Get YUV byte order from camera driver info */
     TDL_CAMERA_DEV_INFO_T cam_info = {0};
     tdl_camera_dev_get_info(sg_tdl_camera_hdl, &cam_info);
-    sg_yuv_order = cam_info.yuv_order;
+    /* The vendor logs GC2145 as YUYV while the TDD reports UYVY; the image on
+     * the panel is colour-swapped with the TDD default, so pin YUYV here. */
+    sg_yuv_order = TUYA_YUV422_YUYV;
+    printf("[DISP_WORKER] cam_info.yuv_order=%d, using YUYV\n", cam_info.yuv_order);
 
     cfg.fps     = EXAMPLE_CAMERA_FPS;
     cfg.width   = EXAMPLE_CAMERA_WIDTH;
