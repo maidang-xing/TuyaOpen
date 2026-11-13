@@ -9,6 +9,86 @@
 
 ---
 
+## 0. 阶段 B 增补（2026-11-13，实机前）
+
+用户确认**两路摄像头都已插上，两路分别单独实测**，不要求并发。阶段 A 的“不能并发”结论不变；本节把“分别跑通”落成可切换的实现与构建证据。
+
+### 0.1 实现与开关
+
+| 项 | DVP 路 | SPI 路 |
+|---|---|---|
+| 连接器 | J1 24-pin | J4 12-pin |
+| Kconfig | `CONFIG_JIELI_CAMERA_PATH_DVP=y` | `CONFIG_JIELI_CAMERA_PATH_SPI=y` |
+| 厂商设备 | `video0`（camera0） | `video1.0`（sensor）+ `spi2`（数据） |
+| 摄像头 I2C | iic0（软件 IIC）PH0/PH1 | iic1（硬件 IIC）PH0/PH1 |
+| XCLK/RESET | PH2 / PH3 | PH2 / PH3 |
+| 数据引脚 | PA0-PA7 + PA8/9/10 | PA2/PA3/PA4 |
+| 输出格式 | YUV422（`VIDIOC_*OVERLAY`） | YUV422（BT656 行包去头尾） |
+| 默认分辨率 | 640x480@20 | 320x240@12 |
+
+开关是 Kconfig `choice`（三选一：none / DVP / SPI），**不是运行时并发**；两条路径共用 PA2/PA3/PA4 与 PH0-PH3，因此一个镜像只注册一路。`ENABLE_DVP` 是新平台能力开关，默认 n，只有板级 choice 选中时才编译 TKL adapter。
+
+主要改动：
+
+- 主仓：`boards/JIELI/TKL_Kconfig`（`ENABLE_DVP`）、`boards/JIELI/AC79_DevKitBoard/Kconfig`（camera choice、宽高/帧率、IIC 引脚默认值、`depends on !JIELI_BOARD_UART1_ENABLE`）、`boards/JIELI/AC79_DevKitBoard/board_com_api.c`（注册 `tdl_camera_dvp_device_register("camera", ...)`，sensor 接口表留空由 vendor 驱动 probe）、`examples/peripherals/camera/jieli_probe/`（无屏无 SD 的验证应用 + `probe.ps1`）。
+- 平台仓（本地分支 `task/05-ac791-camera-platform`）：`include/media/tkl_dvp.h`、`tuya_cloud_types.h`（`TUYA_DVP_TKL_CFG_T` + `inter_cfg`）、`src/driver/tkl_dvp.c`、`adapter_sources.txt`、`src/system/tkl_system.c`（补 `tkl_system_enter/exit_critical`，此前只有声明）、`tools/jieli_build/feature_map.py`（CAMERA feature、`video_rec_server.a`、源去重）、`board_config.py`/`sdk_overlay.py`（app_config、板级 camera0/camera1/video0/video1/spi2 注册与 staging）。
+
+### 0.2 构建证据（两条路径分别构建）
+
+| 路径 | 配置 | 结果 | SHA256 | 大小 |
+|---|---|---|---|---|
+| DVP | `JIELI_AC79_DevKitBoard_dvp.config` | BUILD SUCCESS | `6294fa81d377a9f1065ccc1b1eb96b5e93979950ca6402cae1aaadb939a01d1c` | 408,500 B |
+| SPI | `JIELI_AC79_DevKitBoard_spi.config` | BUILD SUCCESS | `c097adffe65edf94e0c2b8f7f44ec120f63c7ccc2a6598fd06bd9df86ac90239` | 413,396 B |
+
+产物已固化到 `.worktrees/05-camera/.artifacts/jieli-camera/`（同名 `.sha256`），对应 `dist/jieli_probe_1.0.0/jieli_probe_QIO_1.0.0.bin`。
+
+staging 交叉核对（DVP/SPI 各自）：
+
+- `app_config.h`：DVP 仅 `CONFIG_VIDEO_ENABLE` + 640x480；SPI 另加 `CONFIG_VIDEO1_ENABLE`、`CONFIG_SPI_VIDEO_ENABLE`、`CONFIG_SPI_VIDEO_USE_ISC1_RECV=0`、`CONFIG_SPI_ONE_LINE_ENABLE=0`、`TCFG_SPI_ATTR` 与 `TCFG_VIDEO1_*`/`TCFG_IIC1_*`。
+- `board.c`：DVP 注册 `{ "video0.*", &video_dev_ops, ... }`；SPI 注册 `{ "video1.*", ... }` 与 `{ "spi2", &spi_dev_ops, ... }`。
+- `tuya_board_periph_config.h`：DVP `IIC0=PH0/PH1 (112/113)`；SPI `IIC1=PH0/PH1 (112/113)`。
+- Makefile：`-DJIELI_CAMERA_PATH_{DVP,SPI}=1 -DJIELI_CAMERA_WIDTH/HEIGHT/FPS=...`，并链接 `video_rec_server.a`。
+
+### 0.3 共享引脚 init/release 顺序（代码核对）
+
+| 阶段 | DVP | SPI |
+|---|---|---|
+| 设备表 | 只挂 `video0.*` | 只挂 `video1.*` + `spi2` |
+| TKL init | 只分配 YUV422 缓冲 | 只分配 YUV422 缓冲 |
+| 采集线程启动 | `dev_open("video0")`；vendor 驱动按 `camera0_data` 拉 XCLK PH2、复位 PH3，并通过 iic0 探测/配置 sensor；随后 `VIDIOC_SET_FMT/OVERLAY` | 先 `gpio_output_channle(PH2, 24M)` → `dev_open("video1.0")`（iic1 + 复位 PH3 + sensor 配置）→ 最后 `dev_open("spi2")` 占用 PA2/PA3/PA4；再 `IOCTL_SPI_SET_USER_INFO` |
+| 采集停止 | `VIDIOC_CLEAR_OVERLAY` → `dev_close(video0)` | `dev_close(spi2)`（释放 PA2-PA4）→ `dev_close(video1)`（释放 iic1/PH3）→ `gpio_clear_output_channle(PH2)` |
+| 跨路径切换 | 通过重新编译 + 重启实现；同一镜像内不会同时初始化两套 pinmux | 同左 |
+
+`tkl_dvp_stop()` 现在等待采集线程完成上述 teardown（最多 1 s）后才释放线程，避免切换时把仍持有 `spi2`/`video1`/`video0` 的任务直接 kill。确认过的冲突项：PH2/PH3 同时是 UART1(TX/RX) 与 PWM0 默认引脚，Kconfig 已让 camera choice `depends on !JIELI_BOARD_UART1_ENABLE`；PWM0 未被本验证应用打开，产品若启用 PWM0 需另做互斥。
+
+### 0.4 每路验收表（实机待 COM8 放行）
+
+| 字段 | DVP（J1/video0） | SPI（J4/video1+spi2） |
+|---|---|---|
+| 烧录镜像 SHA256 | `6294fa81…`（待烧） | `c097adff…`（待烧） |
+| sensor 型号 | 待 vendor probe / `CAMERA_GET_SENSOR_TYPE` 日志；J1 丝印复核 | 待 vendor probe / `CAMERA_GET_SENSOR_TYPE` 日志；J4 丝印复核 |
+| sensor ID | 待 `CAMERA_GET_SENSOR_INFO` + 驱动 `*_ID_check` 日志 | 待同左 |
+| 首帧时间 | 待测（`FIRST FRAME` 行 + 上电到首帧 ms） | 待测 |
+| 分辨率 | 期望 640x480 | 期望 320x240（以 probe 实际为准） |
+| 像素格式 | YUV422 | YUV422（BT656 行包剥离后） |
+| 帧率 | 期望 20 fps，记录 1 s 窗口实测 | 期望 12 fps，记录 1 s 窗口实测 |
+| 失败码/现象 | 待记录：`video0 open failed`、`VIDIOC_SET_FMT`/`SET_OVERLAY` 返回值、无帧 | 待记录：`video1.0 open failed`、`spi2 open failed`、`bad packet head=...`、`short line copy`、无帧 |
+| 结论 | 未测 | 未测 |
+
+### 0.5 烧录纪律与回滚
+
+- COM8 当前归语音任务；**本轮未打开串口、未烧录**。收到总管“COM8 已释放”后，按 **DVP → SPI** 顺序烧录，每次烧录前重新枚举端口。
+- 回滚镜像：`D:\tuya_proj\TuyaOpen\.worktrees\10-touch\apps\tuya.ai\your_chat_bot\dist\your_chat_bot_1.0.1\your_chat_bot_QIO_1.0.1.bin`，SHA256 `54a61aa539f11be81cd960017da29e7681cd66a056d219706ffa1b970ab629ad`。
+- 不改分区、不上云、不推送。验证脚本：`examples/peripherals/camera/jieli_probe/probe.ps1`（`build` / `archive` / `flash` / `capture`）。
+
+### 0.6 本轮阶段 B 明确未做
+
+- 未打开 COM8、未烧录、未上电验证，因此 **没有 sensor ID、首帧、分辨率、帧率或失败码实机数据**。
+- 未验证 vendor `video0`/`video1` 在本板的具体 probe 顺序与实际 SKU；表中型号一栏保持“待测”，不按原理图猜写。
+- 未验证 SPI 双线采样相位（`TCFG_SPI_ATTR` 取自 vendor DevKitBoard 配置）是否匹配实际模组；若首包持续 `bad packet head`，下一步只调该宏。
+
+---
+
 ## 1. 结论（先给结论）
 
 **AC79_DevKitBoard 不支持双路 DVP。阶段 B 不应实现“第二路 DVP”。**

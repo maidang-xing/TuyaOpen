@@ -29,6 +29,20 @@
 #include "tdd_disp_ili9488.h"
 #endif
 
+/* The camera TDD owns the frame pool and the open/close state machine; the
+ * sensor itself (probe, I2C, registers) is the vendor video pipeline's job,
+ * so the sensor interface table below stays empty. The board Kconfig choice
+ * selects which vendor device the TKL adapter drives (video0 for DVP, video1
+ * plus SPI2 for the 12-pin path); both share PA2/PA3/PA4 and PH0-PH3 and
+ * cannot be built together. */
+#if defined(ENABLE_CAMERA) && (ENABLE_CAMERA == 1) &&                                                                  \
+    (defined(JIELI_CAMERA_PATH_DVP) || defined(JIELI_CAMERA_PATH_SPI)) &&                                              \
+    ((defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)) ||                                               \
+     (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
+#include "tdd_camera_dvp.h"
+#define JIELI_CAMERA_DEV_NAME "camera"
+#endif
+
 /***********************************************************
 ************************macro define************************
 ***********************************************************/
@@ -115,6 +129,43 @@ OPERATE_RET board_register_hardware(void)
         if (ret != OPRT_OK) {
             return ret;
         }
+    }
+#endif
+
+#if defined(ENABLE_CAMERA) && (ENABLE_CAMERA == 1) &&                                                                  \
+    ((defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)) ||                                               \
+     (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
+    {
+        /* The vendor sensor drivers own I2C, reset and the register table,
+         * and the TKL adapter owns the capture device. Nothing in this
+         * structure opens an I2C port or toggles a GPIO: TUYA_I2C_NUM_MAX /
+         * TUYA_GPIO_NUM_MAX disable those TDD-side steps. */
+        TDD_DVP_SR_CFG_T camera_cfg = {
+            .usr_cfg =
+                {
+                    .pwr = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
+                    .rst = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
+                    .i2c = {.port = TUYA_I2C_NUM_MAX},
+                    .clk = 24000000,
+                },
+            .max_fps    = JIELI_BOARD_CAMERA_FPS,
+            .max_width  = JIELI_BOARD_CAMERA_WIDTH,
+            .max_height = JIELI_BOARD_CAMERA_HEIGHT,
+            .fmt        = TUYA_FRAME_FMT_YUV422,
+        };
+        TDD_DVP_SR_INTFS_T camera_intfs = {0};
+
+        ret = tdl_camera_dvp_device_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg, &camera_intfs);
+        if (ret != OPRT_OK) {
+            return ret;
+        }
+        printf("camera path: %s\n",
+#if defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)
+               "DVP (J1/video0)"
+#else
+               "SPI (J4/video1+spi2)"
+#endif
+        );
     }
 #endif
 
