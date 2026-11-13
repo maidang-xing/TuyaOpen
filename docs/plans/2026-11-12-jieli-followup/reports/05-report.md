@@ -317,7 +317,7 @@ GC6133  Sensor ID : 0xff
   [DISP_WORKER] convert 640x480 → convert done, flush → flush done
   ...
   ```
-- 连续运行 30 s：**0 次 exception / 0 次重启**，162 帧 / 19.86 s ≈ **8.1 fps**（含每帧串口打印；单缓冲、worker 忙时丢帧）。这是 **DVP + LCD 端到端第一次连续成立**。
+- 连续运行 30 s：**0 次 exception / 0 次重启**，162 帧 / 19.86 s ≈ **8.1 fps**（含每帧串口打印；单缓冲、worker 忙时丢帧）。**能持续出帧，但用户复测显示仍有分块/偏色，未验收**。
 - 待用户确认：颜色是否正常（若仍偏色，下一步试 `is_swap=0` 或 RGB565 字节交换），画面是否连续（预期仍是左侧 320 列裁剪）。
 - 旧 worker 镜像 `7a8e51ee…` 的现场是 UBOOT 模式，已标为放弃；`dbfbef21…`（CAMTEST 单帧）为第一次端到端出画面。
 - **自写转换 + 彩条自检**：`__yuv422_crop_to_rgb565` 显式按 `src_stride = 640*2`、`dst_stride = 320*2` 逐行裁剪转换；彩条页（2 页 RGB565 + 8 页 YUV order×swap）用户反馈“部分页面柱状颜色正常、部分有条纹”，证明 stride/显示/字节序在 `user_main` 上正确，错误页是错误 YUV 顺序/swap 的预期结果。
@@ -325,8 +325,9 @@ GC6133  Sensor ID : 0xff
 - **最终预览架构（实机通过）**：镜像 `48fc114ac45f0edce9dca3ddf95ba68763e52e6c1cfb986b178a79f342992548`。
   - 无 worker 线程；相机回调只做 `flushinv_dcache` + `memcpy` 到**静态** 640×480 YUV422 缓冲 + 信号量；`user_main` 循环等待帧 → `__yuv422_crop_to_rgb565` → `tdl_disp_dev_flush`。
   - 启动与帧率：`[PREVIEW] init` → `camera info max=640x480 yuv_order=0` → `camera opened, loop start` → GC2145 首帧 → `[PREVIEW] fps=7/8/9 frames=30/60/90/120`。
-  - 连续运行 14 s+、120+ 帧，**0 exception**；约 9 fps。LCD 颜色/连续性待用户最终确认。
-  - 延长观察：53 s、510+ 帧，`fps=9` 稳定，仍 0 exception。
+  - 连续运行 14 s+、120+ 帧，**0 exception**；约 9 fps。
+  - 延长观察：5 分 42 秒、3360 帧，`fps=9` 稳定，仍 0 exception。
+  - **用户复测：画面仍为紫/绿混色，且屏幕呈“1 个 1/2 块 + 4 个 1/8 块”的分块，未验收。** 彩条每行颜色相同，不能证明 stride/窗口；改为“行变化 + 页码”诊断（见下）。
   - 说明：`yuv_order=0`（TDD 报 UYVY）与厂商 GC2145 的 YUYV 不一致；当前转换按 **YUYV + `is_swap`** 解析，颜色正确性由用户复核。
 - **双烧撞车**：协调方与我几乎同时向同一台设备发起 `isd_download`，其日志在写完数据后报 `ERROR: Failed to query data crc, address = 0x0`；我的同一时刻日志为 `Download completed`（EXIT=0），板子随后启动的 `setup_arch 17:25:54` 与我的镜像一致，故判断 CRC 错误由并发访问导致，镜像本身已正常启动并跑完自检。后续烧录改为单人操作。
 - 厂商路径对照（静态）：`lcd_ili9488.c:59-63` 的 `LCD_DrawToDev`/`ILI9488_lvgl_Fill` 最终都走 `WriteDAT_DMA` → `lcd_send_map` → `dev_write(emi, buf, len)`，传入的也是 `malloc` 得到的缓冲；`10-touch` 的 `tdd_display_mcu8080.c` 与 05 逐字节一致，且 `app_display_camera_flush` 用的就是同一个 `tdl_disp_convert_yuv422_to_fb`（宏封装）。因此“厂商用了特殊显示缓冲、SDRAM 帧不能写”这一假设被排除；剩余重点是**相机回调线程（厂商 `raw_flow_task`，8 KB 栈）上下文**或 TDD 输入帧的内存属性。
@@ -370,6 +371,44 @@ GC6133  Sensor ID : 0xff
 **厂商 demo 对照镜像可行性**
 
 `tools/jieli_build` 固定 staging `apps/demo/demo_hello` 并按它的 Makefile 构建，不能直接切到 `apps/wifi_camera` 或 `demo_DevKitBoard`。但 video1 的 sensor 探测/初始化在预编译 `video_rec_server.a` 里，两个 demo 与我们链接的是同一份库；差别只在板级注册（iic1 软件节点、`video1.*`、`spi2` 平台数据）和 SPI 采样属性，这些已经逐项对齐（XCLK 通道与属性另见上表）。因此另建厂商镜像主要用于验证模组本身，不能替代当前对 I2C 无 ACK 的判断；暂不为此新增第二套 staging。
+
+### 0.11e 显示链路验收与源帧布局根因（2026-11-13，页码测试后）
+
+**显示链路已排除**
+
+用户在页码测试中确认：第 5–8 页底部的“渐变+对角线”测试带**连续、无分块**；第 3/4/9/10 页有条纹（UYVY/VYUY 把 chroma 当 luma 的解释结果），5/6/7/8 页（YUYV/YVYU）无条纹。由此：
+
+- 显示、fb、flush、stride（320×480、行 640 B）、窗口与 `is_swap=1` **全部正常**；此前预览的“1 个 1/2 块 + 4 个 1/8 块”不是显示层问题。
+- 彩条源按 packed YUYV 生成，条纹页只说明**条带的 chroma 位置**；仍不能证明相机源帧是 packed YUYV。
+
+**源帧布局假设错误（根因）**
+
+- 614400 B = 640×480×2 同时符合 packed YUYV、planar YUV422P（Y 307200 + U 153600 + V 153600）和 semi-planar（Y + 交错 UV）。长度无法区分。
+- 厂商头文件把 **`VIDEO_PIX_FMT_YUV422`（0x1000）与 `VIDEO_PIX_FMT_YUYV`（0x200）分开定义**（`include_lib/driver/device/video/video_ioctl.h`），且厂商 `yuv422p_quto_rgb565()` / `YUV422p_Zoom_Out()` 等工具均按 **YUV422P** 处理；当前 `tkl_dvp.c` 请求的是 `VIDEO_PIX_FMT_YUV422`，却被按 packed YUYV 解析，与分块现象一致。
+- 结论：**分块根因是源帧布局假设错误**；需要按候选布局逐页对照后固定。
+
+**页码测试崩溃**
+
+- 旧页码镜像 `ddaadb6c…` 在彩条 1–10 页后打开相机，首帧后约 21 ms 崩溃：
+  ```
+  [camera] first frame: 640x480 fmt=1 len=614400
+  ---------------------exception error ------------------------
+  CPU0 1c00f6a --> 1c077ac --> 1c077c2 --> 5075b60
+  rets: 0x1c06754   reti: 0x1c06782
+  misalign_err
+  current_task : systimer
+  ```
+  符号化：`0x1c06754/0x1c06782` 在 `os_sem_post` / `xQueueGiveFromISR`，即崩溃发生在相机回调 `tal_semaphore_post(sg_preview_sem)` 周围；`0x5075b60` 落在 PSRAM 数据区（不可符号化）。旧页码测试在打开相机前先 `tkl_system_malloc(614400)` 彩条缓冲再 `tkl_system_free`，堆布局与稳定预览版不同；判断是堆/信号量对象被破坏，而不是显示或转换算法。
+- 修复方向：新测试**先建信号量、先开相机**，再使用静态 614400 B 缓冲，不再在相机打开前做大块 malloc/free，堆状态与稳定预览版一致。
+
+**候选布局页码版（已构建，待烧）**
+
+- 镜像 `a9bd5338a0e9193770732b17301b0dd5487b08cee8c2e8f6a4e1df246db21602`，407.5 KiB。
+- `example_camera.c` 新增 `__yuv422_layout_to_rgb565()`，按 6 种布局各出一页（每页 5 s，左上角页码，底部保留渐变+对角线带）：
+  - 11 packed-YUYV；12 packed-YVYU；13 planar-YUV（Y+U+V）；14 planar-YVU（Y+V+U）；15 semi-UV（Y+交错 UV）；16 semi-VU（Y+交错 VU）。
+- 颜色/字节序固定使用 `sg_display_info.is_swap`；布局页用于同时判定**连续性与 U/V 方向**。若某页整幅连续、颜色自然，该布局即为厂商 `VIDEO_PIX_FMT_YUV422` 的真实内存布局。
+- 新增日志 `[PAGE] cb data=... len=...`、`[PAGE] n frame/convert/flush`，若再次异常可定位到具体阶段。
+- 状态：已构建、格式检查通过；**等待 main 放行 COM8 后烧录，并由用户报告 11–16 中画面连续且颜色自然的页码**。未烧录前不得把任一布局写成已验收。
 
 ### 0.11 DVP 实机结果（2026-11-13 16:18–16:22）
 

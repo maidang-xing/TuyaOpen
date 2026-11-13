@@ -44,6 +44,11 @@
  * worker instead: the callback only copies, the worker converts and flushes. */
 #define EXAMPLE_DISPLAY_WORKER 0
 
+/* Page test: numbered pages, one per candidate memory layout for the vendor's
+ * 614400-byte YUV422 frame, so the operator can name the page that looks
+ * right instead of recalling a fast sequence. */
+#define EXAMPLE_PAGE_TEST 1
+
 /* The final preview architecture: the vendor callback only caches + copies a
  * frame into a static buffer, and the Tuya main thread converts and flushes it
  * in a loop. No worker thread and no conversion on raw_flow_task. */
@@ -179,6 +184,68 @@ static void __yuv422_crop_to_rgb565(const uint8_t *src, int src_w, int src_h, ui
     }
 }
 
+static const uint8_t s_digit3x5[10][5] = {
+    {7, 5, 5, 5, 7}, {2, 6, 2, 2, 7}, {7, 1, 7, 4, 7}, {7, 1, 7, 1, 7}, {5, 5, 7, 1, 1},
+    {7, 4, 7, 1, 7}, {7, 4, 7, 5, 7}, {7, 1, 1, 1, 1}, {7, 5, 7, 5, 7}, {7, 5, 7, 1, 7},
+};
+
+/* Draw the page number in the top-left corner, plus a row-varying band at the
+ * bottom (vertical gradient and a diagonal), so a wrong stride or window shows
+ * up immediately instead of hiding behind flat-colour bars. */
+static void __draw_page_marker(uint8_t *fb, int w, int h, int page, int swap)
+{
+    uint16_t *out = (uint16_t *)fb;
+    for (int y = 6; y < 48 && y < h; y++) {
+        for (int x = 6; x < 78 && x < w; x++) {
+            out[(size_t)y * w + x] = swap ? __bswap16(0x0000) : 0x0000;
+        }
+    }
+
+    int digits[2];
+    int nd    = 1;
+    digits[0] = page % 10;
+    if (page >= 10) {
+        digits[1] = digits[0];
+        digits[0] = (page / 10) % 10;
+        nd        = 2;
+    }
+
+    for (int d = 0; d < nd; d++) {
+        int ox = 12 + d * 30;
+        for (int row = 0; row < 5; row++) {
+            for (int col = 0; col < 3; col++) {
+                if (s_digit3x5[digits[d]][row] & (1 << (2 - col))) {
+                    for (int sy = 0; sy < 6; sy++) {
+                        for (int sx = 0; sx < 6; sx++) {
+                            int px = ox + col * 6 + sx;
+                            int py = 12 + row * 6 + sy;
+                            if (px < w && py < h) {
+                                uint16_t c               = 0xFFFF;
+                                out[(size_t)py * w + px] = swap ? __bswap16(c) : c;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    int band = 60;
+    if (band > h) {
+        band = h;
+    }
+    for (int y = h - band; y < h; y++) {
+        int      level = ((y - (h - band)) * 255) / (band - 1);
+        uint16_t c     = __rgb565((uint8_t)level, (uint8_t)level, (uint8_t)level);
+        for (int x = 0; x < w; x++) {
+            out[(size_t)y * w + x] = swap ? __bswap16(c) : c;
+        }
+        int diag = ((y - (h - band)) * 4) % w;
+        for (int dx = 0; dx < 4; dx++) {
+            out[(size_t)y * w + ((diag + dx) % w)] = swap ? __bswap16(0xF800) : 0xF800;
+        }
+    }
+}
 #if COLORBAR_TEST
 static const uint8_t s_bar_yuv[8][3] = {
     {235, 128, 128}, /* white   */
@@ -207,17 +274,35 @@ static void __fill_rgb_bars(uint8_t *fb, int w, int h, int swap)
     }
 }
 
-/* Write a packed YUYV frame with eight bars across the first 320 columns. */
+/* Write a packed YUYV frame: eight bars on top, a per-row gradient with a
+ * diagonal below, so a wrong source stride breaks the gradient/diagonal. */
 static void __fill_yuv_bars(uint8_t *buf, int w, int h)
 {
+    int split = (h * 2) / 3;
+
     for (int y = 0; y < h; y++) {
         uint8_t *row = buf + (size_t)y * (size_t)w * 2u;
         for (int x = 0; x < w; x += 2) {
-            int bar        = ((x < 320) ? (x / 40) : ((x - 320) / 40)) & 7;
-            row[x * 2 + 0] = s_bar_yuv[bar][0];
-            row[x * 2 + 1] = s_bar_yuv[bar][1];
-            row[x * 2 + 2] = s_bar_yuv[bar][0];
-            row[x * 2 + 3] = s_bar_yuv[bar][2];
+            uint8_t yy;
+            uint8_t uu = 128;
+            uint8_t vv = 128;
+
+            if (y < split) {
+                int bar = ((x < 320) ? (x / 40) : ((x - 320) / 40)) & 7;
+                yy      = s_bar_yuv[bar][0];
+                uu      = s_bar_yuv[bar][1];
+                vv      = s_bar_yuv[bar][2];
+            } else {
+                yy       = (uint8_t)(16 + ((y - split) * 219) / (h - split - 1));
+                int diag = ((y - split) * 4) % w;
+                if (x == diag || x == diag + 1) {
+                    yy = 235;
+                }
+            }
+            row[x * 2 + 0] = yy;
+            row[x * 2 + 1] = uu;
+            row[x * 2 + 2] = yy;
+            row[x * 2 + 3] = vv;
         }
     }
 }
@@ -285,6 +370,15 @@ static OPERATE_RET __preview_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_
     if (len > sizeof(sg_preview_buf)) {
         len = sizeof(sg_preview_buf);
     }
+#if EXAMPLE_PAGE_TEST
+    {
+        static uint32_t cb_count;
+        if (cb_count < 2) {
+            printf("[PAGE] cb data=%p len=%u\n", frame->data, (unsigned)len);
+            cb_count++;
+        }
+    }
+#endif
 #if defined(JIELI_SELECTED_CHIP_WL82)
     flushinv_dcache(frame->data, (int)len);
 #endif
@@ -355,6 +449,151 @@ static OPERATE_RET __preview_run(void)
         }
     }
 }
+
+#if EXAMPLE_PAGE_TEST
+/* The vendor delivers 614400 bytes for 640x480 YUV422, a size that fits
+ * several memory layouts: packed YUYV/YVYU, planar YUV422P (Y + U + V) or
+ * semi-planar (Y + interleaved UV). The length alone cannot tell them apart,
+ * and the wrong assumption shows up as colour blocks. One numbered page per
+ * layout lets the operator name the continuous one. */
+#define YUV_LAYOUT_PACKED_YUYV 0
+#define YUV_LAYOUT_PACKED_YVYU 1
+#define YUV_LAYOUT_PLANAR_UV   2
+#define YUV_LAYOUT_PLANAR_VU   3
+#define YUV_LAYOUT_SEMI_UV     4
+#define YUV_LAYOUT_SEMI_VU     5
+#define YUV_LAYOUT_NUM         6
+
+static void __yuv422_layout_to_rgb565(const uint8_t *src, int src_w, int src_h, uint8_t *dst, int dst_w, int dst_h,
+                                      int layout, int swap)
+{
+    int            w        = (dst_w < src_w) ? dst_w : src_w;
+    int            h        = (dst_h < src_h) ? dst_h : src_h;
+    size_t         y_size   = (size_t)src_w * (size_t)src_h;
+    const uint8_t *y_plane  = src;
+    const uint8_t *u_plane  = src + y_size;
+    const uint8_t *v_plane  = src + y_size + y_size / 2u;
+    const uint8_t *uv_plane = src + y_size;
+
+    if (layout == YUV_LAYOUT_PLANAR_VU) {
+        v_plane = src + y_size;
+        u_plane = src + y_size + y_size / 2u;
+    }
+
+    for (int y = 0; y < h; y++) {
+        const uint8_t *prow  = src + (size_t)y * (size_t)src_w * 2u;
+        const uint8_t *yrow  = y_plane + (size_t)y * (size_t)src_w;
+        const uint8_t *urow  = u_plane + ((size_t)y * (size_t)src_w) / 2u;
+        const uint8_t *vrow  = v_plane + ((size_t)y * (size_t)src_w) / 2u;
+        const uint8_t *uvrow = uv_plane + (size_t)y * (size_t)src_w;
+        uint16_t      *out   = (uint16_t *)(dst + (size_t)y * (size_t)dst_w * 2u);
+
+        for (int x = 0; x < w; x += 2) {
+            uint8_t y0, y1, u, v;
+
+            switch (layout) {
+            case YUV_LAYOUT_PACKED_YUYV:
+                y0 = prow[0];
+                u  = prow[1];
+                y1 = prow[2];
+                v  = prow[3];
+                prow += 4;
+                break;
+            case YUV_LAYOUT_PACKED_YVYU:
+                y0 = prow[0];
+                v  = prow[1];
+                y1 = prow[2];
+                u  = prow[3];
+                prow += 4;
+                break;
+            case YUV_LAYOUT_PLANAR_UV:
+            case YUV_LAYOUT_PLANAR_VU:
+                y0 = yrow[x];
+                y1 = yrow[x + 1];
+                u  = urow[x >> 1];
+                v  = vrow[x >> 1];
+                break;
+            case YUV_LAYOUT_SEMI_VU:
+                y0 = yrow[x];
+                y1 = yrow[x + 1];
+                v  = uvrow[x];
+                u  = uvrow[x + 1];
+                break;
+            case YUV_LAYOUT_SEMI_UV:
+            default:
+                y0 = yrow[x];
+                y1 = yrow[x + 1];
+                u  = uvrow[x];
+                v  = uvrow[x + 1];
+                break;
+            }
+            out[x]     = __yuv_to_rgb565(y0, u, v, swap);
+            out[x + 1] = __yuv_to_rgb565(y1, u, v, swap);
+        }
+    }
+}
+
+static OPERATE_RET __page_test_run(void)
+{
+    OPERATE_RET        rt                            = OPRT_OK;
+    static const char *s_layout_name[YUV_LAYOUT_NUM] = {"packed-YUYV", "packed-YVYU", "planar-YUV",
+                                                        "planar-YVU",  "semi-UV",     "semi-VU"};
+
+    /* Open the camera before allocating anything else. The previous page test
+     * allocated a 600 KB bar buffer first, freed it and then opened the camera;
+     * its first camera frame crashed in os_sem_post. Keep this order identical
+     * to the stable preview build, whose heap held only the display buffers and
+     * the vendor video buffers. */
+    TUYA_CALL_ERR_RETURN(tal_semaphore_create_init(&sg_preview_sem, 0, 1));
+
+    sg_tdl_camera_hdl = tdl_camera_find_dev(CAMERA_NAME);
+    if (sg_tdl_camera_hdl == NULL) {
+        printf("[PAGE] camera dev %s not found\n", CAMERA_NAME);
+        return OPRT_NOT_FOUND;
+    }
+
+    TDL_CAMERA_CFG_T cfg;
+    memset(&cfg, 0, sizeof(TDL_CAMERA_CFG_T));
+    cfg.fps          = EXAMPLE_CAMERA_FPS;
+    cfg.width        = EXAMPLE_CAMERA_WIDTH;
+    cfg.height       = EXAMPLE_CAMERA_HEIGHT;
+    cfg.out_fmt      = TDL_CAMERA_FMT_YUV422;
+    cfg.get_frame_cb = __preview_frame_cb;
+    TUYA_CALL_ERR_RETURN(tdl_camera_dev_open(sg_tdl_camera_hdl, &cfg));
+    printf("[PAGE] camera opened, layouts 11-%d swap=%d\n", 10 + YUV_LAYOUT_NUM, sg_display_info.is_swap);
+
+    for (int layout = 0; layout < YUV_LAYOUT_NUM; layout++) {
+        int page = 11 + layout;
+
+        printf("[PAGE] %d wait layout=%s\n", page, s_layout_name[layout]);
+        if (tal_semaphore_wait(sg_preview_sem, 5000) != OPRT_OK) {
+            printf("[PAGE] %d no frame\n", page);
+            continue;
+        }
+        printf("[PAGE] %d frame len=%u\n", page, (unsigned)sg_preview_len);
+
+        TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
+        if (fb == NULL) {
+            printf("[PAGE] %d no free fb\n", page);
+            sg_preview_ready = 0;
+            continue;
+        }
+
+        printf("[PAGE] %d convert\n", page);
+        __yuv422_layout_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
+                                  fb->height, layout, sg_display_info.is_swap);
+        __draw_page_marker(fb->frame, fb->width, fb->height, page, sg_display_info.is_swap);
+        printf("[PAGE] %d flush\n", page);
+        tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+        sg_preview_ready = 0;
+        printf("[PAGE] %d camera layout=%s\n", page, s_layout_name[layout]);
+        tal_system_sleep(5000);
+    }
+
+    printf("[PAGE] done\n");
+    return OPRT_OK;
+}
+#endif
 #endif
 
 #if EXAMPLE_DISPLAY_WORKER
@@ -708,7 +947,9 @@ void user_main(void)
     __colorbar_test();
 #endif
 
-#if EXAMPLE_PREVIEW_LOOP
+#if EXAMPLE_PAGE_TEST
+    TUYA_CALL_ERR_LOG(__page_test_run());
+#elif EXAMPLE_PREVIEW_LOOP
     TUYA_CALL_ERR_LOG(__preview_run());
 #elif EXAMPLE_CAMTEST
     TUYA_CALL_ERR_LOG(__camtest_run());
