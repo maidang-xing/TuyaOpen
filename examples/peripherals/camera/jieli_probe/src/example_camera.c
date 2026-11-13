@@ -16,6 +16,31 @@
 #include "board_com_api.h"
 #include "tdl_camera_manage.h"
 
+/* Diagnostic build: scan the camera I2C bus (iic1, software IIC on PH0/PH1 for
+ * the SPI path) before the vendor video1 sensor check runs. Enabled by the
+ * board Kconfig option so the normal probe image keeps its old behaviour. */
+#if defined(JIELI_CAMERA_I2C_SCAN) && (JIELI_CAMERA_I2C_SCAN == 1)
+/* Use the vendor device ioctls without pulling in device/device.h: this
+ * example's Tuya target does not carry the SDK's include_lib/driver root, and
+ * adding it makes the vendor INIT_LIST_HEAD collide with Tuya's tuya_list.h.
+ * The command values are the stable ABI from include_lib/driver/device/iic.h. */
+#include "generic/ioctl.h"
+#include "asm/gpio.h"
+#include "asm/WL82.h"
+
+#define IIC_IOCTL_TX_WITH_START_BIT _IOW('I', 1, unsigned char)
+#define IIC_IOCTL_START             _IO('I', 10)
+#define IIC_IOCTL_STOP              _IO('I', 11)
+
+extern void *dev_open(const char *name, void *arg);
+extern int   dev_ioctl(void *device, int cmd, unsigned int arg);
+extern int   dev_close(void *device);
+
+#define EXAMPLE_I2C_SCAN 1
+#else
+#define EXAMPLE_I2C_SCAN 0
+#endif
+
 #define PROBE_FMT TDL_CAMERA_FMT_YUV422
 
 static TDL_CAMERA_HANDLE_T sg_camera;
@@ -87,6 +112,66 @@ static OPERATE_RET __frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_T *frame
     return OPRT_OK;
 }
 
+#if EXAMPLE_I2C_SCAN
+#define I2C_SCAN_FIRST 0x08
+#define I2C_SCAN_LAST  0x77
+
+static void __scan_port_line(const char *name, int bit)
+{
+    printf("[I2CSCAN] %s: DIR=%u DIE=%u PU=%u PD=%u OUT=%u IN=%u\n", name, (unsigned)((JL_PORTH->DIR >> bit) & 1u),
+           (unsigned)((JL_PORTH->DIE >> bit) & 1u), (unsigned)((JL_PORTH->PU >> bit) & 1u),
+           (unsigned)((JL_PORTH->PD >> bit) & 1u), (unsigned)((JL_PORTH->OUT >> bit) & 1u),
+           (unsigned)((JL_PORTH->IN >> bit) & 1u));
+}
+
+/* Probe every 7-bit address directly on the vendor iic1 device. This does not
+ * depend on the BYD3901/GC0310/GC6133 drivers, so an ACK here separates a bus
+ * problem from a sensor-driver problem. */
+static void __i2c_scan(void)
+{
+    void *iic;
+    int   ack_count = 0;
+
+    printf("[I2CSCAN] begin\n");
+    printf("[I2CSCAN] expected iic1 = software IIC, SCL=PH0, SDA=PH1, sw_iic_delay=50\n");
+    printf("[I2CSCAN] PORT H: OUT=0x%08x IN=0x%08x DIR=0x%08x DIE=0x%08x PU=0x%08x PD=0x%08x\n",
+           (unsigned)JL_PORTH->OUT, (unsigned)JL_PORTH->IN, (unsigned)JL_PORTH->DIR, (unsigned)JL_PORTH->DIE,
+           (unsigned)JL_PORTH->PU, (unsigned)JL_PORTH->PD);
+    __scan_port_line("PH0/SCL", 0);
+    __scan_port_line("PH1/SDA", 1);
+    printf("[I2CSCAN] IOMAP: CON0=0x%08x CON1=0x%08x CON2=0x%08x CON3=0x%08x\n", (unsigned)JL_IOMAP->CON0,
+           (unsigned)JL_IOMAP->CON1, (unsigned)JL_IOMAP->CON2, (unsigned)JL_IOMAP->CON3);
+
+    iic = dev_open("iic1", NULL);
+    if (iic == NULL) {
+        printf("[I2CSCAN] dev_open(iic1) failed\n");
+        return;
+    }
+
+    for (int addr = I2C_SCAN_FIRST; addr <= I2C_SCAN_LAST; addr++) {
+        int ret;
+
+        dev_ioctl(iic, IIC_IOCTL_START, 0);
+        ret = dev_ioctl(iic, IIC_IOCTL_TX_WITH_START_BIT, (unsigned int)(addr << 1));
+        dev_ioctl(iic, IIC_IOCTL_STOP, 0);
+
+        if (ret == 0) {
+            ack_count++;
+            printf("[I2CSCAN] ACK 0x%02x (write byte 0x%02x)\n", addr, (addr << 1) & 0xff);
+        }
+    }
+
+    printf("[I2CSCAN] scan 0x%02x-0x%02x done, %d ACK\n", I2C_SCAN_FIRST, I2C_SCAN_LAST, ack_count);
+    if (ack_count == 0) {
+        printf("[I2CSCAN] no ACK: bus idle/no device -> J4 power, module contact or SCL/SDA wiring\n");
+    } else {
+        printf("[I2CSCAN] expected: BYD3901 0x6e, GC0310 0x21, GC6133 0x40\n");
+    }
+
+    dev_close(iic);
+}
+#endif
+
 void user_main(void)
 {
     OPERATE_RET           rt;
@@ -108,6 +193,11 @@ void user_main(void)
 
     rt = board_register_hardware();
     PR_NOTICE("board_register_hardware: %d", rt);
+
+#if EXAMPLE_I2C_SCAN
+    __i2c_scan();
+    printf("[I2CSCAN] vendor check follows: BYD3901 -> GC0310 -> GC6133 (video1 probe order)\n");
+#endif
 
     sg_camera = tdl_camera_find_dev((char *)CAMERA_NAME);
     if (sg_camera == NULL) {
@@ -132,6 +222,9 @@ void user_main(void)
     sg_open_ms        = sg_last_report_ms;
     rt                = tdl_camera_dev_open(sg_camera, &cfg);
     PR_NOTICE("tdl_camera_dev_open(%ux%u@%u): %d", cfg.width, cfg.height, cfg.fps, rt);
+#if EXAMPLE_I2C_SCAN
+    printf("[I2CSCAN] vendor check result rt=%d (0 = a sensor check passed)\n", rt);
+#endif
     if (rt != OPRT_OK) {
         return;
     }

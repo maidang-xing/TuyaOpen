@@ -155,6 +155,14 @@ if JIELI_CAMERA_PATH_DVP || JIELI_CAMERA_PATH_SPI
         config JIELI_CAMERA_SPI_EDGE_H_SMPH
             bool "H/SMPH: CLK high, update low, sample high (BYD3901)"
     endchoice
+
+    # Diagnostic-only SPI image: scan iic1 (software IIC on PH0/PH1) before
+    # the vendor video1 sensor check, so an address ACK can be separated from
+    # a sensor-driver failure. Not used by the DVP path or the product image.
+    config JIELI_CAMERA_I2C_SCAN
+        bool "Scan iic1 at boot before the SPI sensor probe"
+        depends on JIELI_CAMERA_PATH_SPI
+        default n
 endif
 
 # TKL UART1 is the SDK's uart2 block, which has one fixed pin group on this

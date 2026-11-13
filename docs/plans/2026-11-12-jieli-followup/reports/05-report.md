@@ -418,6 +418,31 @@ GC6133  Sensor ID : 0xff
 - 新增日志 `[PAGE] cb data=... len=...`、`[PAGE] n frame/convert/flush` 及 `vendor-422p-be1/be0`、`planar-YUV` 等名称，若再次异常可定位到具体阶段。
 - 状态：已构建、格式检查通过；**等待 main 放行 COM8 后烧录，并由用户报告 11–16 中画面连续、颜色自然的页码**。未烧录前不得把任一布局写成已验收；页面 11/12 与 13/14 互为“厂商函数 / 自写平面转换”的交叉验证。
 
+### 0.11f SPI I2C 扫描镜像设计（2026-11-13，未烧）
+
+**目的**：把 SPI 摄像头“无 ACK”拆成三类：总线/供电/接触问题、模组型号未知、驱动/时序问题。独立于 DVP 显示路径，基于 `jieli_probe` + SPI 配置构建。
+
+- 配置文件：`examples/peripherals/camera/jieli_probe/config/JIELI_AC79_DevKitBoard_spi_scan.config`（SPI 路径、320×240@12、`CONFIG_JIELI_CAMERA_SPI_EDGE_SMPL=y`、新增 `CONFIG_JIELI_CAMERA_I2C_SCAN=y`）。
+- 镜像：`1517260ba9f9c543655958607e43f767b5832986ace52e219365fec4ebbaea5d`，405.5 KiB。
+- 启动流程：
+  1. `[I2CSCAN] begin`，打印 `iic1 = software IIC, SCL=PH0, SDA=PH1, sw_iic_delay=50`。
+  2. 读回并打印 PH0/PH1 的 GPIO 级配置：`JL_PORTH->OUT/IN/DIR/DIE/PU/PD` 原值，以及 PH0/PH1 的逐位 `DIR/DIE/PU/PD/OUT/IN`；同时打印 `JL_IOMAP->CON0..CON3` 原值（功能复用寄存器现场）。
+  3. `dev_open("iic1", NULL)`，对 0x08–0x77 逐地址执行 `IIC_IOCTL_START` → `IIC_IOCTL_TX_WITH_START_BIT(addr<<1)` → `IIC_IOCTL_STOP`；每个 ACK 立即打印 `[I2CSCAN] ACK 0xNN (write byte 0xNN)`，最后汇总 ACK 数。
+  4. 打印预期地址：BYD3901 `0x6e`、GC0310 `0x21`、GC6133 `0x40`（7-bit）。
+  5. 扫描结束后才进入厂商 video1 探测（顺序 BYD3901 → GC0310 → GC6133），并打印 `[I2CSCAN] vendor check result rt=...`。
+- 说明：扫描代码不复用三款 sensor 驱动，只用厂商设备 ioctl 探地址，因此 ACK 结果与驱动无关。因该示例的 Tuya 编译单元不包含 `include_lib/driver` 根目录，直接 include `device/device.h` 会与 Tuya `tuya_list.h` 的 `INIT_LIST_HEAD` 冲突；镜像内改为本地声明 `dev_open/dev_ioctl/dev_close` 与 `IIC_IOCTL_*` 常量（值取自厂商 `device/iic.h` 的稳定 ABI），不改变产品代码的包含路径。
+
+**结果判读**
+
+| 现场 | 判读 | 下一步 |
+|---|---|---|
+| 0x08–0x77 **无任何 ACK** | 总线无器件应答：J4 未供电/模组未插好/SCL/SDA 未上拉或接反 | 先复查 J4 插入与模组型号；J4 `SEN_VDD` 为常开 2.8V，重点在接触与模组侧上拉 |
+| **有 ACK 但地址不在** 0x6e/0x21/0x40 | 模组在位，但型号不在当前三款驱动列表（或地址跳线不同） | 记录实际地址，按型号补驱动或换模组 |
+| **预期地址 ACK，但 vendor check 失败** | 地址/供电正常，问题在驱动时序：复位、XCLK 通道、SPI 采样边沿、SPI2 属性 | 对照 `0.11d` 的 SMPH/SMPL/H_SMPH 三选项和 XCLK CH1 |
+| 预期地址 ACK 且 vendor check 成功 | 模组与 I2C/XCLK 正常；若仍无图，问题在 SPI 数据通路 | 继续查 `spi2` 读数据与帧头 |
+
+- 状态：已构建、格式检查待跑；**板子不可达，未烧录**。与 YUV422P 页码镜像 `e821333b…` 一起待硬件窗口；预计烧录顺序：先 YUV422P 页码（DVP 主任务），后本 SPI 扫描（独立诊断）。
+
 ### 0.11 DVP 实机结果（2026-11-13 16:18–16:22）
 
 - 烧录：`b689631c95c529a3292895a9f1ed4a1c82a82d63b748d07923310f556a559d4e`（408,468 B），无需用户复位：`Device online` → VM 擦除 `[0x69000-0x300000]` → `Download completed`。
