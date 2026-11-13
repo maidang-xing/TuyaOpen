@@ -278,6 +278,29 @@ GC6133  Sensor ID : 0xff
 - 旁证：纯色版在相机回调里的 `solid fill done` 这次在 **258 s 后**才补打出来（同一句打印），说明相机回调线程被长时间阻塞/饿死；非纯色版则在同线程的转换里 `axi_rd_inv`。根因收敛为**厂商 `raw_flow_task`（8 KB 栈）上下文**，不是显示驱动或转换算法。
 - **修复**：`output_display` 增加 `EXAMPLE_DISPLAY_WORKER`：相机回调只 `memcpy` 一帧到 SDRAM 缓冲并 `tal_semaphore_post`；独立 worker（8 KB 栈，`THREAD_PRIO_3`）取 fb → `tdl_disp_convert_yuv422_to_fb` → `tdl_disp_dev_flush`。worker 忙时丢帧。镜像 `7a8e51ee4e421325cd54d541eee4a31cbe02cc5a4893fdb7ad13333ad5796d45`，已烧录成功（`Download completed`）。烧后板子无输出，待用户断电重上电后验证。
 - 注：自检里 `tkl_system_malloc(614400)` 超过内部 RAM（约 460 KiB）可用量，按 `__jieli_malloc` 规则落在 SDRAM，所以自检的“合成输入帧”本身也是 SDRAM 缓冲。这进一步说明输入帧所在内存类型不是区分因素，剩下的差异是**厂商回调线程**。
+
+**最小可启动版（CAMTEST）实机通过（2026-11-13 17:52–17:53）**
+
+- 镜像 `dbfbef21237e67127df75c7b20aa47ad6e2a14862ee8ffa3499d99123c7ef537`；板子从健康触摸固件直接烧录：`Device online` → VM 擦除 → `Download completed` → `-reboot 2000` 自动重启（`system reset reason: SOFT`），全程无需用户断电。
+- 设计：不建线程。`user_main` 首行打印 `[CAMTEST] begin`，开 camera，回调里只做 `flushinv_dcache(frame->data, len)` + `memcpy` 到 SDRAM 缓冲 + `tal_semaphore_post`；`user_main` 等 1 帧后关 camera，再 `tdl_disp_convert_yuv422_to_fb` + flush。
+- 日志：
+  ```
+  [CAMTEST] begin
+  [CAMTEST] opening camera 640x480@20 yuv_order=0
+  [camera] sensor: GC2145
+  [camera] first frame: 640x480 fmt=1 len=614400
+  [CAMTEST] cb frame data=421e780 len=614400
+  [CAMTEST] cb cache invalidated
+  [CAMTEST] cb copied 614400 bytes
+  [CAMTEST] wait rt=0 got=1 len=614400
+  [CAMTEST] camera closed
+  [CAMTEST] convert begin fb=400f380 len=307200
+  [CAMTEST] convert done, flush
+  [CAMTEST] flush done
+  ```
+  之后无 exception、无重启，板子留在应用里。
+- 结论：**真实相机帧可被 CPU 读取、cache 维护后转换/flush 正常**。此前 worker 版“全波特率 0 字节”的现场是板子停在 `WL80UBOOT1.00`（USB UDISK）而非 worker 代码初始化失败；该镜像 `7a8e51ee…` 已放弃，不再烧。
+- 下一步：把同一逻辑放回 worker（回调 cache+memcpy+post，worker convert+flush），首行 `[DISP_WORKER] init`，做连续预览；LCD 出画面/颜色待用户确认。转换函数只裁剪不缩放，640x480 → 320x480 只显示左侧 320 列。
 - **双烧撞车**：协调方与我几乎同时向同一台设备发起 `isd_download`，其日志在写完数据后报 `ERROR: Failed to query data crc, address = 0x0`；我的同一时刻日志为 `Download completed`（EXIT=0），板子随后启动的 `setup_arch 17:25:54` 与我的镜像一致，故判断 CRC 错误由并发访问导致，镜像本身已正常启动并跑完自检。后续烧录改为单人操作。
 - 厂商路径对照（静态）：`lcd_ili9488.c:59-63` 的 `LCD_DrawToDev`/`ILI9488_lvgl_Fill` 最终都走 `WriteDAT_DMA` → `lcd_send_map` → `dev_write(emi, buf, len)`，传入的也是 `malloc` 得到的缓冲；`10-touch` 的 `tdd_display_mcu8080.c` 与 05 逐字节一致，且 `app_display_camera_flush` 用的就是同一个 `tdl_disp_convert_yuv422_to_fb`（宏封装）。因此“厂商用了特殊显示缓冲、SDRAM 帧不能写”这一假设被排除；剩余重点是**相机回调线程（厂商 `raw_flow_task`，8 KB 栈）上下文**或 TDD 输入帧的内存属性。
 - 显示分辨率：`tdl_disp_convert_yuv422_to_fb` 的软件转换只做裁剪（`width=min(in,out)`），不做缩放；640x480 → 320x480 会取左侧 320 列、保留全部 480 行。若后续需要整幅画面，必须另加缩放，不能指望该函数。

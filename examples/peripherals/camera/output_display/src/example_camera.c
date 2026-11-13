@@ -42,7 +42,13 @@
  * YUV422->RGB565 conversion and the panel flush there hangs/faults on this
  * board, while the identical calls work on a Tuya thread. Hand each frame to a
  * worker instead: the callback only copies, the worker converts and flushes. */
-#define EXAMPLE_DISPLAY_WORKER 1
+#define EXAMPLE_DISPLAY_WORKER 0
+
+/* Single-frame bring-up test, entirely on the Tuya main thread: the camera
+ * callback only copies one real frame (after cache maintenance), then
+ * user_main converts and flushes it. No worker thread, no conversion on the
+ * vendor raw_flow_task. */
+#define EXAMPLE_CAMTEST 1
 
 #if defined(EXAMPLE_CAMERA_IMG_ROTATION_0) && (EXAMPLE_CAMERA_IMG_ROTATION_0 == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_0
@@ -83,10 +89,16 @@ static volatile uint8_t sg_worker_busy   = 0;
 ***********************function define**********************
 ***********************************************************/
 #if EXAMPLE_DISPLAY_WORKER
+#if defined(JIELI_SELECTED_CHIP_WL82)
+/* Written by the vendor ISP DMA; drop stale lines before the CPU copies it. */
+extern void flushinv_dcache(void *ptr, int len);
+#endif
+
 static void __display_worker(void *arg)
 {
     (void)arg;
 
+    printf("[DISP_WORKER] thread running\n");
     while (1) {
         if (tal_semaphore_wait(sg_frame_sem, SEM_WAIT_FOREVER) != OPRT_OK) {
             continue;
@@ -96,9 +108,12 @@ static void __display_worker(void *arg)
 
         TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
         if (fb != NULL) {
+            printf("[DISP_WORKER] convert %ux%u\n", EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT);
             tdl_disp_convert_yuv422_to_fb(sg_yuv_pending, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb,
                                           sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION, sg_yuv_order);
+            printf("[DISP_WORKER] convert done, flush\n");
             tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+            printf("[DISP_WORKER] flush done\n");
         }
 
         sg_worker_busy = 0;
@@ -118,6 +133,16 @@ static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA
         frame->data_len > sg_yuv_size) {
         return OPRT_OK;
     }
+    {
+        static uint32_t cb_cnt;
+        if (cb_cnt < 3) {
+            printf("[DISP_WORKER] cb data=%p len=%u\n", frame->data, frame->data_len);
+            cb_cnt++;
+        }
+    }
+#if defined(JIELI_SELECTED_CHIP_WL82)
+    flushinv_dcache(frame->data, (int)frame->data_len);
+#endif
     memcpy(sg_yuv_pending, frame->data, frame->data_len);
     sg_pending_ready = 1;
     tal_semaphore_post(sg_frame_sem);
@@ -154,6 +179,45 @@ static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA
     return rt;
 #endif
 }
+
+#if defined(JIELI_SELECTED_CHIP_WL82)
+/* The vendor ISP writes the overlay buffer; drop stale CPU cache lines before
+ * reading it. Declared here because the example does not pull vendor headers. */
+extern void flushinv_dcache(void *ptr, int len);
+#endif
+
+#if EXAMPLE_CAMTEST
+static SEM_HANDLE       sg_camtest_sem = NULL;
+static uint8_t         *sg_camtest_buf = NULL;
+static uint32_t         sg_camtest_len = 0;
+static volatile uint8_t sg_camtest_got = 0;
+
+static OPERATE_RET __camtest_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_T *frame)
+{
+    (void)hdl;
+
+    if (sg_camtest_got || frame->data == NULL || frame->data_len == 0 || sg_camtest_buf == NULL) {
+        return OPRT_OK;
+    }
+
+    printf("[CAMTEST] cb frame data=%p len=%u\n", frame->data, frame->data_len);
+#if defined(JIELI_SELECTED_CHIP_WL82)
+    flushinv_dcache(frame->data, (int)frame->data_len);
+    printf("[CAMTEST] cb cache invalidated\n");
+#endif
+    uint32_t len = frame->data_len;
+    if (len > (uint32_t)EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2u) {
+        len = (uint32_t)EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2u;
+    }
+    memcpy(sg_camtest_buf, frame->data, len);
+    sg_camtest_len = len;
+    sg_camtest_got = 1;
+    printf("[CAMTEST] cb copied %u bytes\n", len);
+    tal_semaphore_post(sg_camtest_sem);
+
+    return OPRT_OK;
+}
+#endif
 
 static OPERATE_RET __display_init(void)
 {
@@ -234,6 +298,70 @@ static OPERATE_RET __display_init(void)
     return OPRT_OK;
 }
 
+#if EXAMPLE_CAMTEST
+static OPERATE_RET __camtest_run(void)
+{
+    OPERATE_RET rt = OPRT_OK;
+
+    TUYA_CALL_ERR_RETURN(tal_semaphore_create_init(&sg_camtest_sem, 0, 1));
+
+    sg_camtest_buf = tkl_system_malloc((uint32_t)EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2u);
+    if (sg_camtest_buf == NULL) {
+        printf("[CAMTEST] no memory for the frame copy\n");
+        return OPRT_MALLOC_FAILED;
+    }
+
+    sg_tdl_camera_hdl = tdl_camera_find_dev(CAMERA_NAME);
+    if (sg_tdl_camera_hdl == NULL) {
+        printf("[CAMTEST] camera dev %s not found\n", CAMERA_NAME);
+        return OPRT_NOT_FOUND;
+    }
+
+    TDL_CAMERA_DEV_INFO_T cam_info = {0};
+    tdl_camera_dev_get_info(sg_tdl_camera_hdl, &cam_info);
+    sg_yuv_order = cam_info.yuv_order;
+
+    TDL_CAMERA_CFG_T cfg;
+    memset(&cfg, 0, sizeof(TDL_CAMERA_CFG_T));
+    cfg.fps          = EXAMPLE_CAMERA_FPS;
+    cfg.width        = EXAMPLE_CAMERA_WIDTH;
+    cfg.height       = EXAMPLE_CAMERA_HEIGHT;
+    cfg.out_fmt      = TDL_CAMERA_FMT_YUV422;
+    cfg.get_frame_cb = __camtest_frame_cb;
+
+    printf("[CAMTEST] opening camera %ux%u@%u yuv_order=%d\n", EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT,
+           EXAMPLE_CAMERA_FPS, sg_yuv_order);
+    TUYA_CALL_ERR_RETURN(tdl_camera_dev_open(sg_tdl_camera_hdl, &cfg));
+    printf("[CAMTEST] camera opened, waiting for one frame\n");
+
+    rt = tal_semaphore_wait(sg_camtest_sem, 5000);
+    printf("[CAMTEST] wait rt=%d got=%u len=%u\n", rt, sg_camtest_got, sg_camtest_len);
+
+    tdl_camera_dev_close(sg_tdl_camera_hdl);
+    printf("[CAMTEST] camera closed\n");
+
+    if (!sg_camtest_got) {
+        printf("[CAMTEST] no frame within 5 s\n");
+        return OPRT_TIMEOUT;
+    }
+
+    TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
+    if (fb == NULL) {
+        printf("[CAMTEST] no free display fb\n");
+        return OPRT_COM_ERROR;
+    }
+
+    printf("[CAMTEST] convert begin fb=%p len=%u\n", fb->frame, fb->len);
+    tdl_disp_convert_yuv422_to_fb(sg_camtest_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb,
+                                  sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION, sg_yuv_order);
+    printf("[CAMTEST] convert done, flush\n");
+    tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+    printf("[CAMTEST] flush done\n");
+
+    return OPRT_OK;
+}
+#endif
+
 static OPERATE_RET __camera_init(void)
 {
     OPERATE_RET      rt = OPRT_OK;
@@ -292,6 +420,11 @@ void user_main(void)
 {
     OPERATE_RET rt = OPRT_OK;
 
+    printf("[CAMTEST] begin\n");
+#if EXAMPLE_DISPLAY_WORKER
+    printf("[DISP_WORKER] init\n");
+#endif
+
     /* basic init */
     tal_log_init(TAL_LOG_LEVEL_DEBUG, 4096, (TAL_LOG_OUTPUT_CB)tkl_log_output);
 
@@ -300,7 +433,9 @@ void user_main(void)
 
     TUYA_CALL_ERR_LOG(__display_init());
 
-#if !EXAMPLE_DISPLAY_ONLY
+#if EXAMPLE_CAMTEST
+    TUYA_CALL_ERR_LOG(__camtest_run());
+#elif !EXAMPLE_DISPLAY_ONLY
     TUYA_CALL_ERR_LOG(__camera_init());
 #else
     printf("[disp-dbg] display-only build, camera not opened\n");
