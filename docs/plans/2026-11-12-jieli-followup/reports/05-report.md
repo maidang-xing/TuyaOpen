@@ -326,6 +326,7 @@ GC6133  Sensor ID : 0xff
   - 无 worker 线程；相机回调只做 `flushinv_dcache` + `memcpy` 到**静态** 640×480 YUV422 缓冲 + 信号量；`user_main` 循环等待帧 → `__yuv422_crop_to_rgb565` → `tdl_disp_dev_flush`。
   - 启动与帧率：`[PREVIEW] init` → `camera info max=640x480 yuv_order=0` → `camera opened, loop start` → GC2145 首帧 → `[PREVIEW] fps=7/8/9 frames=30/60/90/120`。
   - 连续运行 14 s+、120+ 帧，**0 exception**；约 9 fps。LCD 颜色/连续性待用户最终确认。
+  - 延长观察：53 s、510+ 帧，`fps=9` 稳定，仍 0 exception。
   - 说明：`yuv_order=0`（TDD 报 UYVY）与厂商 GC2145 的 YUYV 不一致；当前转换按 **YUYV + `is_swap`** 解析，颜色正确性由用户复核。
 - **双烧撞车**：协调方与我几乎同时向同一台设备发起 `isd_download`，其日志在写完数据后报 `ERROR: Failed to query data crc, address = 0x0`；我的同一时刻日志为 `Download completed`（EXIT=0），板子随后启动的 `setup_arch 17:25:54` 与我的镜像一致，故判断 CRC 错误由并发访问导致，镜像本身已正常启动并跑完自检。后续烧录改为单人操作。
 - 厂商路径对照（静态）：`lcd_ili9488.c:59-63` 的 `LCD_DrawToDev`/`ILI9488_lvgl_Fill` 最终都走 `WriteDAT_DMA` → `lcd_send_map` → `dev_write(emi, buf, len)`，传入的也是 `malloc` 得到的缓冲；`10-touch` 的 `tdd_display_mcu8080.c` 与 05 逐字节一致，且 `app_display_camera_flush` 用的就是同一个 `tdl_disp_convert_yuv422_to_fb`（宏封装）。因此“厂商用了特殊显示缓冲、SDRAM 帧不能写”这一假设被排除；剩余重点是**相机回调线程（厂商 `raw_flow_task`，8 KB 栈）上下文**或 TDD 输入帧的内存属性。
