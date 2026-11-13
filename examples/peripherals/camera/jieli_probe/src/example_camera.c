@@ -22,6 +22,7 @@ static TDL_CAMERA_HANDLE_T sg_camera;
 static volatile uint32_t   sg_frames;
 static volatile uint32_t   sg_bad_frames;
 static uint32_t            sg_first_ms;
+static uint32_t            sg_open_ms;
 static uint32_t            sg_last_report_ms;
 static uint32_t            sg_last_report_frames;
 static volatile uint32_t   sg_frame_bytes[4];
@@ -57,12 +58,12 @@ static OPERATE_RET __frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_T *frame
     nonzero = __nonzero_bytes(frame->data, frame->data_len);
     if (sg_frames == 0) {
         sg_first_ms = now;
-        PR_NOTICE("FIRST FRAME: %ux%u fmt=0x%x len=%u nonzero=%u first16=%02x %02x %02x %02x %02x %02x %02x %02x %02x "
-                  "%02x %02x %02x %02x %02x %02x %02x",
-                  frame->width, frame->height, (unsigned)frame->fmt, frame->data_len, nonzero, frame->data[0],
-                  frame->data[1], frame->data[2], frame->data[3], frame->data[4], frame->data[5], frame->data[6],
-                  frame->data[7], frame->data[8], frame->data[9], frame->data[10], frame->data[11], frame->data[12],
-                  frame->data[13], frame->data[14], frame->data[15]);
+        PR_NOTICE("FIRST FRAME: %ux%u fmt=0x%x len=%u latency=%ums nonzero=%u first16=%02x %02x %02x %02x %02x "
+                  "%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+                  frame->width, frame->height, (unsigned)frame->fmt, frame->data_len, now - sg_open_ms, nonzero,
+                  frame->data[0], frame->data[1], frame->data[2], frame->data[3], frame->data[4], frame->data[5],
+                  frame->data[6], frame->data[7], frame->data[8], frame->data[9], frame->data[10], frame->data[11],
+                  frame->data[12], frame->data[13], frame->data[14], frame->data[15]);
     }
 
     if (nonzero == 0) {
@@ -117,6 +118,7 @@ void user_main(void)
     cfg.get_frame_cb = __frame_cb;
 
     sg_last_report_ms = tal_system_get_millisecond();
+    sg_open_ms        = sg_last_report_ms;
     rt                = tdl_camera_dev_open(sg_camera, &cfg);
     PR_NOTICE("tdl_camera_dev_open(%ux%u@%u): %d", cfg.width, cfg.height, cfg.fps, rt);
     if (rt != OPRT_OK) {
