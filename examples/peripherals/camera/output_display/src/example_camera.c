@@ -42,7 +42,12 @@
  * YUV422->RGB565 conversion and the panel flush there hangs/faults on this
  * board, while the identical calls work on a Tuya thread. Hand each frame to a
  * worker instead: the callback only copies, the worker converts and flushes. */
-#define EXAMPLE_DISPLAY_WORKER 1
+#define EXAMPLE_DISPLAY_WORKER 0
+
+/* The final preview architecture: the vendor callback only caches + copies a
+ * frame into a static buffer, and the Tuya main thread converts and flushes it
+ * in a loop. No worker thread and no conversion on raw_flow_task. */
+#define EXAMPLE_PREVIEW_LOOP 1
 
 /* Single-frame bring-up test, entirely on the Tuya main thread: the camera
  * callback only copies one real frame (after cache maintenance), then
@@ -77,10 +82,12 @@ static TDL_CAMERA_HANDLE_T sg_tdl_camera_hdl = NULL;
 static TUYA_YUV422_ORDER_E sg_yuv_order      = TUYA_YUV422_UYVY;
 
 #if EXAMPLE_DISPLAY_WORKER
-static SEM_HANDLE       sg_frame_sem     = NULL;
-static THREAD_HANDLE    sg_worker_hdl    = NULL;
-static uint8_t         *sg_yuv_pending   = NULL;
-static uint32_t         sg_yuv_size      = 0;
+static SEM_HANDLE    sg_frame_sem  = NULL;
+static THREAD_HANDLE sg_worker_hdl = NULL;
+/* Static so the frame buffer can never alias the worker stack that the RTOS
+ * allocates later from the same heap. */
+static uint8_t          sg_yuv_pending[EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2] __attribute__((aligned(32)));
+static uint32_t         sg_yuv_size      = sizeof(sg_yuv_pending);
 static volatile uint8_t sg_pending_ready = 0;
 static volatile uint8_t sg_worker_busy   = 0;
 #endif
@@ -88,6 +95,268 @@ static volatile uint8_t sg_worker_busy   = 0;
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
+/* YUV422 byte orders. The vendor frame is a packed 4-byte group per two
+ * pixels; the sensor/ISP decides which byte is Y0/U/Y1/V. */
+#define YUV_ORDER_UYVY 0
+#define YUV_ORDER_YUYV 1
+#define YUV_ORDER_YVYU 2
+#define YUV_ORDER_VYUY 3
+
+#define COLORBAR_TEST 0
+
+static inline uint16_t __rgb565(uint8_t r, uint8_t g, uint8_t b)
+{
+    return (uint16_t)(((uint16_t)(r >> 3) << 11) | ((uint16_t)(g >> 2) << 5) | (uint16_t)(b >> 3));
+}
+
+static inline uint16_t __bswap16(uint16_t v)
+{
+    return (uint16_t)((v >> 8) | (v << 8));
+}
+
+static inline uint16_t __yuv_to_rgb565(uint8_t y, uint8_t u, uint8_t v, int swap)
+{
+    int32_t c = (int32_t)y - 16;
+    int32_t d = (int32_t)u - 128;
+    int32_t e = (int32_t)v - 128;
+    int32_t r = (298 * c + 409 * e + 128) >> 8;
+    int32_t g = (298 * c - 100 * d - 208 * e + 128) >> 8;
+    int32_t b = (298 * c + 516 * d + 128) >> 8;
+
+    r = (r < 0) ? 0 : (r > 255) ? 255 : r;
+    g = (g < 0) ? 0 : (g > 255) ? 255 : g;
+    b = (b < 0) ? 0 : (b > 255) ? 255 : b;
+
+    uint16_t rgb = __rgb565((uint8_t)r, (uint8_t)g, (uint8_t)b);
+    return swap ? __bswap16(rgb) : rgb;
+}
+
+/* Crop the left dst_w pixels of every source row (src_stride = src_w * 2) into
+ * a dst_stride = dst_w * 2 RGB565 framebuffer. */
+static void __yuv422_crop_to_rgb565(const uint8_t *src, int src_w, int src_h, uint8_t *dst, int dst_w, int dst_h,
+                                    int order, int swap)
+{
+    int w = (dst_w < src_w) ? dst_w : src_w;
+    int h = (dst_h < src_h) ? dst_h : src_h;
+
+    for (int y = 0; y < h; y++) {
+        const uint8_t *row = src + (size_t)y * (size_t)src_w * 2u;
+        uint16_t      *out = (uint16_t *)(dst + (size_t)y * (size_t)dst_w * 2u);
+
+        for (int x = 0; x < w; x += 2) {
+            uint8_t y0, y1, u, v;
+            switch (order) {
+            case YUV_ORDER_YUYV:
+                y0 = row[0];
+                u  = row[1];
+                y1 = row[2];
+                v  = row[3];
+                break;
+            case YUV_ORDER_YVYU:
+                y0 = row[0];
+                v  = row[1];
+                y1 = row[2];
+                u  = row[3];
+                break;
+            case YUV_ORDER_VYUY:
+                v  = row[0];
+                y0 = row[1];
+                u  = row[2];
+                y1 = row[3];
+                break;
+            case YUV_ORDER_UYVY:
+            default:
+                u  = row[0];
+                y0 = row[1];
+                v  = row[2];
+                y1 = row[3];
+                break;
+            }
+            row += 4;
+            out[x]     = __yuv_to_rgb565(y0, u, v, swap);
+            out[x + 1] = __yuv_to_rgb565(y1, u, v, swap);
+        }
+    }
+}
+
+#if COLORBAR_TEST
+static const uint8_t s_bar_yuv[8][3] = {
+    {235, 128, 128}, /* white   */
+    {210, 16, 146},  /* yellow  */
+    {170, 166, 16},  /* cyan    */
+    {145, 54, 34},   /* green   */
+    {106, 202, 222}, /* magenta */
+    {81, 90, 240},   /* red     */
+    {41, 240, 110},  /* blue    */
+    {16, 128, 128},  /* black   */
+};
+
+static const uint16_t s_bar_rgb[8] = {
+    0xFFFF, 0xFFE0, 0x07FF, 0x07E0, 0xF81F, 0xF800, 0x001F, 0x0000,
+};
+
+static void __fill_rgb_bars(uint8_t *fb, int w, int h, int swap)
+{
+    uint16_t *out = (uint16_t *)fb;
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            int      bar           = (x * 8) / w;
+            uint16_t c             = s_bar_rgb[bar];
+            out[(size_t)y * w + x] = swap ? __bswap16(c) : c;
+        }
+    }
+}
+
+/* Write a packed YUYV frame with eight bars across the first 320 columns. */
+static void __fill_yuv_bars(uint8_t *buf, int w, int h)
+{
+    for (int y = 0; y < h; y++) {
+        uint8_t *row = buf + (size_t)y * (size_t)w * 2u;
+        for (int x = 0; x < w; x += 2) {
+            int bar        = ((x < 320) ? (x / 40) : ((x - 320) / 40)) & 7;
+            row[x * 2 + 0] = s_bar_yuv[bar][0];
+            row[x * 2 + 1] = s_bar_yuv[bar][1];
+            row[x * 2 + 2] = s_bar_yuv[bar][0];
+            row[x * 2 + 3] = s_bar_yuv[bar][2];
+        }
+    }
+}
+
+static void __colorbar_test(void)
+{
+    printf("[BARTEST] begin\n");
+    uint8_t *yuv = tkl_system_malloc(640u * 480u * 2u);
+    if (yuv == NULL) {
+        printf("[BARTEST] no yuv buffer\n");
+        return;
+    }
+
+    for (int swap = 0; swap < 2; swap++) {
+        TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
+        if (fb == NULL) {
+            break;
+        }
+        printf("[BARTEST] rgb565 bars swap=%d\n", swap);
+        __fill_rgb_bars(fb->frame, fb->width, fb->height, swap);
+        tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+        tal_system_sleep(2000);
+    }
+
+    __fill_yuv_bars(yuv, 640, 480);
+    static const char *names[4] = {"UYVY", "YUYV", "YVYU", "VYUY"};
+    for (int order = 0; order < 4; order++) {
+        for (int swap = 0; swap < 2; swap++) {
+            TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
+            if (fb == NULL) {
+                break;
+            }
+            printf("[BARTEST] yuv bars order=%s swap=%d\n", names[order], swap);
+            __yuv422_crop_to_rgb565(yuv, 640, 480, fb->frame, fb->width, fb->height, order, swap);
+            tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+            tal_system_sleep(2000);
+        }
+    }
+
+    tkl_system_free(yuv);
+    printf("[BARTEST] done\n");
+}
+#endif
+
+#if EXAMPLE_PREVIEW_LOOP
+#if defined(JIELI_SELECTED_CHIP_WL82)
+extern void flushinv_dcache(void *ptr, int len);
+#endif
+
+static SEM_HANDLE        sg_preview_sem      = NULL;
+static volatile uint32_t sg_preview_len      = 0;
+static volatile uint8_t  sg_preview_ready    = 0;
+static uint32_t          sg_preview_frames   = 0;
+static uint32_t          sg_preview_start_ms = 0;
+static uint8_t           sg_preview_buf[EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2] __attribute__((aligned(32)));
+
+static OPERATE_RET __preview_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_T *frame)
+{
+    (void)hdl;
+
+    if (sg_preview_ready || frame->data == NULL || frame->data_len == 0) {
+        return OPRT_OK;
+    }
+    uint32_t len = frame->data_len;
+    if (len > sizeof(sg_preview_buf)) {
+        len = sizeof(sg_preview_buf);
+    }
+#if defined(JIELI_SELECTED_CHIP_WL82)
+    flushinv_dcache(frame->data, (int)len);
+#endif
+    memcpy(sg_preview_buf, frame->data, len);
+    sg_preview_len   = len;
+    sg_preview_ready = 1;
+    tal_semaphore_post(sg_preview_sem);
+
+    return OPRT_OK;
+}
+
+static OPERATE_RET __preview_run(void)
+{
+    OPERATE_RET rt = OPRT_OK;
+
+    TUYA_CALL_ERR_RETURN(tal_semaphore_create_init(&sg_preview_sem, 0, 1));
+
+    sg_tdl_camera_hdl = tdl_camera_find_dev(CAMERA_NAME);
+    if (sg_tdl_camera_hdl == NULL) {
+        printf("[PREVIEW] camera dev %s not found\n", CAMERA_NAME);
+        return OPRT_NOT_FOUND;
+    }
+
+    TDL_CAMERA_DEV_INFO_T cam_info = {0};
+    tdl_camera_dev_get_info(sg_tdl_camera_hdl, &cam_info);
+    printf("[PREVIEW] camera info max=%ux%u yuv_order=%d\n", cam_info.max_width, cam_info.max_height,
+           cam_info.yuv_order);
+
+    TDL_CAMERA_CFG_T cfg;
+    memset(&cfg, 0, sizeof(TDL_CAMERA_CFG_T));
+    cfg.fps          = EXAMPLE_CAMERA_FPS;
+    cfg.width        = EXAMPLE_CAMERA_WIDTH;
+    cfg.height       = EXAMPLE_CAMERA_HEIGHT;
+    cfg.out_fmt      = TDL_CAMERA_FMT_YUV422;
+    cfg.get_frame_cb = __preview_frame_cb;
+
+    TUYA_CALL_ERR_RETURN(tdl_camera_dev_open(sg_tdl_camera_hdl, &cfg));
+    printf("[PREVIEW] camera opened, loop start\n");
+    sg_preview_start_ms = (uint32_t)tal_system_get_millisecond();
+
+    while (1) {
+        if (tal_semaphore_wait(sg_preview_sem, 1000) != OPRT_OK) {
+            printf("[PREVIEW] no frame yet\n");
+            continue;
+        }
+        if (!sg_preview_ready) {
+            continue;
+        }
+
+        TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
+        if (fb == NULL) {
+            printf("[PREVIEW] no free fb\n");
+            sg_preview_ready = 0;
+            continue;
+        }
+
+        __yuv422_crop_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
+                                fb->height, YUV_ORDER_YUYV, sg_display_info.is_swap);
+        tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+        sg_preview_ready = 0;
+
+        sg_preview_frames++;
+        if ((sg_preview_frames % 30u) == 0u) {
+            uint32_t now = (uint32_t)tal_system_get_millisecond();
+            uint32_t ms  = now - sg_preview_start_ms;
+            printf("[PREVIEW] fps=%u frames=%u\n", (unsigned)((sg_preview_frames * 1000u) / (ms ? ms : 1u)),
+                   (unsigned)sg_preview_frames);
+        }
+    }
+}
+#endif
+
 #if EXAMPLE_DISPLAY_WORKER
 #if defined(JIELI_SELECTED_CHIP_WL82)
 /* Written by the vendor ISP DMA; drop stale lines before the CPU copies it. */
@@ -108,9 +377,11 @@ static void __display_worker(void *arg)
 
         TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
         if (fb != NULL) {
-            printf("[DISP_WORKER] convert %ux%u\n", EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT);
-            tdl_disp_convert_yuv422_to_fb(sg_yuv_pending, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb,
-                                          sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION, sg_yuv_order);
+            printf("[DISP_WORKER] convert src=%p %ux%u dst=%p %ux%u order=%d swap=%d\n", sg_yuv_pending,
+                   EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width, fb->height, YUV_ORDER_YUYV,
+                   sg_display_info.is_swap);
+            __yuv422_crop_to_rgb565(sg_yuv_pending, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
+                                    fb->height, YUV_ORDER_YUYV, sg_display_info.is_swap);
             printf("[DISP_WORKER] convert done, flush\n");
             tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
             printf("[DISP_WORKER] flush done\n");
@@ -423,10 +694,7 @@ void user_main(void)
 {
     OPERATE_RET rt = OPRT_OK;
 
-    printf("[CAMTEST] begin\n");
-#if EXAMPLE_DISPLAY_WORKER
-    printf("[DISP_WORKER] init\n");
-#endif
+    printf("[PREVIEW] init\n");
 
     /* basic init */
     tal_log_init(TAL_LOG_LEVEL_DEBUG, 4096, (TAL_LOG_OUTPUT_CB)tkl_log_output);
@@ -436,7 +704,13 @@ void user_main(void)
 
     TUYA_CALL_ERR_LOG(__display_init());
 
-#if EXAMPLE_CAMTEST
+#if COLORBAR_TEST
+    __colorbar_test();
+#endif
+
+#if EXAMPLE_PREVIEW_LOOP
+    TUYA_CALL_ERR_LOG(__preview_run());
+#elif EXAMPLE_CAMTEST
     TUYA_CALL_ERR_LOG(__camtest_run());
 #elif !EXAMPLE_DISPLAY_ONLY
     TUYA_CALL_ERR_LOG(__camera_init());
