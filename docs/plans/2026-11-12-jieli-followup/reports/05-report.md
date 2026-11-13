@@ -100,6 +100,34 @@ staging 交叉核对（DVP/SPI 各自）：
 - 判断：板上当前是语音 2.94 MB 探针镜像，启动挂起后不再提供运行时下载入口；需要用户按住 UPDATE/下载键上电（或 UPDATE+RST、重插 USB 下载口）让芯片停在下载模式。
 - 证据：`.artifacts/jieli-camera/logs/flash-dvp-legacy.log`、`.artifacts/jieli-camera/logs/flash-dvp-serial.log`。COM8 已释放，未连续重试。
 
+### 0.8 恢复优先顺序与下载器复核（2026-11-13，待 ROM 模式）
+
+**进入下载模式后的顺序（不得跳步）：**
+
+1. **先烧已知可启动的触摸镜像** `54a61aa539f11be81cd960017da29e7681cd66a056d219706ffa1b970ab629ad`（2.2 MB，`your_chat_bot_QIO_1.0.1.bin`），确认板子恢复：
+   - 在 `D:\tuya_proj\TuyaOpen\.worktrees\10-touch\apps\tuya.ai\your_chat_bot` 执行 `tos.py flash -p COM8`。该目录 `.build/jieli-staging/.../app.bin` 的 SHA256 已核实**就是** `54a61aa5…`，不是近似重建。
+   - 预期日志：`Device online` → `Erasing…` → `Start downloading data to flash` → `Download completed` → `Platform flash success`；随后串口出现 `WL82(AC791N) CHIP_ID`、`Platform board: AC79_DevKitBoard`，无挂起。
+   - 注意：烧录器会擦 VM 区（与 02 报告一致）；该镜像本来就是回滚基线。
+2. 板子确认可启动后，再烧 DVP probe（当前 `.build` 的 `app.bin` 对应 `b689631c…`；烧前再次核对 staging `app.bin` 的 SHA）。
+3. DVP 成功后切 SPI 配置构建、烧录、抓帧；结束再烧回 `54a61aa5…`。
+
+**下载器复核结论：**
+
+- 平台 Python 串口下载器（`JIELI_USE_PY_FLASHER=1`）：
+  - `-b/--baud` 被 CLI 接收，但 `JLSerialTransport.sync_and_negotiate_baudrate()` **从未被调用**；`connect()` 只以 9600 打开，之后所有命令仍在 9600。因此“115200/1M 降速重试”当前没有实现，`-b` 实际无效。
+  - `prepare_device()` 对串口 transport 调不到 `inquiry()`，`inq_product` 为空，于是无条件打印 `Target is in Mask ROM mode` 并上传 RAM loader。上一次日志里的 “Mask ROM mode” 是**误报**，不能作为“已进入 ROM 模式”的证据；真正的失败是随后 loader 写入超时。
+  - loader 选择顺序与 pin 不一致：`flasher.py::_locate_loader()` 先取 `cpu/wl82/tools/wl82loader.bin`（30.5 KiB，SHA256 `9920e666…`），而随 `isd_download.exe` 一起提供的是 `cpu/wl82/tools/loader_tools/wl82loader.bin`（29.5 KiB，SHA256 `e6388091…`）。若要重试 Python 路径，应先把 `loader_tools/wl82loader.bin` 作为首选（或临时放入 `tools/jieli_flasher/loaders/`），不要直接覆盖厂商文件。
+  - 串口命令（仅供放行后使用）：
+    ```powershell
+    $env:OPEN_SDK_ROOT="D:\tuya_proj\TuyaOpen\.worktrees\05-camera"
+    $env:OPEN_SDK_PYTHON="D:\tuya_proj\TuyaOpen\.venv\Scripts\python.exe"
+    $env:JIELI_USE_PY_FLASHER=1
+    python D:\tuya_proj\TuyaOpen\.worktrees\05-camera\tos.py flash -p COM8 -b 9600
+    ```
+    预期：`Opening serial port COM8 at 9600 baud` → 同步 ACK → 上传 loader → `Device online`；若仍在 loader 阶段 `Timeout waiting for serial ACK`，说明设备并未停在 ROM 模式或 loader 不匹配，应立即停止。
+- `loader_tools/isd_download.exe` 与 `tools/isd_download.exe` 是同一厂商 2.2 MB 工具，仍走 USB 自动探测（VID 4C4A），没有串口参数；换用它不会改变“必须先进入下载模式”的前提。
+- 首选仍是厂商 `isd_download.exe`（`tos.py flash -p COM8`，不加 `JIELI_USE_PY_FLASHER`）。串口 Python 路径只在厂商工具探测不到 USB 设备时作为一次备选，且只重试一次。
+
 ---
 
 ## 1. 结论（先给结论）
