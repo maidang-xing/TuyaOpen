@@ -42,6 +42,20 @@
 
 产物已固化到 `.worktrees/05-camera/.artifacts/jieli-camera/`（同名 `.sha256`；SPI 包大小按 (line+8)*height+8 修正后重建），对应 `dist/jieli_probe_1.0.0/jieli_probe_QIO_1.0.0.bin`。两次构建使用同一份已提交源码；该 vendor 工具链的镜像字节含构建时间戳，重复构建 SHA 会变，因此表中的 SHA 是**已归档产物的指纹**，不是可复现的源码摘要。
 
+后续实机镜像（同一工具链，均本地）：
+
+| 用途 | SHA256 | 说明 |
+|---|---|---|
+| DVP 实机 | `b689631c95c529a3292895a9f1ed4a1c82a82d63b748d07923310f556a559d4e` | GC2145 640x480@21 出帧 |
+| SPI 首轮 | `9b540a55ceb62da7b701575b667a2e31d3b55fb548b7786cb2cf458609d89918` | 硬件 IIC，sensor 无 ACK |
+| SPI 修复（软件 IIC + 动态 DMA） | `20f806d0d6c81a48e19c1865183c5bbaa59f6235c2659b3b947efbb8f6fb52da` | 启动正常，sensor 仍无 ACK |
+| SPI 修正（XCLK CH1 + SMPL） | `74e70368d3c65261fcdcf49f3bc784b9f9d53f1d15fa6441954b5d1e9bfb4c57` | 未烧，等 J4 重插 |
+| output_display 首版 | `3883c1251684139e1f9145a4185c8ec296acc8adf9c650756610239b5d408053` | 首帧后 `axi_rd_inv` |
+| output_display 调试 | `19a9ece95249460fcca1fc2a9c6b99bd34d6cee4b0afbab3349632578b641bad` | 定位到回调线程 |
+| 纯色隔离 | `deb27baf2adf05bb41561b4ed18cf640ddddf9f75f7419e1d3ad83b1ac3e9acb` | 回调内 fb 写后阻塞 |
+| 纯显示自检 | `6d7729a04ff1dc0ab4b9716070d09fabaa5f36299b26c5f5770618ee2b6f9f03` | fb/flush/convert 全部通过 |
+| output_display worker | `7a8e51ee4e421325cd54d541eee4a31cbe02cc5a4893fdb7ad13333ad5796d45` | 已烧，待上电验证 |
+
 提交：主仓 `b845f3a6` + `51ba3b0c` + `90358e9a`（`task/05-ac791-camera`），平台仓 `630eb574` + `9307f388` + `7659c3c9`（`task/05-ac791-camera-platform`，基于 `77657dfa`；本地提交，未推送）。
 
 staging 交叉核对（DVP/SPI 各自）：
@@ -263,6 +277,7 @@ GC6133  Sensor ID : 0xff
   说明 **fb 内存写、EMI flush、`tdl_disp_convert_yuv422_to_fb` 在 Tuya 线程上都正常**；LCD 应已出现纯色/合成彩条。
 - 旁证：纯色版在相机回调里的 `solid fill done` 这次在 **258 s 后**才补打出来（同一句打印），说明相机回调线程被长时间阻塞/饿死；非纯色版则在同线程的转换里 `axi_rd_inv`。根因收敛为**厂商 `raw_flow_task`（8 KB 栈）上下文**，不是显示驱动或转换算法。
 - **修复**：`output_display` 增加 `EXAMPLE_DISPLAY_WORKER`：相机回调只 `memcpy` 一帧到 SDRAM 缓冲并 `tal_semaphore_post`；独立 worker（8 KB 栈，`THREAD_PRIO_3`）取 fb → `tdl_disp_convert_yuv422_to_fb` → `tdl_disp_dev_flush`。worker 忙时丢帧。镜像 `7a8e51ee4e421325cd54d541eee4a31cbe02cc5a4893fdb7ad13333ad5796d45`，已烧录成功（`Download completed`）。烧后板子无输出，待用户断电重上电后验证。
+- 注：自检里 `tkl_system_malloc(614400)` 超过内部 RAM（约 460 KiB）可用量，按 `__jieli_malloc` 规则落在 SDRAM，所以自检的“合成输入帧”本身也是 SDRAM 缓冲。这进一步说明输入帧所在内存类型不是区分因素，剩下的差异是**厂商回调线程**。
 - **双烧撞车**：协调方与我几乎同时向同一台设备发起 `isd_download`，其日志在写完数据后报 `ERROR: Failed to query data crc, address = 0x0`；我的同一时刻日志为 `Download completed`（EXIT=0），板子随后启动的 `setup_arch 17:25:54` 与我的镜像一致，故判断 CRC 错误由并发访问导致，镜像本身已正常启动并跑完自检。后续烧录改为单人操作。
 - 厂商路径对照（静态）：`lcd_ili9488.c:59-63` 的 `LCD_DrawToDev`/`ILI9488_lvgl_Fill` 最终都走 `WriteDAT_DMA` → `lcd_send_map` → `dev_write(emi, buf, len)`，传入的也是 `malloc` 得到的缓冲；`10-touch` 的 `tdd_display_mcu8080.c` 与 05 逐字节一致，且 `app_display_camera_flush` 用的就是同一个 `tdl_disp_convert_yuv422_to_fb`（宏封装）。因此“厂商用了特殊显示缓冲、SDRAM 帧不能写”这一假设被排除；剩余重点是**相机回调线程（厂商 `raw_flow_task`，8 KB 栈）上下文**或 TDD 输入帧的内存属性。
 - 显示分辨率：`tdl_disp_convert_yuv422_to_fb` 的软件转换只做裁剪（`width=min(in,out)`），不做缩放；640x480 → 320x480 会取左侧 320 列、保留全部 480 行。若后续需要整幅画面，必须另加缩放，不能指望该函数。
