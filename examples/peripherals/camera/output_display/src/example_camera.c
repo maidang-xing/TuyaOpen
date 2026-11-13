@@ -398,8 +398,9 @@ static uint32_t          sg_preview_start_ms = 0;
 static uint32_t          sg_window_start_ms  = 0;
 static uint32_t          sg_conv_ms_sum      = 0;
 static uint32_t          sg_conv_ms_max      = 0;
-/* Sized for the largest source the DVP path can deliver, independent of the
- * configured capture size, so a resolution change cannot overflow it. */
+/* Sized for the largest source the DVP path can deliver. Frames are still
+ * validated against this size in the callback, because the converter derives
+ * its plane offsets from the frame dimensions. */
 static uint8_t           sg_preview_buf[640 * 480 * 2] __attribute__((aligned(32)));
 static volatile uint8_t *sg_preview_ptr = NULL;
 static volatile uint32_t sg_preview_w   = 0;
@@ -411,6 +412,15 @@ static OPERATE_RET __preview_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_
 
     if (sg_preview_ready || frame->data == NULL || frame->data_len == 0) {
         return OPRT_OK;
+    }
+    /* The converter derives the U/V offsets from width*height, so a frame that
+     * does not fit the copy buffer (or is shorter than it claims) would read
+     * past it. Drop such a frame instead of rendering garbage. */
+    {
+        uint32_t need = (uint32_t)frame->width * (uint32_t)frame->height * 2u;
+        if (frame->width == 0 || frame->height == 0 || need > sizeof(sg_preview_buf) || frame->data_len < need) {
+            return OPRT_OK;
+        }
     }
     uint32_t len = frame->data_len;
     if (len > sizeof(sg_preview_buf)) {
@@ -426,8 +436,8 @@ static OPERATE_RET __preview_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_
     }
 #endif
 #if defined(JIELI_SELECTED_CHIP_WL82)
-    /* The preview reads the vendor buffer directly, so the whole delivered
-     * frame must be invalidated, not just the part that fits our copy. */
+    /* frame->data is the TDL pool frame that tkl_dvp already filled; this
+     * invalidate is defensive and keeps the copy from reading stale lines. */
     flushinv_dcache(frame->data, (int)frame->data_len);
 #endif
 #if EXAMPLE_PAGE_TEST
@@ -504,8 +514,10 @@ static OPERATE_RET __preview_run(void)
                                   sg_preview_h ? (int)sg_preview_h : EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
                                   fb->height, sg_display_info.is_swap);
 #else
-        __yuv422p_scale_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
-                                    fb->height, sg_display_info.is_swap);
+        /* Other platforms deliver packed YUYV here; keep the packed converter
+         * so this example still works on the ESP32 config. */
+        __yuv422_crop_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
+                                  fb->height, YUV_ORDER_YUYV, sg_display_info.is_swap);
 #endif
         tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
         sg_preview_ready = 0;
