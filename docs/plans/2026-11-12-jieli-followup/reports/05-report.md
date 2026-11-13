@@ -140,6 +140,56 @@ staging 交叉核对（DVP/SPI 各自）：
 - 证据：`.artifacts/jieli-camera/logs/recovery-touch-serial.log`、`recovery-touch-app-sha.txt`。
 - 停止条件已触发：不再重试；等待用户按住 KEY/UPDATE 上电，使设备以 USB 下载模式（VID 4C4A）出现。出现后再按 0.8 的恢复优先顺序执行。
 
+### 0.10 SPI 首轮实机与修复（2026-11-13 16:24–16:31）
+
+板子恢复后，DVP 先烧通（见 0.11）；随后 SPI：
+
+**烧录与启动**
+
+- 镜像 `9b540a55ceb62da7b701575b667a2e31d3b55fb548b7786cb2cf458609d89918`（320x240@12，413,428 B）；用户复位后 `Device online` → VM 擦除 → `Download completed`。
+- 烧录器 `-reboot 500` 之后串口**完全没有输出**；不是固件挂起——用户普通断电重上电后正常启动：
+  `WL82(AC791N) CHIP_ID: 0x6f01` → `camera path: SPI (J4/video1+spi2)` → `camera info: max 320x240@12fps fmts=0x301` → `tdl_camera_dev_open(320x240@12): 0`。
+  结论：以后每次厂商烧录后需普通断电重上电才能看到启动日志，不能把 `-reboot` 后的静默当成挂起。
+
+**传感器探测失败**
+
+```
+iic write err!!! line : 274 / :87
+BYD3901 Sensor ID : 0xa5a5
+GC0310  Sensor ID : 0x0
+GC6133  Sensor ID : 0xff
+[VIDEO_CAMERA]check digital sensor err
+[VIDEO]camera1 open err
+[camera] video1.0 open failed (no SPI sensor?)
+```
+
+- 三颗候选全部无有效 ID，I2C 写从地址阶段就 NAK。
+- 根因（静态证据）：厂商 `apps/wifi_camera/board/wl82/board_develop.c:630` 在 `CONFIG_VIDEO1_ENABLE` 下把 **iic1 注册为软件 IIC**（`sw_iic1_data`，PH0/PH1，delay 50），硬件 IIC 只作 iic2；GC0310/GC6133 驱动固定打开 `iic1`。TuyaOpen 适配器原来把 iic1 注册为硬件 IIC，因此 SPI 路径的 sensor 探测必然失败。
+- 证据日志：`.artifacts/jieli-camera/logs/spi-boot-after-powercycle.log`（含完整 probe 顺序）。
+
+**修复（已构建，未烧）**
+
+1. `tkl_i2c.c`：`JIELI_CAMERA_PATH_SPI` 下把 iic1 注册为软件 IIC（PH0/PH1，`sw_iic_delay=50`），其余构建保持硬件 IIC。
+2. `tkl_dvp.c`：SPI DMA 缓冲从 311 KiB 静态 `.sram` 改为启动时按需对齐分配（单包），避免开机即占用内部 RAM。map 对比：
+   - 修复前：`.ram0_bss = 0x4FAE0 (326,368 B)`，其中 `.sram = 0x4C67C (313,980 B)`；
+   - 修复后：`.ram0_bss = 0x3BE0 (15,328 B)`，`.sram = 0x75C (1,884 B)`；
+   - `ram0` 区总量 `0x7FD4C (523,596 B)`，修复前静态占用本身未越界，但内部堆只剩约 152 KiB；修复后恢复约 464 KiB。
+3. 启动探针：`user_main` 第一条 `[SPI_PROBE] boot, path=...`；SPI staging 在 `devices_init()` 前后、`video1.0`/`spi2`/`SET_USER_INFO` 每步打印。
+
+**新镜像**：`20f806d0d6c81a48e19c1865183c5bbaa59f6235c2659b3b947efbb8f6fb52da`，414,004 B；平台提交 `8bb0545f`。待硬件窗口烧录验证 sensor ID/帧。
+
+### 0.11 DVP 实机结果（2026-11-13 16:18–16:22）
+
+- 烧录：`b689631c95c529a3292895a9f1ed4a1c82a82d63b748d07923310f556a559d4e`（408,468 B），无需用户复位：`Device online` → VM 擦除 `[0x69000-0x300000]` → `Download completed`。
+- 帧证据（COM8 115200，28 s 窗口，接在启动后约 10 s）：
+  ```
+  frames=216 fps=21 bad=0 last_len=614400 t=10590ms
+  ...
+  frames=762 fps=21 bad=0 last_len=614400 t=37520ms
+  ```
+  `614400 = 640×480×2`，即 YUV422；`bad=0` 表示所有回调整帧非零。实测约 21 fps（配置 20）。
+- 缺口：接上串口时已过启动阶段，未捕获 `WL82` 横幅、sensor 型号/ID 与 `FIRST FRAME latency`；帧证据本身有效。日志：`.artifacts/jieli-camera/logs/dvp-flash-vendor.log`、`dvp-boot-capture.log`。
+
 ---
 
 ## 1. 结论（先给结论）

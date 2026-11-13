@@ -93,6 +93,17 @@ void user_main(void)
     TDL_CAMERA_CFG_T      cfg;
     TDL_CAMERA_DEV_INFO_T info;
 
+    /* First line of the application: proves the image reached user_main even
+     * if the camera bring-up later hangs. printf() is the vendor console and
+     * is already up from setup_arch(). */
+#if defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
+    printf("[SPI_PROBE] boot, path=SPI\n");
+#elif defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)
+    printf("[SPI_PROBE] boot, path=DVP\n");
+#else
+    printf("[SPI_PROBE] boot, path=none\n");
+#endif
+
     tal_log_init(TAL_LOG_LEVEL_DEBUG, 4096, (TAL_LOG_OUTPUT_CB)tkl_log_output);
 
     rt = board_register_hardware();
@@ -151,9 +162,9 @@ static void tuya_app_thread(void *arg)
 void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
-    thrd_param.stackDepth   = 1024 * 4;
-    thrd_param.priority     = THREAD_PRIO_1;
-    thrd_param.thrdname     = "tuya_app_main";
+    thrd_param.stackDepth = 1024 * 4;
+    thrd_param.priority = THREAD_PRIO_1;
+    thrd_param.thrdname = "tuya_app_main";
     tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param);
 }
 #endif
