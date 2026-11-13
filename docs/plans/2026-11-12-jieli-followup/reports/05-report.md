@@ -67,7 +67,7 @@ staging 交叉核对（DVP/SPI 各自）：
 
 | 字段 | DVP（J1/video0） | SPI（J4/video1+spi2） |
 |---|---|---|
-| 烧录镜像 SHA256 | `efe0e44f…`（待烧） | `8f60aad6…`（待烧） |
+| 烧录镜像 SHA256 | `b689631c…`（首次烧录尝试，未写入） | `8f60aad6…`（尚未重建/烧录） |
 | sensor 型号 | 待 vendor probe / `CAMERA_GET_SENSOR_TYPE` 日志；J1 丝印复核 | 待 vendor probe / `CAMERA_GET_SENSOR_TYPE` 日志；J4 丝印复核 |
 | sensor ID | 待 `CAMERA_GET_SENSOR_INFO` + 驱动 `*_ID_check` 日志 | 待同左 |
 | 首帧时间 | 待测（`FIRST FRAME` 行 + 上电到首帧 ms） | 待测 |
@@ -88,6 +88,17 @@ staging 交叉核对（DVP/SPI 各自）：
 - 未打开 COM8、未烧录、未上电验证，因此 **没有 sensor ID、首帧、分辨率、帧率或失败码实机数据**。
 - 未验证 vendor `video0`/`video1` 在本板的具体 probe 顺序与实际 SKU；表中型号一栏保持“待测”，不按原理图猜写。
 - 未验证 SPI 双线采样相位（`TCFG_SPI_ATTR` 取自 vendor DevKitBoard 配置）是否匹配实际模组；若首包持续 `bad packet head`，下一步只调该宏。
+
+### 0.7 实机尝试记录 1（2026-11-13 15:16–15:26，阻塞在下载模式）
+
+用户放行 COM8 后，按 DVP 优先执行；**烧录未成功，镜像没有写入**。
+
+- 现场核实：COM8 = `USB-Enhanced-SERIAL CH343 (VID 1A86 PID 55D3)`，可正常打开/关闭；无 `monitor` 残留。但系统未出现 JieLi 下载设备（VID 4C4A）。
+- DVP 重新构建：`b689631c95c529a3292895a9f1ed4a1c82a82d63b748d07923310f556a559d4e`，408,468 B（1484… 之前的归档不用于本次烧录）。
+- 厂商 `isd_download.exe`（平台默认命令）：打印 FLASH INFO 后 `-wait 300` 等待设备，无 `Device online`，最终超时/被停止。
+- 平台 Python 串口下载器（`JIELI_USE_PY_FLASHER=1`，`-m serial -p COM8 -b 1000000`）：9600 握手后报 `Target is in Mask ROM mode`，上传 `wl82loader.bin` 时 `Timeout waiting for serial ACK`。
+- 判断：板上当前是语音 2.94 MB 探针镜像，启动挂起后不再提供运行时下载入口；需要用户按住 UPDATE/下载键上电（或 UPDATE+RST、重插 USB 下载口）让芯片停在下载模式。
+- 证据：`.artifacts/jieli-camera/logs/flash-dvp-legacy.log`、`.artifacts/jieli-camera/logs/flash-dvp-serial.log`。COM8 已释放，未连续重试。
 
 ---
 
