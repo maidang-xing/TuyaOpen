@@ -1,13 +1,22 @@
 /**
  * @file example_camera.c
- * @version 0.1
- * @copyright Copyright (c) 2021-2025 Tuya Inc. All Rights Reserved.
+ * @brief Camera preview on the board display.
+ *
+ * Opens the camera in YUV422, converts each frame to the panel's RGB565
+ * framebuffer and flushes it. On Jieli the vendor delivers frames from its own
+ * raw_flow_task; the conversion and flush are handed to a worker thread so the
+ * vendor task only copies the frame.
+ *
+ * @copyright Copyright (c) 2021-2026 Tuya Inc. All Rights Reserved.
  */
 
 #include "tuya_cloud_types.h"
+#include <string.h>
+#include <stdio.h>
 
 #include "tal_api.h"
 #include "tkl_output.h"
+#include "tkl_memory.h"
 
 #include "board_com_api.h"
 
@@ -19,13 +28,29 @@
 ***********************************************************/
 #define DISPLAY_FRAME_BUFF_NUM 2
 
+/* Bring-up bisect switch: 1 fills the frame buffer with a solid colour and
+ * skips the YUV422 conversion, so a crash here isolates the display/EMI flush
+ * path from the camera frame read. 0 is the normal example. */
+#define EXAMPLE_SOLID_COLOR_TEST 0
+
+/* Display-only bring-up: fill and flush one frame buffer from user_main before
+ * the camera is opened. This separates the panel/EMI path from the camera
+ * callback thread. */
+#define EXAMPLE_DISPLAY_ONLY 0
+
+/* The vendor delivers frames on its own raw_flow_task (8 KB stack). Doing the
+ * YUV422->RGB565 conversion and the panel flush there hangs/faults on this
+ * board, while the identical calls work on a Tuya thread. Hand each frame to a
+ * worker instead: the callback only copies, the worker converts and flushes. */
+#define EXAMPLE_DISPLAY_WORKER 1
+
 #if defined(EXAMPLE_CAMERA_IMG_ROTATION_0) && (EXAMPLE_CAMERA_IMG_ROTATION_0 == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_0
 #elif defined(EXAMPLE_CAMERA_IMG_ROTATION_90) && (EXAMPLE_CAMERA_IMG_ROTATION_90 == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_90
-#elif defined(EXAMPLE_CAMERA_IMG_ROTATION_180) && (EXAMPLE_CAMERA_IMG_ROTATION_180  == 1)
+#elif defined(EXAMPLE_CAMERA_IMG_ROTATION_180) && (EXAMPLE_CAMERA_IMG_ROTATION_180 == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_180
-#elif defined(EXAMPLE_CAMERA_IMG_ROTATION_270) && (EXAMPLE_CAMERA_IMG_ROTATION_270  == 1)
+#elif defined(EXAMPLE_CAMERA_IMG_ROTATION_270) && (EXAMPLE_CAMERA_IMG_ROTATION_270 == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_270
 #else
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_0
@@ -38,40 +63,103 @@
 /***********************************************************
 ***********************variable define**********************
 ***********************************************************/
-static TDL_DISP_HANDLE_T sg_tdl_disp_hdl = NULL;
-static TDL_DISP_DEV_INFO_T sg_display_info;
+static TDL_DISP_HANDLE_T      sg_tdl_disp_hdl = NULL;
+static TDL_DISP_DEV_INFO_T    sg_display_info;
 static TDL_FB_MANAGE_HANDLE_T sg_fb_manage = NULL;
 
 static TDL_CAMERA_HANDLE_T sg_tdl_camera_hdl = NULL;
-static TUYA_YUV422_ORDER_E sg_yuv_order = TUYA_YUV422_UYVY;
+static TUYA_YUV422_ORDER_E sg_yuv_order      = TUYA_YUV422_UYVY;
+
+#if EXAMPLE_DISPLAY_WORKER
+static SEM_HANDLE       sg_frame_sem     = NULL;
+static THREAD_HANDLE    sg_worker_hdl    = NULL;
+static uint8_t         *sg_yuv_pending   = NULL;
+static uint32_t         sg_yuv_size      = 0;
+static volatile uint8_t sg_pending_ready = 0;
+static volatile uint8_t sg_worker_busy   = 0;
+#endif
 
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
+#if EXAMPLE_DISPLAY_WORKER
+static void __display_worker(void *arg)
+{
+    (void)arg;
+
+    while (1) {
+        if (tal_semaphore_wait(sg_frame_sem, SEM_WAIT_FOREVER) != OPRT_OK) {
+            continue;
+        }
+        sg_pending_ready = 0;
+        sg_worker_busy   = 1;
+
+        TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
+        if (fb != NULL) {
+            tdl_disp_convert_yuv422_to_fb(sg_yuv_pending, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb,
+                                          sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION, sg_yuv_order);
+            tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+        }
+
+        sg_worker_busy = 0;
+    }
+}
+#endif
 static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_T *frame)
 {
     OPERATE_RET rt = OPRT_OK;
+#if !EXAMPLE_DISPLAY_WORKER
     TDL_DISP_FRAME_BUFF_T *convert_fb = NULL;
+#endif
 
-
+#if EXAMPLE_DISPLAY_WORKER
+    /* This runs on the vendor raw_flow_task: keep it to a copy and a post. */
+    if (sg_yuv_pending == NULL || sg_worker_busy || sg_pending_ready || frame->data == NULL ||
+        frame->data_len > sg_yuv_size) {
+        return OPRT_OK;
+    }
+    memcpy(sg_yuv_pending, frame->data, frame->data_len);
+    sg_pending_ready = 1;
+    tal_semaphore_post(sg_frame_sem);
+    return OPRT_OK;
+#else
     convert_fb = tdl_disp_get_free_fb(sg_fb_manage);
     TUYA_CHECK_NULL_RETURN(convert_fb, OPRT_COM_ERROR);
 
-    TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, \
-                                                    convert_fb, sg_display_info.is_swap,\
-                                                    EXAMPLE_CAMERA_IMG_ROTATION, \
+    {
+        static uint32_t dbg_cnt;
+        if (dbg_cnt < 4) {
+            printf("[disp-dbg] frame data=%p wh=%ux%u len=%u fb=%p fbwh=%ux%u fblen=%u in_order=%d\n", frame->data,
+                   frame->width, frame->height, frame->data_len, convert_fb->frame, convert_fb->width,
+                   convert_fb->height, convert_fb->len, sg_yuv_order);
+            dbg_cnt++;
+        }
+    }
+
+#if EXAMPLE_SOLID_COLOR_TEST
+    /* RGB565 red, byte order swapped so both halves show the colour. */
+    memset(convert_fb->frame, 0xF8, convert_fb->len);
+    (void)frame;
+    printf("[disp-dbg] solid fill done\n");
+#else
+    TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, convert_fb,
+                                                    sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION,
                                                     sg_yuv_order));
+    printf("[disp-dbg] convert done\n");
+#endif
 
     tdl_disp_dev_flush(sg_tdl_disp_hdl, convert_fb);
+    printf("[disp-dbg] flush returned\n");
 
     return rt;
+#endif
 }
 
 static OPERATE_RET __display_init(void)
 {
-    OPERATE_RET rt = OPRT_OK;
-    uint16_t width = EXAMPLE_CAMERA_WIDTH;
-    uint16_t height = EXAMPLE_CAMERA_HEIGHT;
+    OPERATE_RET rt     = OPRT_OK;
+    uint16_t    width  = EXAMPLE_CAMERA_WIDTH;
+    uint16_t    height = EXAMPLE_CAMERA_HEIGHT;
 
     memset(&sg_display_info, 0, sizeof(TDL_DISP_DEV_INFO_T));
 
@@ -82,6 +170,8 @@ static OPERATE_RET __display_init(void)
     }
 
     TUYA_CALL_ERR_RETURN(tdl_disp_dev_get_info(sg_tdl_disp_hdl, &sg_display_info));
+    printf("[disp-dbg] info %ux%u fmt=%d swap=%d\n", sg_display_info.width, sg_display_info.height, sg_display_info.fmt,
+           sg_display_info.is_swap);
 
     if (sg_display_info.fmt != TUYA_PIXEL_FMT_RGB565 && sg_display_info.fmt != TUYA_PIXEL_FMT_MONOCHROME) {
         PR_ERR("display pixel format %d not supported", sg_display_info.fmt);
@@ -98,16 +188,55 @@ static OPERATE_RET __display_init(void)
     width  = sg_display_info.width;
     height = sg_display_info.height;
 
-    for(uint8_t i=0; i<DISPLAY_FRAME_BUFF_NUM; i++) {
+    for (uint8_t i = 0; i < DISPLAY_FRAME_BUFF_NUM; i++) {
         TUYA_CALL_ERR_LOG(tdl_disp_fb_manage_add(sg_fb_manage, sg_display_info.fmt, width, height));
     }
+    printf("[disp-dbg] fb add %ux%u fmt=%d num=%d\n", width, height, sg_display_info.fmt, DISPLAY_FRAME_BUFF_NUM);
+
+#if EXAMPLE_DISPLAY_ONLY
+    {
+        TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
+        if (fb == NULL) {
+            printf("[disp-dbg] selftest: no free fb\n");
+            return OPRT_COM_ERROR;
+        }
+        printf("[disp-dbg] selftest fb=%p len=%u\n", fb->frame, fb->len);
+        fb->frame[0] = 0xF8;
+        printf("[disp-dbg] selftest first byte written\n");
+        memset(fb->frame + 1, 0xF8, fb->len - 1);
+        printf("[disp-dbg] selftest fill done\n");
+        tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+        printf("[disp-dbg] selftest flush returned\n");
+
+        /* Exercise the conversion itself on this thread (4 KB stack) with a
+         * synthetic 640x480 YUV422 frame, so the camera callback thread is not
+         * part of the experiment. */
+        uint8_t *yuv = tkl_system_malloc(640 * 480 * 2);
+        if (yuv != NULL) {
+            for (uint32_t i = 0; i < 640u * 480u * 2u; i++) {
+                yuv[i] = (uint8_t)(i & 0xff);
+            }
+            fb = tdl_disp_get_free_fb(sg_fb_manage);
+            if (fb != NULL) {
+                printf("[disp-dbg] selftest convert start fb=%p len=%u\n", fb->frame, fb->len);
+                tdl_disp_convert_yuv422_to_fb(yuv, 640, 480, fb, false, TUYA_DISPLAY_ROTATION_0, TUYA_YUV422_UYVY);
+                printf("[disp-dbg] selftest convert done\n");
+                tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+                printf("[disp-dbg] selftest convert flush returned\n");
+            }
+            tkl_system_free(yuv);
+        } else {
+            printf("[disp-dbg] selftest no yuv buffer\n");
+        }
+    }
+#endif
 
     return OPRT_OK;
 }
 
 static OPERATE_RET __camera_init(void)
 {
-    OPERATE_RET rt = OPRT_OK;
+    OPERATE_RET      rt = OPRT_OK;
     TDL_CAMERA_CFG_T cfg;
 
     memset(&cfg, 0, sizeof(TDL_CAMERA_CFG_T));
@@ -123,12 +252,28 @@ static OPERATE_RET __camera_init(void)
     tdl_camera_dev_get_info(sg_tdl_camera_hdl, &cam_info);
     sg_yuv_order = cam_info.yuv_order;
 
-    cfg.fps = EXAMPLE_CAMERA_FPS;
-    cfg.width = EXAMPLE_CAMERA_WIDTH;
-    cfg.height = EXAMPLE_CAMERA_HEIGHT;
+    cfg.fps     = EXAMPLE_CAMERA_FPS;
+    cfg.width   = EXAMPLE_CAMERA_WIDTH;
+    cfg.height  = EXAMPLE_CAMERA_HEIGHT;
     cfg.out_fmt = TDL_CAMERA_FMT_YUV422;
 
     cfg.get_frame_cb = __get_camera_raw_frame_cb;
+
+#if EXAMPLE_DISPLAY_WORKER
+    sg_yuv_size    = (uint32_t)EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2u;
+    sg_yuv_pending = tkl_system_malloc(sg_yuv_size);
+    if (sg_yuv_pending == NULL) {
+        PR_ERR("no memory for the %u-byte display frame", (unsigned)sg_yuv_size);
+        return OPRT_MALLOC_FAILED;
+    }
+    TUYA_CALL_ERR_RETURN(tal_semaphore_create_init(&sg_frame_sem, 0, 1));
+
+    THREAD_CFG_T worker_cfg = {0};
+    worker_cfg.stackDepth   = 8192;
+    worker_cfg.priority     = THREAD_PRIO_3;
+    worker_cfg.thrdname     = "camera_disp";
+    TUYA_CALL_ERR_RETURN(tal_thread_create_and_start(&sg_worker_hdl, NULL, NULL, __display_worker, NULL, &worker_cfg));
+#endif
 
     TUYA_CALL_ERR_RETURN(tdl_camera_dev_open(sg_tdl_camera_hdl, &cfg));
 
@@ -155,7 +300,11 @@ void user_main(void)
 
     TUYA_CALL_ERR_LOG(__display_init());
 
+#if !EXAMPLE_DISPLAY_ONLY
     TUYA_CALL_ERR_LOG(__camera_init());
+#else
+    printf("[disp-dbg] display-only build, camera not opened\n");
+#endif
 
     while (1) {
         tal_system_sleep(1000);

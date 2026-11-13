@@ -178,6 +178,134 @@ GC6133  Sensor ID : 0xff
 
 **新镜像**：`20f806d0d6c81a48e19c1865183c5bbaa59f6235c2659b3b947efbb8f6fb52da`，414,004 B；平台提交 `8bb0545f`。待硬件窗口烧录验证 sensor ID/帧。
 
+### 0.11a 修复版 SPI 复测（2026-11-13 16:32–16:35，软件 IIC）
+
+- 镜像 `20f806d0d6c81a48e19c1865183c5bbaa59f6235c2659b3b947efbb8f6fb52da`（414,004 B）烧录成功；用户**普通断电重上电**后捕获到完整启动。
+- 启动链正常：
+  ```
+  [SPI_PROBE] devices_init begin
+  [SPI_PROBE] devices_init done
+  [SPI_PROBE] boot, path=SPI
+  camera path: SPI (J4/video1+spi2)
+  camera info: max 320x240@12fps fmts=0x301
+  [camera] SPI buffers: dma=1c0f680 (155528 B) frame=1c35624 (153600 B)
+  [camera] SPI: output XCLK PH2
+  [camera] opening video1.0
+  ```
+  `CODE+CONST 363968`、`RAM_SIZE 523596 / REMAIN 465804`，动态 DMA 缓冲分配成功（内部堆约 464 KiB），静态 `.sram` 已降至 `.ram0_bss 15328 B` 量级。
+- **传感器探测仍全部失败**（软件 iic1 已确认编入镜像：`sw_iic_delay`/`__initcall_link_s_iic1_pd` 在 map/object 中）：
+  ```
+  BYD3901 reset / iic write err!!! line : 274 ×2 / Sensor ID : 0x0 / not BYD3901
+  GC0310  reset / iic write err!!! line : 87  ×2 / Sensor ID : 0x0 / not GC0310
+  GC6133  reset / iic write err!!! line : 220 ×2 / Sensor ID : 0x0 / not GC6133
+  [VIDEO_CAMERA]check digital sensor err
+  [VIDEO]camera1 open err
+  [camera] video1.0 open failed (no SPI sensor?)
+  ```
+  与硬件 IIC 版本的区别只在读回值（旧 0xa5a5/0x0/0xff → 新 0x0/0x0/0x0）；**从地址阶段 NAK 不变**，说明不是控制器类型问题，而是总线上没有任何器件应答。
+- 引脚/配置与厂商完全一致（`board_dev_kit_cfg.h`）：IIC1 SCL/SDA = PH0/PH1（112/113）、XCLK = PH2、RESET = PH3、PWDN = -1；`camera1_data.interface = SEN_INTERFACE0`，与 `board_develop.c` 相同。SPI 路径厂商只探测 BYD3901/GC0310/GC6133 三款。
+- **阻塞点需要用户确认硬件**：J4（12-pin FPC）是否插了 SPI 摄像头模组、模组型号/丝印是哪一款。若未插或型号不在上述三款，属“缺件/型号不符”，不是固件问题；若已插且型号匹配，则需查 J4 供电与 PH0/PH1 上拉。
+- 日志：`.artifacts/jieli-camera/logs/spi2-boot-capture.log`、`spi2-flash-vendor.log`。
+
+### 0.11b 厂商烧录参数与串口注意事项（2026-11-13，协调方核对官方文档）
+
+- **`-reboot 2000`**：官方建议下载完成后等待 2000 ms 再复位；此前用 `-reboot 500`，出现“烧完串口静默、必须人工断电”的现象。后续烧录命令统一改为 `-reboot 2000`，仍以普通断电重上电抓启动日志为准。
+- **下载前拔 CH343**：官方排障说明 PC 串口/UART 适配器可能阻止进入下载模式。若 `Device Offline`，先拔 CH343（只留 USB1.1 下载口）再烧，烧完插回抓日志。
+- **强制下载**：官方为“长按 update 键 + 按 reset，先松 reset 再松 update”；工具目录 `SM01-DFU.exe` 可能对应杰理强制升级工具；板上 K1–K8 是 AD 按键，具体哪个是 update/reset 需用户按丝印确认。
+- 免按键下载依赖固件使能 USB 从机模式；TuyaOpen/触摸镜像具备，探针镜像在 USB 初始化前挂住时才需要强制入口。
+
+### 0.11c `output_display`（DVP + ILI9488）实机：首帧后异常重启（2026-11-13 16:53–17:2x）
+
+- 构建：新增 `examples/peripherals/camera/output_display/config/JIELI_AC79_DevKitBoard_dvp_lcd.config`（DVP 640x480@20 + `ENABLE_LIBLVGL`/`ENABLE_DISPLAY`/`ENABLE_MCU8080`）。首版镜像 `3883c1251684139e1f9145a4185c8ec296acc8adf9c650756610239b5d408053`，410.8 KiB。
+- 烧录：`-reboot 2000` 后**自动重启成功**（`system reset reason: SOFT`），无需人工断电；`Device online` → VM 擦除 → `Download completed`。
+- 启动与显示初始化正常：
+  ```
+  tdd_disp_mcu8080_ili9488_register: display
+  [EMI]emi data io : IO_PORTC_01 - IO_PORTC_08 / emi clk = 20000 KHZ / emi open success
+  [camera] sensor: GC2145
+  [camera] sensor info: 640x480 fps=20 real_fps=0
+  [camera] first frame: 640x480 fmt=1 len=614400
+  ```
+- **新事实：DVP 路 sensor = GC2145（此前 DVP 只抓到帧，未抓到型号）**，640x480 YUV422，首帧 614400 B。
+- 首帧后约 15 ms 即异常重启（两次复现）：
+  ```
+  CPU0 run addr = 0x1e00000
+  CPU0 20348c0 --> 20348b8 --> 20349fc --> 20348c0
+  rets: 0x1c07c70   reti: 0x1c07c0e
+  exception reason : axi_rd_inv
+  ```
+  符号化（该示例 `sdk.elf` + `llvm-symbolizer`）：`0x20348c0` 位于 `tdl_disp_convert_yuv422_to_fb` 内层 YUV 读取（`r3 = b[r0+1]`），返回地址 `0x1c07c70` 在 `__get_camera_raw_frame_cb`。**不是 flush 回调崩溃**。
+- 调试版（`19a9ece9…`）打印：
+  ```
+  [disp-dbg] info 320x480 fmt=0 swap=1
+  [disp-dbg] fb add 320x480 fmt=0 num=2
+  [disp-dbg] frame data=4188700 wh=640x480 len=614400 fb=400f380 fbwh=320x480 fblen=307200 in_order=0
+  ```
+  `fmt=0` 是 RGB565，`is_swap=1`，输入/输出尺寸与长度都正确；`convert done` 从未打印，确认卡在转换函数内读取 `frame->data`。
+- 隔离实验：构建纯色填充版 `deb27baf2adf05bb41561b4ed18cf640ddddf9f75f7419e1d3ad83b1ac3e9acb`（跳过转换、直接 `memset` fb 再 flush），烧录成功。用户断电重上电后日志走到
+  ```
+  [disp-dbg] frame data=4188700 ... fb=400f380 fbwh=320x480 fblen=307200
+  ```
+  之后**再无任何输出**（没有 `solid fill done`、没有 exception、串口一直静默）。纯色版在该打印之后的第一步就是 `memset(fb, 0xF8, 307200)`，因此**挂起点在写显示帧缓冲或其后的打印**，而不是 `tdl_disp_convert_yuv422_to_fb` 读相机帧。与转换版的 `axi_rd_inv` 合在一起看，问题集中在 `0x400f380` 这块 fb 内存路径。
+- 纯显示自检镜像 `aaa86a680e62852f2eff5087cd8262bf63260637ca0e16e33d8497a82cc4d45c`：不打开 camera，在 `user_main` 里取 fb → 写首字节 → memset 全帧 → flush，三步各有打印。用于区分 fb 内存写和 EMI flush；待用户断电重上电后抓取。
+- 增强自检镜像 `6d7729a04ff1dc0ab4b9716070d09fabaa5f36299b26c5f5770618ee2b6f9f03`：在 `user_main` 里再分配一块 640x480 合成 YUV422 缓冲，调用同一个 `tdl_disp_convert_yuv422_to_fb` 并 flush，把“转换函数本身”和“相机回调线程上下文”分开验证；不打开 camera。
+- **自检结果（用户强制下载模式后烧入，17:30）**：全部通过：
+  ```
+  [disp-dbg] selftest fb=400f340 len=307200
+  [disp-dbg] selftest first byte written
+  [disp-dbg] selftest fill done
+  [disp-dbg] selftest flush returned
+  [disp-dbg] selftest convert start fb=400f340 len=307200
+  [disp-dbg] selftest convert done
+  [disp-dbg] selftest convert flush returned
+  [disp-dbg] display-only build, camera not opened
+  ```
+  说明 **fb 内存写、EMI flush、`tdl_disp_convert_yuv422_to_fb` 在 Tuya 线程上都正常**；LCD 应已出现纯色/合成彩条。
+- 旁证：纯色版在相机回调里的 `solid fill done` 这次在 **258 s 后**才补打出来（同一句打印），说明相机回调线程被长时间阻塞/饿死；非纯色版则在同线程的转换里 `axi_rd_inv`。根因收敛为**厂商 `raw_flow_task`（8 KB 栈）上下文**，不是显示驱动或转换算法。
+- **修复**：`output_display` 增加 `EXAMPLE_DISPLAY_WORKER`：相机回调只 `memcpy` 一帧到 SDRAM 缓冲并 `tal_semaphore_post`；独立 worker（8 KB 栈，`THREAD_PRIO_3`）取 fb → `tdl_disp_convert_yuv422_to_fb` → `tdl_disp_dev_flush`。worker 忙时丢帧。镜像 `7a8e51ee4e421325cd54d541eee4a31cbe02cc5a4893fdb7ad13333ad5796d45`，已烧录成功（`Download completed`）。烧后板子无输出，待用户断电重上电后验证。
+- **双烧撞车**：协调方与我几乎同时向同一台设备发起 `isd_download`，其日志在写完数据后报 `ERROR: Failed to query data crc, address = 0x0`；我的同一时刻日志为 `Download completed`（EXIT=0），板子随后启动的 `setup_arch 17:25:54` 与我的镜像一致，故判断 CRC 错误由并发访问导致，镜像本身已正常启动并跑完自检。后续烧录改为单人操作。
+- 厂商路径对照（静态）：`lcd_ili9488.c:59-63` 的 `LCD_DrawToDev`/`ILI9488_lvgl_Fill` 最终都走 `WriteDAT_DMA` → `lcd_send_map` → `dev_write(emi, buf, len)`，传入的也是 `malloc` 得到的缓冲；`10-touch` 的 `tdd_display_mcu8080.c` 与 05 逐字节一致，且 `app_display_camera_flush` 用的就是同一个 `tdl_disp_convert_yuv422_to_fb`（宏封装）。因此“厂商用了特殊显示缓冲、SDRAM 帧不能写”这一假设被排除；剩余重点是**相机回调线程（厂商 `raw_flow_task`，8 KB 栈）上下文**或 TDD 输入帧的内存属性。
+- 显示分辨率：`tdl_disp_convert_yuv422_to_fb` 的软件转换只做裁剪（`width=min(in,out)`），不做缩放；640x480 → 320x480 会取左侧 320 列、保留全部 480 行。若后续需要整幅画面，必须另加缩放，不能指望该函数。
+- 日志：`.artifacts/jieli-camera/logs/output-display-flash-vendor.log`、`output-display-boot.log`、`output-display-dbg-boot.log`、`output-display-solid-boot.log`、`output-display-solid-powercycle.log`。
+
+### 0.11d SPI 静态逐行对照与根因分类（2026-11-13，未烧）
+
+**厂商 probe 顺序（DevKitBoard 的 video1 路径）**
+
+1. `camera_platform_data.xclk_gpio = PH2`、`reset_gpio = PH3`、`pwdn_gpio = -1`（`board_dev_kit_cfg.h:38-40`）。
+2. 应用层先输出 XCLK：DevKitBoard 示例 `apps/common/example/Devkitboard_test/spi_camera.c:255` 对 PH2 用 `CH1_PLL_24M`；`wifi_camera/spi_video.c` 对 PH8 才用 `CH3_PLL_24M`。
+3. `dev_open("video1.0")` → 厂商 camera1 驱动按 BYD3901 → GC0310 → GC6133 顺序探测（SPI 路径仅这三颗），每颗先拉 PH3 复位、再经 **iic1** 读 ID。
+4. 探测通过后 `dev_open("spi2")`，SPI2 平台数据带采样极性属性；再 `IOCTL_SPI_SET_USER_INFO`、循环 `IOCTL_SPI_READ_DATA`。
+
+**我们的实现与差异**
+
+| 步骤 | 我们 | 厂商 | 结论 |
+|---|---|---|---|
+| XCLK | `gpio_output_channle(PH2, CH3_PLL_24M)` | PH2 用 `CH1_PLL_24M` | **已改 CH1**（`tkl_dvp.c`） |
+| SPI2 属性 | `SPI_SCLK_L_UPL_SMPH` | demo_DevKitBoard 硬编码 SMPH；wifi_camera 的 GC0310 配置为 SMPL；BYD3901 为 H/SMPH | 新增 Kconfig 三选一，SPI 镜像选 SMPL（GC0310），默认 SMPH |
+| 复位 | 厂商驱动用 camera1_data.reset_gpio=PH3 自动做 | 相同 | 一致 |
+| PWDN | 未操作（`-1`） | `-1`；板上 R03 10K 下拉 | 一致 |
+| I2C | 软件 iic1，PH0/PH1 | 软件 iic1，PH0/PH1 | 一致 |
+| sensor 列表 | BYD3901/GC0310/GC6133 | 同 | 一致（无 GC0308-SPI/BF20A6/SC030IOT 驱动） |
+
+**供电核对（AC79_DevKitBoard V1.2 原理图）**
+
+- J4 pin1 `SEN_VDD`：R44 **0R 已贴**接 `AVDD28`（U2 RT9193-2.8V，EN 接 VIN，常开）；R45 **NC**（备选 3.3V_MCU）。不是 GPIO/load-switch 控制。
+- J4 pin9 `PWDN`：R03 **10K 下拉到 GND**（R04 NC 到 SEN_VDD）→ 模组默认使能。
+- J4 SCL/SDA：R41/R42 为 **0R 串阻，板上无上拉**；上拉必须在模组内。
+- `+3.3V` 外部扩展电源原理图标注“常开”。U2 的 2.8V 供 DVP 已验证工作，说明该轨正常。
+
+**根因分类**
+
+1. **软件电源步骤：已排除**。板上无受控电源轨/PWDN GPIO，厂商同样不操作。
+2. **I2C bus/地址：模组侧无 ACK 是当前直接原因**。三颗 sensor 在 address 阶段即 NAK（0xdc/0x42/0x80），与上拉/模组是否插好/接触有关；不是 iic0/iic1 选错（三者都开 iic1），也不是从地址写错。
+3. **XCLK/SPI 极性：静态不一致，已修正并构建**（`74e70368…`），但 I2C 探测发生在 SPI 数据之前，修正不会让当前的无 ACK 变好；需模组先应答。
+4. **模组：待用户重插 J4 并确认型号**。型号未知时无法确定 SMPH/SMPL/H_SMPH，镜像里已做成 Kconfig 可选。
+
+**厂商 demo 对照镜像可行性**
+
+`tools/jieli_build` 固定 staging `apps/demo/demo_hello` 并按它的 Makefile 构建，不能直接切到 `apps/wifi_camera` 或 `demo_DevKitBoard`。但 video1 的 sensor 探测/初始化在预编译 `video_rec_server.a` 里，两个 demo 与我们链接的是同一份库；差别只在板级注册（iic1 软件节点、`video1.*`、`spi2` 平台数据）和 SPI 采样属性，这些已经逐项对齐（XCLK 通道与属性另见上表）。因此另建厂商镜像主要用于验证模组本身，不能替代当前对 I2C 无 ACK 的判断；暂不为此新增第二套 staging。
+
 ### 0.11 DVP 实机结果（2026-11-13 16:18–16:22）
 
 - 烧录：`b689631c95c529a3292895a9f1ed4a1c82a82d63b748d07923310f556a559d4e`（408,468 B），无需用户复位：`Device online` → VM 擦除 `[0x69000-0x300000]` → `Download completed`。
