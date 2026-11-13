@@ -128,6 +128,18 @@ staging 交叉核对（DVP/SPI 各自）：
 - `loader_tools/isd_download.exe` 与 `tools/isd_download.exe` 是同一厂商 2.2 MB 工具，仍走 USB 自动探测（VID 4C4A），没有串口参数；换用它不会改变“必须先进入下载模式”的前提。
 - 首选仍是厂商 `isd_download.exe`（`tos.py flash -p COM8`，不加 `JIELI_USE_PY_FLASHER`）。串口 Python 路径只在厂商工具探测不到 USB 设备时作为一次备选，且只重试一次。
 
+### 0.9 实机恢复尝试（2026-11-13 15:30，串口 ROM 假设）
+
+按“只此一次”的授权，用正确 loader 做了一次软件恢复（目标先是触摸回滚镜像 `54a61aa5…`）：
+
+- COM8 打开前核实空闲；烧录用 `.worktrees/10-touch` 的 staging，烧前 `app.bin` SHA256 再次确认就是 `54a61aa539f11be81cd960017da29e7681cd66a056d219706ffa1b970ab629ad`。
+- 把 `cpu/wl82/tools/loader_tools/wl82loader.bin`（29.5 KiB，`e6388091…`）临时放入 `tools/jieli_flasher/loaders/`（不覆盖厂商文件；尝试后已恢复仓库跟踪版本 `9920e666…`）。
+- 命令：`JIELI_USE_PY_FLASHER=1 tos.py flash -p COM8 -b 9600`。
+- 结果：`Opening serial port COM8 at 9600 baud` → `Uploading wl82loader.bin (30208 bytes) to RAM 0x01C02000` → 4 秒后 `Timeout waiting for serial ACK`。**没有写入任何数据**；COM8 随后空闲。
+- 关键判断：日志中的 “Mask ROM mode” 仍是误报（`connect()` 不做同步握手，`sync_and_negotiate_baudrate()` 未被调用；第一次真实协议交互就是 loader 的 CDB 帧）。因此“9600 握手有响应”这一假设**没有日志支持**；换用 loader_tools 版本后仍超时，说明设备没有停在串口 ROM 同步状态，而不是 loader 版本问题。
+- 证据：`.artifacts/jieli-camera/logs/recovery-touch-serial.log`、`recovery-touch-app-sha.txt`。
+- 停止条件已触发：不再重试；等待用户按住 KEY/UPDATE 上电，使设备以 USB 下载模式（VID 4C4A）出现。出现后再按 0.8 的恢复优先顺序执行。
+
 ---
 
 ## 1. 结论（先给结论）
