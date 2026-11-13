@@ -3,7 +3,7 @@
 - **任务**：JIELI 后续任务 05，AC79_DevKitBoard（AC791/WL82）双摄路径的阶段 A 拓扑核实。
 - **日期**：2026-11-13。
 - **主仓基线**：`D:\tuya_proj\TuyaOpen\.worktrees\05-camera`，分支 `task/05-ac791-camera`，`055042a8119b3a21910761bc13f171da19cf35fc`。
-- **平台 pin**：阶段 A 时 `platform/JIELI` = `c967f4b174480ff1df966eeea80bee1b0edcb0f6`，只读。阶段 B 在隔离 worktree `.platform-worktrees/05-camera` 上以当时本地 tip `77657dfa`（含 03 OTA/KWS 平台提交）为基，分支 `task/05-ac791-camera-platform`，提交 `630eb574`，未推送。
+- **平台 pin**：阶段 A 时 `platform/JIELI` = `c967f4b174480ff1df966eeea80bee1b0edcb0f6`，只读。阶段 B 在隔离 worktree `.platform-worktrees/05-camera` 上以当时本地 tip `77657dfa`（含 03 OTA/KWS 平台提交）为基，分支 `task/05-ac791-camera-platform`，提交 `630eb574` + `9307f388`，未推送。
 - **本轮边界**：只读研究，未改代码、未构建、未烧录、未接触 COM8（任务 02 独占）、未推送。
 - **结论级别**：原理图 + SDK 源码 + 板级配置静态证据；**没有任何实板 probe、有效帧、双路并发或稳定性数据**。
 
@@ -19,7 +19,7 @@
 |---|---|---|
 | 连接器 | J1 24-pin | J4 12-pin |
 | Kconfig | `CONFIG_JIELI_CAMERA_PATH_DVP=y` | `CONFIG_JIELI_CAMERA_PATH_SPI=y` |
-| 厂商设备 | `video0`（camera0） | `video1.0`（sensor）+ `spi2`（数据） |
+| 厂商设备 | `video0.2`（camera0，回退 `video0`） | `video1.0`（sensor）+ `spi2`（数据） |
 | 摄像头 I2C | iic0（软件 IIC）PH0/PH1 | iic1（硬件 IIC）PH0/PH1 |
 | XCLK/RESET | PH2 / PH3 | PH2 / PH3 |
 | 数据引脚 | PA0-PA7 + PA8/9/10 | PA2/PA3/PA4 |
@@ -37,12 +37,12 @@
 
 | 路径 | 配置 | 结果 | SHA256 | 大小 |
 |---|---|---|---|---|
-| DVP | `JIELI_AC79_DevKitBoard_dvp.config` | BUILD SUCCESS | `fe40775340b7b6e99285708fa08a69051a265440f792b21cdf551c5c8da7d88b` | 408,500 B |
-| SPI | `JIELI_AC79_DevKitBoard_spi.config` | BUILD SUCCESS | `dd24d0aa4d91c324526ecb6d1dd68179465adfab91b1fba553b562e7824bf2b3` | 413,396 B |
+| DVP | `JIELI_AC79_DevKitBoard_dvp.config` | BUILD SUCCESS | `7c175fe48b09b586fd2512716da4ac35c9aa426b3eb333f0aa7989b1507c4867` | 408,532 B |
+| SPI | `JIELI_AC79_DevKitBoard_spi.config` | BUILD SUCCESS | `1484aa678ac496c7fa280aa08c680ea6b811564ff62dfd3e9f6591b9a9612663` | 413,396 B |
 
 产物已固化到 `.worktrees/05-camera/.artifacts/jieli-camera/`（同名 `.sha256`），对应 `dist/jieli_probe_1.0.0/jieli_probe_QIO_1.0.0.bin`。两次构建使用同一份已提交源码；该 vendor 工具链的镜像字节含构建时间戳，重复构建 SHA 会变，因此表中的 SHA 是**已归档产物的指纹**，不是可复现的源码摘要。
 
-提交：主仓 `b845f3a6`（`task/05-ac791-camera`），平台仓 `630eb574`（`task/05-ac791-camera-platform`，基于 `77657dfa`；本地提交，未推送）。
+提交：主仓 `b845f3a6` + `51ba3b0c`（`task/05-ac791-camera`），平台仓 `630eb574` + `9307f388`（`task/05-ac791-camera-platform`，基于 `77657dfa`；本地提交，未推送）。
 
 staging 交叉核对（DVP/SPI 各自）：
 
@@ -57,7 +57,7 @@ staging 交叉核对（DVP/SPI 各自）：
 |---|---|---|
 | 设备表 | 只挂 `video0.*` | 只挂 `video1.*` + `spi2` |
 | TKL init | 只分配 YUV422 缓冲 | 只分配 YUV422 缓冲 |
-| 采集线程启动 | `dev_open("video0")`；vendor 驱动按 `camera0_data` 拉 XCLK PH2、复位 PH3，并通过 iic0 探测/配置 sensor；随后 `VIDIOC_SET_FMT/OVERLAY` | 先 `gpio_output_channle(PH2, 24M)` → `dev_open("video1.0")`（iic1 + 复位 PH3 + sensor 配置）→ 最后 `dev_open("spi2")` 占用 PA2/PA3/PA4；再 `IOCTL_SPI_SET_USER_INFO` |
+| 采集线程启动 | `dev_open("video0.2")`（失败回退 `video0`）；vendor 驱动按 `camera0_data` 拉 XCLK PH2、复位 PH3，并通过 iic0 探测/配置 sensor；随后 `VIDIOC_SET_FMT/OVERLAY` | 先 `gpio_output_channle(PH2, 24M)` → `dev_open("video1.0")`（iic1 + 复位 PH3 + sensor 配置）→ 最后 `dev_open("spi2")` 占用 PA2/PA3/PA4；再 `IOCTL_SPI_SET_USER_INFO` |
 | 采集停止 | `VIDIOC_CLEAR_OVERLAY` → `dev_close(video0)` | `dev_close(spi2)`（释放 PA2-PA4）→ `dev_close(video1)`（释放 iic1/PH3）→ `gpio_clear_output_channle(PH2)` |
 | 跨路径切换 | 通过重新编译 + 重启实现；同一镜像内不会同时初始化两套 pinmux | 同左 |
 
@@ -67,7 +67,7 @@ staging 交叉核对（DVP/SPI 各自）：
 
 | 字段 | DVP（J1/video0） | SPI（J4/video1+spi2） |
 |---|---|---|
-| 烧录镜像 SHA256 | `fe407753…`（待烧） | `dd24d0aa…`（待烧） |
+| 烧录镜像 SHA256 | `7c175fe4…`（待烧） | `1484aa67…`（待烧） |
 | sensor 型号 | 待 vendor probe / `CAMERA_GET_SENSOR_TYPE` 日志；J1 丝印复核 | 待 vendor probe / `CAMERA_GET_SENSOR_TYPE` 日志；J4 丝印复核 |
 | sensor ID | 待 `CAMERA_GET_SENSOR_INFO` + 驱动 `*_ID_check` 日志 | 待同左 |
 | 首帧时间 | 待测（`FIRST FRAME` 行 + 上电到首帧 ms） | 待测 |
