@@ -3,7 +3,7 @@
 - **任务**：JIELI 后续任务 05，AC79_DevKitBoard（AC791/WL82）双摄路径的阶段 A 拓扑核实。
 - **日期**：2026-11-13。
 - **主仓基线**：`D:\tuya_proj\TuyaOpen\.worktrees\05-camera`，分支 `task/05-ac791-camera`，`055042a8119b3a21910761bc13f171da19cf35fc`。
-- **平台 pin**：阶段 A 时 `platform/JIELI` = `c967f4b174480ff1df966eeea80bee1b0edcb0f6`，只读。阶段 B 在隔离 worktree `.platform-worktrees/05-camera` 上以当时本地 tip `77657dfa`（含 03 OTA/KWS 平台提交）为基，分支 `task/05-ac791-camera-platform`，提交 `630eb574` + `9307f388`，未推送。
+- **平台 pin**：阶段 A 时 `platform/JIELI` = `c967f4b174480ff1df966eeea80bee1b0edcb0f6`，只读。阶段 B 在隔离 worktree `.platform-worktrees/05-camera` 上以当时本地 tip `77657dfa`（含 03 OTA/KWS 平台提交）为基，分支 `task/05-ac791-camera-platform`，提交 `630eb574` + `9307f388` + `7659c3c9`，未推送。
 - **本轮边界**：只读研究，未改代码、未构建、未烧录、未接触 COM8（任务 02 独占）、未推送。
 - **结论级别**：原理图 + SDK 源码 + 板级配置静态证据；**没有任何实板 probe、有效帧、双路并发或稳定性数据**。
 
@@ -37,12 +37,12 @@
 
 | 路径 | 配置 | 结果 | SHA256 | 大小 |
 |---|---|---|---|---|
-| DVP | `JIELI_AC79_DevKitBoard_dvp.config` | BUILD SUCCESS | `7c175fe48b09b586fd2512716da4ac35c9aa426b3eb333f0aa7989b1507c4867` | 408,532 B |
-| SPI | `JIELI_AC79_DevKitBoard_spi.config` | BUILD SUCCESS | `1484aa678ac496c7fa280aa08c680ea6b811564ff62dfd3e9f6591b9a9612663` | 413,396 B |
+| DVP | `JIELI_AC79_DevKitBoard_dvp.config` | BUILD SUCCESS | `efe0e44fde00ed2e952b30fa3b039254b13d385ebfd46b05ba4959ae6272cdc1` | 408,468 B |
+| SPI | `JIELI_AC79_DevKitBoard_spi.config` | BUILD SUCCESS | `8f60aad678b9e9bf03a9e5c59fd59c50e782629d6f44f5e03ccba0bf6fcba11d` | 413,428 B |
 
-产物已固化到 `.worktrees/05-camera/.artifacts/jieli-camera/`（同名 `.sha256`），对应 `dist/jieli_probe_1.0.0/jieli_probe_QIO_1.0.0.bin`。两次构建使用同一份已提交源码；该 vendor 工具链的镜像字节含构建时间戳，重复构建 SHA 会变，因此表中的 SHA 是**已归档产物的指纹**，不是可复现的源码摘要。
+产物已固化到 `.worktrees/05-camera/.artifacts/jieli-camera/`（同名 `.sha256`；SPI 包大小按 (line+8)*height+8 修正后重建），对应 `dist/jieli_probe_1.0.0/jieli_probe_QIO_1.0.0.bin`。两次构建使用同一份已提交源码；该 vendor 工具链的镜像字节含构建时间戳，重复构建 SHA 会变，因此表中的 SHA 是**已归档产物的指纹**，不是可复现的源码摘要。
 
-提交：主仓 `b845f3a6` + `51ba3b0c`（`task/05-ac791-camera`），平台仓 `630eb574` + `9307f388`（`task/05-ac791-camera-platform`，基于 `77657dfa`；本地提交，未推送）。
+提交：主仓 `b845f3a6` + `51ba3b0c` + `90358e9a`（`task/05-ac791-camera`），平台仓 `630eb574` + `9307f388` + `7659c3c9`（`task/05-ac791-camera-platform`，基于 `77657dfa`；本地提交，未推送）。
 
 staging 交叉核对（DVP/SPI 各自）：
 
@@ -67,7 +67,7 @@ staging 交叉核对（DVP/SPI 各自）：
 
 | 字段 | DVP（J1/video0） | SPI（J4/video1+spi2） |
 |---|---|---|
-| 烧录镜像 SHA256 | `7c175fe4…`（待烧） | `1484aa67…`（待烧） |
+| 烧录镜像 SHA256 | `efe0e44f…`（待烧） | `8f60aad6…`（待烧） |
 | sensor 型号 | 待 vendor probe / `CAMERA_GET_SENSOR_TYPE` 日志；J1 丝印复核 | 待 vendor probe / `CAMERA_GET_SENSOR_TYPE` 日志；J4 丝印复核 |
 | sensor ID | 待 `CAMERA_GET_SENSOR_INFO` + 驱动 `*_ID_check` 日志 | 待同左 |
 | 首帧时间 | 待测（`FIRST FRAME` 行 + 上电到首帧 ms） | 待测 |
