@@ -79,13 +79,13 @@ staging 交叉核对（DVP/SPI 各自）：
 
 ### 0.5 烧录纪律与回滚
 
-- COM8 当前归语音任务；**本轮未打开串口、未烧录**。收到总管“COM8 已释放”后，按 **DVP → SPI** 顺序烧录，每次烧录前重新枚举端口。
+- COM8 归语音任务期间未打开。15:1x 总管放行后做过一次 DVP 烧录尝试（见 0.7），因板卡未进入下载模式而失败，镜像未写入。后续仍按 **DVP → SPI** 顺序，每次烧录前重新枚举端口。
 - 回滚镜像：`D:\tuya_proj\TuyaOpen\.worktrees\10-touch\apps\tuya.ai\your_chat_bot\dist\your_chat_bot_1.0.1\your_chat_bot_QIO_1.0.1.bin`，SHA256 `54a61aa539f11be81cd960017da29e7681cd66a056d219706ffa1b970ab629ad`。
 - 不改分区、不上云、不推送。验证脚本：`examples/peripherals/camera/jieli_probe/probe.ps1`（`build` / `archive` / `flash` / `capture`）。
 
 ### 0.6 本轮阶段 B 明确未做
 
-- 未打开 COM8、未烧录、未上电验证，因此 **没有 sensor ID、首帧、分辨率、帧率或失败码实机数据**。
+- 除 0.7 记录的一次未写入的烧录尝试外，未取得任何帧数据，因此 **没有 sensor ID、首帧、分辨率、帧率或有效帧实机数据**。
 - 未验证 vendor `video0`/`video1` 在本板的具体 probe 顺序与实际 SKU；表中型号一栏保持“待测”，不按原理图猜写。
 - 未验证 SPI 双线采样相位（`TCFG_SPI_ATTR` 取自 vendor DevKitBoard 配置）是否匹配实际模组；若首包持续 `bad packet head`，下一步只调该宏。
 
