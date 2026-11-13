@@ -1,0 +1,273 @@
+# 05 — AC791 双摄拓扑与双 DVP 可行性（阶段 A，只读研究）
+
+- **任务**：JIELI 后续任务 05，AC79_DevKitBoard（AC791/WL82）双摄路径的阶段 A 拓扑核实。
+- **日期**：2026-11-13。
+- **主仓基线**：`D:\tuya_proj\TuyaOpen\.worktrees\05-camera`，分支 `task/05-ac791-camera`，`055042a8119b3a21910761bc13f171da19cf35fc`。
+- **平台 pin**：`platform/JIELI` = `c967f4b174480ff1df966eeea80bee1b0edcb0f6`，只读。
+- **本轮边界**：只读研究，未改代码、未构建、未烧录、未接触 COM8（任务 02 独占）、未推送。
+- **结论级别**：原理图 + SDK 源码 + 板级配置静态证据；**没有任何实板 probe、有效帧、双路并发或稳定性数据**。
+
+---
+
+## 1. 结论（先给结论）
+
+**AC79_DevKitBoard 不支持双路 DVP。阶段 B 不应实现“第二路 DVP”。**
+
+三条独立证据：
+
+1. **板上只有一路 DVP 摄像头连接器**：24-pin `FPC24-0.5MM`（V1.0/V1.2 均为 `J1`）。另一路是 12-pin `FPC_12P_0.5MM`（V1.2 `J4`），信号为 SPI/BT656 摄像头（`SEN_SPI_CLK`、`SEN_SPI_D0/D1`、`SEN_XCLK`、`SEN_SDA/SCL`、`SEN_RESET/PWDN`），**不是 DVP 数据总线**。
+2. **12-pin SPI 摄像头与 24-pin DVP 摄像头共用引脚**：`PA2/PA3/PA4`（DVP 的 D5/D4/D3）以及 `PH0/PH1/PH2/PH3`（DVP 的 I2C/XCLK/RESET）。因此在这块板上，**DVP + SPI 也不能同时工作**；更不可能双 DVP。
+3. **vendor 板级数据明确把第二路注册为 `-1`**：`apps/demo/demo_DevKitBoard/board/wl82/DevKitBoard.c:493-507` 的 `camera1_data` 为 `interface = -1`、`group_port = -1`、所有 `data_gpio = -1`。SDK 的 `video1` 在其它板上被注释为“SPI 摄像头”（`apps/wifi_camera/board/wl82/board_develop.c:651`），`spi_video.c` 直接 `dev_open("video1.0")`，不是第二路 DVP。
+
+**SDK README 的“一路 DVP + 一路 SPI 摄像头同时输出 YUV”是芯片/SDK 能力声明，不是 AC79_DevKitBoard 的板级事实。** 该能力需要把 DVP 与 SPI 布到不重叠的 pin group；本板没有这样做。
+
+**与任务 06 的结论要区分**：AC792N 的 DVP0/CSI-2 是 **PD11-PD14 pad 在两种接口间复用**；AC791 本板是 **一路 DVP + 一路 SPI 连接器共用 PA2-PA4/PH0-PH3**。两者都导致“不能并发”，但复用对象、证据和可行修复不同，不能照搬 06 的结论。
+
+---
+
+## 2. 板级 revision 与资料冲突
+
+本地资料同时存在：
+
+| 资料 | 路径 | 页数/版本 |
+|---|---|---|
+| DevKitBoard V1.0 原理图 | `platform/JIELI/chip/wl82/AC79_AIoT_SDK/doc/datasheet/AC791N规格书/schematic/JL_AC79_DevKitBoard/JL_AC79_DevKitBoard V1.0原理图.pdf` | **1 页，p.1**；title block `JL_AC79_DevKitBoard V1.0` |
+| DevKitBoard V1.2 原理图 | `.../JL_AC79_DevKitBoard/JL_AC79_DevKitBoard V1.2.pdf` | **1 页，p.1**；title block `JL_AC79_DevKitBoard V1.2` |
+| DevKitBoard V1.0 位号图 | `.../JL_AC79_DevKitBoard V1.0位号图.pdf` | 1 页 |
+| AC79x Wifi Develop V1.0 | `.../schematic/AC79x Wifi Develop V1.0/AC79x Wifi Develop V1.0.pdf` | 1 页；是模块/开发板参考，不是 TuyaOpen 的 AC79_DevKitBoard |
+| WL82 IO 功能列表 | `.../JL_AC79_DevKitBoard/JL_AC79_WIFI V1.0 IO功能列表.pdf` | **4 页；相机/IO 复用表在 p.3-4** |
+
+**冲突点**：任务书指向 V1.0 原理图，但 TuyaOpen 板级文件 `boards/JIELI/AC79_DevKitBoard/audio_config.h:12` 明确写 **“AC79_DevKitBoard V1.2: MIC1 is differential on the board schematic.”** 说明当前板级配置是按 V1.2 写的。V1.0 与 V1.2 的相机拓扑在本报告关心的点上一致（都是一路 24-pin DVP + 一路 12-pin SPI），所以**结论对两个 revision 都成立**；但实板丝印/revision 仍必须现场确认，不能从仓库文件名推断。
+
+---
+
+## 3. 24-pin DVP 连接器（J1 / FPC24-0.5MM）
+
+### 3.1 连接器引脚（原理图 V1.2 p.1；V1.0 p.1 同构）
+
+| J1 引脚 | 信号 | 说明 |
+|---|---|---|
+| 1 | NC | |
+| 2 | AGND | |
+| 3 | SDA | SEN0_SDA |
+| 4 | AVDD30 | 3.0V |
+| 5 | SCL | SEN0_SCL |
+| 6 | RESET | SEN0_RESET |
+| 7 | VSYNC | SEN0_VSYN |
+| 8 | PWDN | SEN0_PWDN |
+| 9 | HSYNC | SEN0_HSYN |
+| 10 | DVDD18 | 1.8V |
+| 11 | DOVDD | 由板级电源选择 |
+| 12 | D9 | 文本层可见 → SEN0_D7 |
+| 13 | MCLK | SEN0_XCLK |
+| 14 | D8 | 文本层可见 → SEN0_D6 |
+| 15 | DGND | |
+| 16 | D7 | 文本层可见 → SEN0_D5 |
+| 17 | PCLK | SEN0_PCLK |
+| 18 | D6 | 文本层可见 → SEN0_D4 |
+| 19 | D2 | 文本层可见 → SEN0_D0 |
+| 20 | D5 | 文本层可见 → SEN0_D3 |
+| 21 | D3 | 文本层可见 → SEN0_D1 |
+| 22 | D4 | 文本层可见 → SEN0_D2 |
+| 23 | D1 | 文本层未读出对应 SEN0 网络；需位号图/实板通断确认 |
+| 24 | D0 | 文本层未读出对应 SEN0 网络；需位号图/实板通断确认 |
+| 25/26 | GND | 屏蔽/地 |
+
+> 注：右列 `D0-D9` 是**模组侧**的引脚名，不是 SoC 的 `SEN0_Dn` 位序。上表只记录原理图文本层能直接读出的对应关系；`SEN0_D0..D7` 的 SoC 侧 8-bit 总线是 **PA0..PA7**（vendor `camera0_data`），但连接器 `Dn` 到 `SEN0_Dn` 的逐位映射必须以位号图或实板通断为准。不要按 `D0→D0` 的顺序假设。
+
+### 3.2 SoC 引脚（V1.2 p.1；V1.0 p.1 同）
+
+| 信号 | SoC | 说明 |
+|---|---|---|
+| SEN0_D0..D7 | **PA0..PA7** | DVP 8-bit 数据 |
+| SEN0_PCLK | **PA8** | DVP PCLK |
+| SEN0_VSYN | **PA9** | VSYNC |
+| SEN0_HSYN | **PA10** | HSYNC |
+| SEN0_SCL | **PH0** | 摄像头 I2C SCL |
+| SEN0_SDA | **PH1** | 摄像头 I2C SDA |
+| SEN0_XCLK | **PH2** | MCLK/XCLK |
+| SEN0_RESET | **PH3** | RESET |
+| SEN0_PWDN | 网络 `SEN0_PWDN` | 原理图未显示直接接 SoC；按 vendor 板级数据 `pwdn_gpio = -1` |
+
+**vendor 板级数据交叉验证**：`apps/demo/demo_DevKitBoard/board/wl82/DevKitBoard.c:460-490` 的 `camera0_data` 正是：
+- `xclk_gpio = IO_PORTH_02`
+- `reset_gpio = IO_PORTH_03`
+- `pwdn_gpio = -1`
+- `interface = SEN_INTERFACE0`
+- `pclk_gpio = IO_PORTA_08`
+- `hsync_gpio = IO_PORTA_09`
+- `vsync_gpio = IO_PORTA_10`
+- `data_gpio = {PA7, PA6, PA5, PA4, PA3, PA2, PA1, PA0, -1, -1}`
+- `group_port = ISC_GROUPA`
+
+---
+
+## 4. 12-pin SPI/BT656 摄像头连接器（J4 / FPC_12P_0.5MM）
+
+### 4.1 连接器引脚（V1.0 p.1；V1.2 p.1 同构）
+
+| J4 引脚 | V1.0 网络 | V1.2 网络 | 说明 |
+|---|---|---|---|
+| 1 | VDD | SEN_VDD | 模块电源 |
+| 2 | SCL | SEN_SCL | I2C SCL |
+| 3 | SDA | SEN_SDA | I2C SDA |
+| 4 | PCLK | SEN_SPI_CLK | SPI/BT656 时钟 |
+| 5 | MCLK | SEN_XCLK | 摄像头 XCLK |
+| 6 | DATA0 | SEN_SPI_D0 | SPI 数据 0 |
+| 7 | DATA1 | SEN_SPI_D1 | SPI 数据 1 |
+| 8 | RST | SEN_RESET | 复位 |
+| 9 | PWDN | SEN_PWDN | 掉电 |
+| 10 | NC | — | |
+| 11 | NC | — | |
+| 12 | GND | — | |
+
+### 4.2 SoC 引脚（V1.0 p.1 与 V1.2 p.1 均可见）
+
+| 信号 | SoC |
+|---|---|
+| SEN_SPI_CLK | **PA3** |
+| SEN_SPI_D0 | **PA4** |
+| SEN_SPI_D1 | **PA2** |
+| SEN_SCL | **PH0** |
+| SEN_SDA | **PH1** |
+| SEN_XCLK | **PH2**（经 0R/R73 与 DVP0 XCLK 共用） |
+| SEN_RESET | **PH3**（与 DVP0 RESET 共用） |
+| SEN_PWDN | 网络 `SEN_PWDN`（与 DVP0 的 PWDN 网络同名/共用） |
+
+**vendor 数据交叉验证**：`apps/demo/demo_DevKitBoard/include/spi_video.h:43` 指定 `JL_SPI2`，`:47` 指定 `CAM_XCLK_PORT = IO_PORTH_02`；SPI 摄像头示例 `apps/common/example/video/camera/spi/main.c` 用 `dev_open("video1.0")` 接收。SDK 的 `REGISTER_CAMERA1` 被 `gc0310_spi`/`gc6133_spi` 使用（`apps/common/camera/gc0310_spi/gc0310.c:780`、`apps/common/camera/gc6133_spi/gc6133.c:368`），说明 `camera1_dev`/`ISP_DEV_1` 是 **SPI 摄像头路径**，不是第二路 DVP。
+
+---
+
+## 5. 为什么双 DVP 不可行
+
+### 5.1 板上没有第二路 DVP 连接器
+
+- 24-pin DVP FPC 只有 `J1` 一个。
+- 12-pin FPC `J4` 只有 `DATA0/DATA1 + PCLK + MCLK`，是 1/2-bit SPI/BT656，不是 8-bit DVP；它没有 D0-D7、VSYNC/HSYNC 的完整 DVP 总线。
+- 原理图中没有第二个 `SEN1_*`/`DVP1` 连接器；`SEN1` 只出现在 WL82 的 IO 复用表里（芯片能力），不是本板连接器。
+
+### 5.2 即使 DVP + SPI 也共用引脚
+
+| 功能 | DVP0 (J1) | SPI CAM (J4) | 冲突 |
+|---|---|---|---|
+| 数据 | PA0-PA7 | PA2 (D1), PA3 (CLK), PA4 (D0) | **PA2/PA3/PA4 重叠** |
+| I2C | PH0 (SCL), PH1 (SDA) | PH0 (SCL), PH1 (SDA) | **完全重叠** |
+| XCLK | PH2 | PH2（经 0R） | **重叠** |
+| RESET | PH3 | PH3 | **重叠** |
+| PWDN | SEN0_PWDN | SEN_PWDN | 同名/共用网络 |
+
+原理图还有两处直接证据：
+
+- `DVP0 Camera 电源选择`（V1.0 p.1 x≈1439,y≈351；V1.2 p.1 x≈682,y≈635）与 `DVP-CAM` / `SPI-CAM` 标签，配合 R44-R50 一组 0R 选焊，说明两路是**二选一**的装配/供电选择，而不是同时供电。
+- V1.2 p.1 扩展 IO 表明确写 **“扩展使用时需拔掉摄像头”**（x≈486,y≈358）。扩展排针 J18 暴露 PA5-PA10，与 DVP0 的 PCLK/VSYNC/HSYNC 重叠；这也证明相机与扩展/第二功能是互斥的。
+
+### 5.3 SDK 的 dual-ISP API 不能替代板级连接
+
+- `include_lib/driver/cpu/wl82/asm/isp_dev.h:203-218` 有 `camera1_dev` 和 `REGISTER_CAMERA1`，并声明 `isp1_mount/isp1_unmount/isp1_power`。
+- `include_lib/driver/device/video/camera.h:95-96` 有 `DVP_SENSOR0(sel)` / `DVP_SENSOR1(sel)`：
+  - `DVP_SENSOR0`: sel 0 = PC3-PC13，sel 1 = PA6-PA15
+  - `DVP_SENSOR1`: sel 0 = PH1-PH11，sel 1 = PD0-PD10
+- 这说明 **芯片/SDK 有两路 DVP 的 pin group 能力**，但 AC79_DevKitBoard 只把 Sensor0 的 PA 组引到 J1，没有把 Sensor1 的 PD 组引到第二个 DVP 连接器。`camera1_dev` 在本板上实际由 SPI 摄像头驱动使用，不是第二路 DVP。
+
+> **资料冲突记录**：`camera.h:95` 的 `DVP_SENSOR0(sel=1)` 注释写 `PA6~PA15`，而 vendor `DevKitBoard.c:460-490` 的 `camera0_data` 实际使用 `PA0~PA10`。两者不完全一致；本报告以 **vendor 板级数据和原理图** 为准，`camera.h` 宏注释只作为 pin group 能力参考。若未来要在其它板卡上复用该宏，必须重新核对宏定义与实际 group。
+
+### 5.4 显示 MCU8080 的复用关系
+
+板载 ILI9488 320x480 面板走 MCU8080/EMI 总线：
+
+| LCD 信号 | SoC |
+|---|---|
+| EMI_WR / LCD_HSYNC | PC10 |
+| RS / LCD_VSYNC | PC9 |
+| EMI_D7 / LCD_DCLK | PC8 |
+| EMI_D6..EMI_D0 / LCD_D0..D6 | PC7..PC1 |
+| TE / LCD_D7 | PC0 |
+| LCD_BL / LCD_DE | PB8 |
+
+（V1.2 p.1 IO 表；`boards/JIELI/AC79_DevKitBoard/board_com_api.c:49-52,93-114` 注册 320x480 ILI9488 MCU8080 面板。）
+
+**结论**：
+- DVP0 使用 PA0-PA10 + PH0-PH3，与 LCD 的 PC0-PC10 + PB8 **不重叠**，所以 **显示 MCU8080 不阻塞 DVP0**。
+- 但 `DVP_SENSOR0(sel=0)` 的 PC3-PC13 组会与 LCD 的 PC 总线冲突；本板用的是 PA 组（`ISC_GROUPA`），所以避开了 LCD。若有人试图把 DVP0 改到 PC 组，会直接撞显示。
+- 扩展排针 J18 暴露 PA5-PA10，与 DVP0 的 PCLK/VSYNC/HSYNC 重叠；使用扩展时需拔掉摄像头（V1.2 p.1 明确标注）。
+- PH2/PH3 同时是 TKL UART1（SDK uart2）和 PWM0 的默认引脚（`boards/JIELI/AC79_DevKitBoard/Kconfig:91-113`：UART1 TX/RX=114/115，PWM0=114，即 PH2/PH3）。因此启用 DVP0 会与 UART1/PWM0 互斥；当前 board 默认 UART1 off，但这是必须在集成时显式处理的冲突。
+- 摄像头 I2C 在 PH0/PH1；当前 TuyaOpen board Kconfig 的 IIC0 默认是 0/1（PA0/PA1）、IIC1 默认是 7/8（PA7/PB0），与 vendor 板级的 PH0/PH1 不一致。若未来做单 DVP 集成，必须把 IIC0（或实际使用的 IIC）改到 PH0/PH1（flat 112/113），否则 sensor probe 不会成功。
+
+---
+
+## 6. 当前 TuyaOpen 侧的 camera 状态
+
+- `boards/JIELI/AC79_DevKitBoard/board_com_api.c` **没有任何 camera 注册**（没有 camera0/1、DVP、SPI camera）。
+- 平台 `platform/JIELI/tuyaos/tuyaos_adapter/` 下**没有** `tkl_dvp.c`/`tkl_csi2.c`/camera 适配；主仓 `src/peripherals/camera` 有 DVP TDD，但 JIELI 平台没有对应的 TKL DVP 实现。
+- 因此“camera1 注册为 -1”描述的是 **vendor DevKitBoard.c**（`camera1_data`），不是 TuyaOpen 板级文件。TuyaOpen 侧连 camera0 都未注册。
+- 任务 05 的阶段 A 结论是 **blocked**；在拓扑被证伪的情况下，不应为了“补上 camera1”而虚构第二路 DVP，也不应把 SPI 摄像头当作第二路 DVP 验收。
+
+---
+
+## 7. 若要支持双 DVP，需要什么（不是本板）
+
+要满足“两路 DVP 同时采集”，至少需要：
+
+1. 一块有**两个独立 DVP 连接器**的板卡，分别接到 `DVP_SENSOR0` 和 `DVP_SENSOR1` 的非重叠 pin group（例如 Sensor0 用 PA/PC 组，Sensor1 用 PD/PH 组），并保证两组不同时占用 LCD/扩展排针。
+2. 两个 sensor 的 I2C 独立（或至少可分别寻址/分时），XCLK/RESET/PWDN 独立；不能像本板这样共用 PH0-PH3。
+3. 两路 ISP/DMA/帧缓冲带宽与内存预算：本板 8 MiB SDRAM（`hardware-ledger.md` 记录 `Free psram heap size:7407688`），双 VGA YUV422 + ISP + 编码的预算需重新核算。
+4. 实板证据：两块 sensor 的 SKU/线束、两路 probe、分别有效帧、同时有效帧、丢帧/帧率/内存/30 分钟稳定性。
+5. 显示与相机 pin group 的最终复用表（本板 LCD 占 PC0-PC10；不要把 DVP 放到 PC 组）。
+
+在这些条件满足前，**不要接线、不要改板、不要把扩展排针上的 PD 组当作已验证的第二 DVP**。
+
+---
+
+## 8. 所需实板验证（阶段 A 收尾清单）
+
+1. 实板丝印/revision：V1.0 还是 V1.2；与 `audio_config.h:12` 的 V1.2 说明是否一致。
+2. 板上相机连接器实物：是否只有 `J1`（24-pin）和 `J4`（12-pin）；是否有未装配的第二 DVP 位。
+3. `J1` 插入的 sensor 模组型号（GC0308/GC2145/其它）、I2C 地址、供电；`J4` 是否插 SPI 模组（GC0310/GC6133）。
+4. 万用表/通断确认 `J1`/`J4` 到 PA0-PA10、PH0-PH3 的对应关系，特别是 PA2/PA3/PA4 与 PH0-PH3 的共用。
+5. R44-R50 的 0R 装配：DVP-CAM 还是 SPI-CAM；两路是否真的二选一。
+6. 扩展排针 J18 使用相机时是否必须拔掉（V1.2 p.1 已标注“扩展使用时需拔掉摄像头”）。
+7. UART1/PWM0 是否被产品占用（PH2/PH3）；若占用，DVP0 不可用。
+8. 若坚持双摄：提供第二块板/第二连接器的原理图与 pin group，重新做阶段 A；不要在本板上继续写第二路 DVP 代码。
+
+---
+
+## 9. 与任务 06 的边界
+
+| 项 | 05 AC791 | 06 AC792N |
+|---|---|---|
+| 复用对象 | 一路 DVP + 一路 SPI 连接器共用 PA2-PA4/PH0-PH3 | DVP0 与 CSI-2 共用 PD11-PD14 |
+| 结论 | 双 DVP 不可行；DVP+SPI 在本板也不可并发 | DVP0/CSI-2 不能并发；DVP0 优先、CSI-2 独立验收 |
+| 修复方向 | 换板/第二 DVP 连接器 + 非重叠 pin group | 二选一 Kconfig；DVP0 优先；CSI-2 独立验收 |
+| 共享 owner | camera API/平台 adapter 与 06 共用，但本任务阶段 A 不改代码 | 已产出集成方案 |
+
+**不要把 06 的“DVP0/CSI-2 独立验收”直接套到 05**：05 的问题不是“两路接口二选一”，而是“板上根本没有第二路 DVP 连接器”。
+
+---
+
+## 10. 本轮明确未做
+
+- 未修改主仓或平台仓代码；未新增 camera 适配。
+- 未构建、未烧录、未上电、未接串口、未碰 COM8。
+- 未做 sensor probe、有效帧、双路并发、丢帧、帧率、内存或 30 分钟稳定性测试。
+- 未确认实板 revision、连接器实物、sensor SKU 或 0R 装配。
+- 未推送、未发 PR。
+
+## 11. 关键证据索引
+
+| 证据 | 路径:行号 / 页码 |
+|---|---|
+| 24-pin DVP FPC `J1` 引脚与 SoC 映射 | `.../JL_AC79_DevKitBoard V1.2.pdf` p.1；`.../JL_AC79_DevKitBoard V1.0原理图.pdf` p.1 |
+| 12-pin SPI FPC `J4` 引脚与 SoC 映射 | 同上 p.1 |
+| DVP0 `camera0_data` / `camera1_data=-1` | `platform/JIELI/chip/wl82/AC79_AIoT_SDK/apps/demo/demo_DevKitBoard/board/wl82/DevKitBoard.c:460-511` |
+| `video1` 为 SPI 摄像头 | `platform/JIELI/chip/wl82/AC79_AIoT_SDK/apps/wifi_camera/board/wl82/board_develop.c:651`；`apps/wifi_camera/spi_video.c:415` |
+| `REGISTER_CAMERA1` 用于 SPI sensor | `apps/common/camera/gc0310_spi/gc0310.c:780`；`apps/common/camera/gc6133_spi/gc6133.c:368` |
+| dual-ISP / camera1_dev 能力 | `platform/JIELI/chip/wl82/AC79_AIoT_SDK/include_lib/driver/cpu/wl82/asm/isp_dev.h:203-218` |
+| DVP_SENSOR0/1 pin group | `platform/JIELI/chip/wl82/AC79_AIoT_SDK/include_lib/driver/device/video/camera.h:95-96` |
+| SPI camera 使用 SPI2 / PH2 XCLK | `platform/JIELI/chip/wl82/AC79_AIoT_SDK/apps/demo/demo_DevKitBoard/include/spi_video.h:43,47` |
+| 摄像头 I2C 在 PH0/PH1 | `platform/JIELI/chip/wl82/AC79_AIoT_SDK/apps/demo/demo_DevKitBoard/board/wl82/DevKitBoard.c:163-173` |
+| 显示 MCU8080 引脚 PC0-PC10/PB8 | `.../JL_AC79_DevKitBoard V1.2.pdf` p.1 IO 表；`boards/JIELI/AC79_DevKitBoard/board_com_api.c:49-52,93-114` |
+| UART1/PWM0 与 PH2/PH3 冲突 | `boards/JIELI/AC79_DevKitBoard/Kconfig:91-113` |
+| 板级 V1.2 说明 | `boards/JIELI/AC79_DevKitBoard/audio_config.h:12` |
+| SDK README 的 DVP+SPI 声明 | `platform/JIELI/chip/wl82/AC79_AIoT_SDK/README.md:117` |
+| 扩展使用需拔摄像头 | `.../JL_AC79_DevKitBoard V1.2.pdf` p.1（x≈486,y≈358） |
+| IO 复用表 | `.../JL_AC79_WIFI V1.0 IO功能列表.pdf` p.3-4 |
