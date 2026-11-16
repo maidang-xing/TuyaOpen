@@ -116,8 +116,13 @@ OPERATE_RET board_register_hardware(void)
             .y_offset  = 0,
             .pixel_fmt = TUYA_PIXEL_FMT_RGB565,
             .rotation  = TUYA_DISPLAY_ROTATION_0,
-            .te_pin    = TUYA_GPIO_NUM_MAX,
-            .te_mode   = TUYA_GPIO_IRQ_RISE,
+            /* TE comes from the panel on PC0 (vendor demo_ui board data sets
+             * .te_pin = IO_PORTC_00 for this devkit, and the schematic routes
+             * the LCD connector's TE to PC0). Without it the 8080 write
+             * lands mid scan-out and the picture shows a split line that
+             * moves with the refresh phase. Pin number = port C * 16 + 0. */
+            .te_pin  = TUYA_GPIO_NUM_32,
+            .te_mode = TUYA_GPIO_IRQ_RISE,
             /* The TKL 8080 backend stores this but the vendor `emi` device owns
              * the bus timing, so it is informational only. */
             .clk       = 0,

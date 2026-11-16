@@ -26,7 +26,23 @@
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
-#define DISPLAY_FRAME_BUFF_NUM 2
+/* Panel-only diagnostic: ignore camera data and draw a fixed horizontal
+ * band pattern, flushing continuously. If a moving split line still shows on
+ * this static picture the artifact is in the panel/flush path, not in the
+ * camera frame assembly. */
+#define EXAMPLE_PANEL_TEST 0
+
+/* Camera-data diagnostic: after the first converted frame, stop updating the
+ * panel. A seam that stays put on the frozen picture lives in one assembled
+ * frame (frame stitching); a seam that still moves is a display effect. */
+#define EXAMPLE_FREEZE_AFTER_FIRST 0
+
+/* Three buffers so the frame being scanned out by the panel is never the
+ * frame the converter is drawing into next. Two buffers were enough for the
+ * 9 fps DVP preview, but at the SPI path's ~4 fps the panel has time to
+ * re-scan the same buffer while it is filled again, which showed up as a
+ * horizontal split that moved. */
+#define DISPLAY_FRAME_BUFF_NUM 3
 
 /* Bring-up bisect switch: 1 fills the frame buffer with a solid colour and
  * skips the YUV422 conversion, so a crash here isolates the display/EMI flush
@@ -576,6 +592,26 @@ static OPERATE_RET __preview_run(void)
     sg_window_start_ms  = sg_preview_start_ms;
 
     while (1) {
+#if EXAMPLE_PANEL_TEST
+        {
+            TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
+
+            if (fb != NULL) {
+                uint16_t *p = (uint16_t *)fb->frame;
+
+                for (int y = 0; y < (int)fb->height; y++) {
+                    uint16_t c = ((y / 20) & 1) ? 0xF800 : 0x07E0;
+
+                    for (int x = 0; x < (int)fb->width; x++) {
+                        p[(size_t)y * fb->width + (size_t)x] = c;
+                    }
+                }
+                tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
+            }
+            tal_system_sleep(50);
+            continue;
+        }
+#endif
         uint32_t wait_start = (uint32_t)tal_system_get_millisecond();
 
         if (tal_semaphore_wait(sg_preview_sem, 1000) != OPRT_OK) {
@@ -638,6 +674,12 @@ static OPERATE_RET __preview_run(void)
                 sg_conv_ms_max = spent;
             }
         }
+#if EXAMPLE_FREEZE_AFTER_FIRST
+        printf("[PREVIEW] freeze: first frame on screen, updates stopped\n");
+        while (1) {
+            tal_system_sleep(1000);
+        }
+#endif
         if ((sg_preview_frames % 30u) == 0u) {
             uint32_t now = (uint32_t)tal_system_get_millisecond();
             uint32_t win = now - sg_window_start_ms;
