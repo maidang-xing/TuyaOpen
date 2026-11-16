@@ -136,13 +136,96 @@ static inline uint16_t __yuv_to_rgb565(uint8_t y, uint8_t u, uint8_t v, int swap
     return swap ? __bswap16(rgb) : rgb;
 }
 
+/* The per-pixel integer conversion above costs three multiplies and a shift
+ * per component. On the AC791 that is ~330 ns per pixel, i.e. 51 ms for the
+ * 320x480 preview - the single largest cost in the loop. Replace it with
+ * per-component tables: the Y term depends on Y only, and the U/V terms on U
+ * or V only, so two pixels that share a chroma pair need five table reads
+ * each and no multiplies at all. Rounding is folded into the tables; the
+ * result differs from the exact formula by at most one LSB. */
+static int16_t s_ycoef[256];
+static int16_t s_rv[256];
+static int16_t s_gu[256];
+static int16_t s_gv[256];
+static int16_t s_bu[256];
+static int     s_lut_ready;
+
+static void __yuv_lut_init(void)
+{
+    if (s_lut_ready) {
+        return;
+    }
+    for (int i = 0; i < 256; i++) {
+        int e      = i - 128;
+        s_ycoef[i] = (int16_t)((298 * (i - 16)) >> 8);
+        s_rv[i]    = (int16_t)((409 * e) >> 8);
+        s_gu[i]    = (int16_t)((-100 * e) >> 8);
+        s_gv[i]    = (int16_t)((-208 * e) >> 8);
+        s_bu[i]    = (int16_t)((516 * e) >> 8);
+    }
+    s_lut_ready = 1;
+}
+
+static inline __attribute__((always_inline)) uint16_t __clamp_pack(int r, int g, int b, int swap)
+{
+    r = (r < 0) ? 0 : (r > 255) ? 255 : r;
+    g = (g < 0) ? 0 : (g > 255) ? 255 : g;
+    b = (b < 0) ? 0 : (b > 255) ? 255 : b;
+
+    uint16_t rgb = __rgb565((uint8_t)r, (uint8_t)g, (uint8_t)b);
+    return swap ? __bswap16(rgb) : rgb;
+}
+
+static inline __attribute__((always_inline)) void __yuv_pair_to_rgb565(uint8_t y0, uint8_t y1, uint8_t u, uint8_t v,
+                                                                       uint16_t *o0, uint16_t *o1, int swap)
+{
+    int c0 = s_ycoef[y0];
+    int c1 = s_ycoef[y1];
+    int rv = s_rv[v];
+    int gu = s_gu[u];
+    int gv = s_gv[v];
+    int bu = s_bu[u];
+
+    *o0 = __clamp_pack(c0 + rv, c0 + gu + gv, c0 + bu, swap);
+    *o1 = __clamp_pack(c1 + rv, c1 + gu + gv, c1 + bu, swap);
+}
+
 /* Crop the left dst_w pixels of every source row (src_stride = src_w * 2) into
  * a dst_stride = dst_w * 2 RGB565 framebuffer. */
+/* Packed YUYV fast path: the per-pair switch on `order` used to run inside the
+ * pixel loop. Hoisting it out and walking the source with a flat pointer is
+ * the shape the compiler turns into a tight loop on this MIPS core. */
+static void __yuyv_crop_to_rgb565(const uint8_t *src, int src_w, int src_h, uint8_t *dst, int dst_w, int dst_h,
+                                  int swap)
+{
+    int w = (dst_w < src_w) ? dst_w : src_w;
+    int h = (dst_h < src_h) ? dst_h : src_h;
+
+    __yuv_lut_init();
+
+    for (int y = 0; y < h; y++) {
+        const uint8_t *row = src + (size_t)y * (size_t)src_w * 2u;
+        uint16_t      *out = (uint16_t *)(dst + (size_t)y * (size_t)dst_w * 2u);
+
+        for (int x = 0; x < w; x += 2) {
+            __yuv_pair_to_rgb565(row[0], row[2], row[1], row[3], &out[x], &out[x + 1], swap);
+            row += 4;
+        }
+    }
+}
+
 static void __yuv422_crop_to_rgb565(const uint8_t *src, int src_w, int src_h, uint8_t *dst, int dst_w, int dst_h,
                                     int order, int swap)
 {
     int w = (dst_w < src_w) ? dst_w : src_w;
     int h = (dst_h < src_h) ? dst_h : src_h;
+
+    __yuv_lut_init();
+
+    if (order == YUV_ORDER_YUYV) {
+        __yuyv_crop_to_rgb565(src, src_w, src_h, dst, dst_w, dst_h, swap);
+        return;
+    }
 
     for (int y = 0; y < h; y++) {
         const uint8_t *row = src + (size_t)y * (size_t)src_w * 2u;
@@ -178,8 +261,7 @@ static void __yuv422_crop_to_rgb565(const uint8_t *src, int src_w, int src_h, ui
                 break;
             }
             row += 4;
-            out[x]     = __yuv_to_rgb565(y0, u, v, swap);
-            out[x + 1] = __yuv_to_rgb565(y1, u, v, swap);
+            __yuv_pair_to_rgb565(y0, y1, u, v, &out[x], &out[x + 1], swap);
         }
     }
 }
@@ -397,6 +479,9 @@ static uint32_t          sg_preview_frames   = 0;
 static uint32_t          sg_preview_start_ms = 0;
 static uint32_t          sg_window_start_ms  = 0;
 static uint32_t          sg_conv_ms_sum      = 0;
+static uint32_t          sg_conv_only_sum    = 0;
+static uint32_t          sg_wait_sem_sum     = 0;
+static uint32_t          sg_wait_fb_sum      = 0;
 static uint32_t          sg_conv_ms_max      = 0;
 /* Sized for the largest source the DVP path can deliver. Frames are still
  * validated against this size in the callback, because the converter derives
@@ -486,10 +571,13 @@ static OPERATE_RET __preview_run(void)
 
     TUYA_CALL_ERR_RETURN(tdl_camera_dev_open(sg_tdl_camera_hdl, &cfg));
     printf("[PREVIEW] camera opened, loop start\n");
+    __yuv_lut_init();
     sg_preview_start_ms = (uint32_t)tal_system_get_millisecond();
     sg_window_start_ms  = sg_preview_start_ms;
 
     while (1) {
+        uint32_t wait_start = (uint32_t)tal_system_get_millisecond();
+
         if (tal_semaphore_wait(sg_preview_sem, 1000) != OPRT_OK) {
             printf("[PREVIEW] no frame yet\n");
             continue;
@@ -498,11 +586,19 @@ static OPERATE_RET __preview_run(void)
             continue;
         }
 
+        uint32_t t_sem = (uint32_t)tal_system_get_millisecond();
+
         TDL_DISP_FRAME_BUFF_T *fb = tdl_disp_get_free_fb(sg_fb_manage);
         if (fb == NULL) {
             printf("[PREVIEW] no free fb\n");
             sg_preview_ready = 0;
             continue;
+        }
+        {
+            uint32_t t = (uint32_t)tal_system_get_millisecond();
+
+            sg_wait_sem_sum += t_sem - wait_start;
+            sg_wait_fb_sum += t - t_sem;
         }
 
         uint32_t conv_start = (uint32_t)tal_system_get_millisecond();
@@ -526,6 +622,11 @@ static OPERATE_RET __preview_run(void)
         __yuv422_crop_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
                                 fb->height, YUV_ORDER_YUYV, sg_display_info.is_swap);
 #endif
+        {
+            uint32_t conv_ms = (uint32_t)tal_system_get_millisecond() - conv_start;
+
+            sg_conv_only_sum += conv_ms;
+        }
         tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
         sg_preview_ready = 0;
 
@@ -540,11 +641,18 @@ static OPERATE_RET __preview_run(void)
         if ((sg_preview_frames % 30u) == 0u) {
             uint32_t now = (uint32_t)tal_system_get_millisecond();
             uint32_t win = now - sg_window_start_ms;
-            printf("[PREVIEW] fps=%u frames=%u conv_avg=%ums conv_max=%ums src=%ux%u len=%u\n",
+            printf("[PREVIEW] fps=%u frames=%u conv+flush=%ums conv_only=%ums max=%ums sem=%ums fb=%ums src=%ux%u "
+                   "len=%u\n",
                    (unsigned)((sg_preview_frames * 1000u) / (win ? win : 1u)), (unsigned)sg_preview_frames,
-                   (unsigned)(sg_conv_ms_sum / (sg_preview_frames ? sg_preview_frames : 1u)), (unsigned)sg_conv_ms_max,
-                   (unsigned)sg_preview_w, (unsigned)sg_preview_h, (unsigned)sg_preview_len);
+                   (unsigned)(sg_conv_ms_sum / (sg_preview_frames ? sg_preview_frames : 1u)),
+                   (unsigned)(sg_conv_only_sum / (sg_preview_frames ? sg_preview_frames : 1u)),
+                   (unsigned)sg_conv_ms_max, (unsigned)(sg_wait_sem_sum / (sg_preview_frames ? sg_preview_frames : 1u)),
+                   (unsigned)(sg_wait_fb_sum / (sg_preview_frames ? sg_preview_frames : 1u)), (unsigned)sg_preview_w,
+                   (unsigned)sg_preview_h, (unsigned)sg_preview_len);
             sg_conv_ms_sum     = 0;
+            sg_conv_only_sum   = 0;
+            sg_wait_sem_sum    = 0;
+            sg_wait_fb_sum     = 0;
             sg_conv_ms_max     = 0;
             sg_preview_frames  = 0;
             sg_window_start_ms = now;
