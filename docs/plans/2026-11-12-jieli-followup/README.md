@@ -1,0 +1,43 @@
+# JIELI 后续工作与派发索引
+
+本目录把 PR #799 合并后的剩余固件、硬件和文档工作拆成 12 个可独立派发任务。每个提示词含一段完整 `text` 代码块，可直接复制给本次用户指定的 agent 工具；不限定模型或 MCP。任务执行者须读各任务书和适用 `AGENTS.md`，用户明确派发后在范围内直接实施，不只返回计划。
+
+## 当前基线（2026-11-13）
+
+- 唯一后续任务基线：`D:\tuya_proj\TuyaOpen`，upstream/master `055042a8119b3a21910761bc13f171da19cf35fc`（#800）。PR #799 已合并；旧 HEAD、旧平台 pin 和旧目录只作历史，不阻塞工作。
+- `platform/JIELI` 是独立 clone，clean、无 alternates；当前 checkout `c967f4b174480ff1df966eeea80bee1b0edcb0f6`，与 `platform/platform_config.yaml` pin 一致（#45 Windows 工具链修复）。JIELI Windows PI32 工具链已在该 pin 的 tracked 路径 `platform/JIELI/tools/toolchains/windows/pi32`；Linux 缓存可重建。
+- 00 的迁移基线核对已完成；本轮未做构建、烧录、串口或实机测试。每个任务派发时仍要核查基线漂移和 dirty。
+- 主仓、平台仓和文档仓是独立 Git 仓库。先确认 `D:\tuya_proj\TuyaOpen\.worktrees` 已由本地 exclude 忽略；否则仅向 `.git/info/exclude` 添加本地规则（不改 tracked ignore）。编码任务在 `D:\tuya_proj\TuyaOpen\.worktrees\<任务ID>` 建主仓 worktree；平台另行 checkout 当前 YAML pin。任务 08 的 worktree 必须从 TuyaOpen.io 自己的 master 创建，可放在上述 `.worktrees\docs-08`，不得把 TuyaOpen SDK master 当文档仓基线。
+
+## 任务与提示词
+
+| ID | 任务书 | 可复制提示词 | 依赖 / 并行说明 |
+|---|---|---|---|
+| 00 | [基线复核](00-baseline.md) | [00-baseline](dispatch-prompts/00-baseline.md) | P0；迁移核对已完成，后续开工前刷新；不合并 PR。 |
+| 01 | [AC791 音频库可行性](01-ac791-audio-feasibility.md) | [01-ac791-audio-feasibility](dispatch-prompts/01-ac791-audio-feasibility.md) | P1；先做 TAL bitcode/PI32 最小探针，可与非硬件资料准备并行。 |
+| 02 | [AC791 语音唤醒](02-ac791-voice-wakeup.md) | [02-ac791-voice-wakeup](dispatch-prompts/02-ac791-voice-wakeup.md) | P1；接续 01；语音适配单一代码 owner。 |
+| 03 | [OTA 可行性与最小升级](03-ota-feasibility-and-minimal-upgrade.md) | [03-ota-feasibility-and-minimal-upgrade](dispatch-prompts/03-ota-feasibility-and-minimal-upgrade.md) | P1；非硬件评估可与 01 并行。 |
+| 04 | [chat-bot OTA 与恢复](04-ota-chatbot-and-recovery.md) | [04-ota-chatbot-and-recovery](dispatch-prompts/04-ota-chatbot-and-recovery.md) | P1；依赖同芯片 03 通过相关阶段。 |
+| 05 | [AC791 双摄](05-ac791-dual-camera.md) | [05-ac791-dual-camera](dispatch-prompts/05-ac791-dual-camera.md) | P2；先验证实板拓扑；与 06 共享 camera owner。 |
+| 06 | [AC792 摄像头集成](06-ac792-camera-integration.md) | [06-ac792-camera-integration](dispatch-prompts/06-ac792-camera-integration.md) | P2；重查 #760/#23；与 05 共享 camera owner。 |
+| 07 | [AC792 语音](07-ac792-voice.md) | [07-ac792-voice](dispatch-prompts/07-ac792-voice.md) | P3；WL83 可先只读准备；实现等 02 代码交接。 |
+| 08 | [TuyaOpen.io 文档](08-docs.md) | [08-docs](dispatch-prompts/08-docs.md) | P2；可立即盘点/写草稿；文档仓需用自身基线。 |
+| 09 | [外围硬件回归](09-peripheral-hardware-regression.md) | [09-peripheral-hardware-regression](dispatch-prompts/09-peripheral-hardware-regression.md) | P2；AC792 PWM 与 AC791 UART 分时预约。 |
+| 10 | [AC791 触摸](10-ac791-touch.md) | [10-ac791-touch](dispatch-prompts/10-ac791-touch.md) | P2；与 11 共享 touch/LVGL owner；AC791 语音后排硬件。 |
+| 11 | [AC792 触摸](11-ac792-touch.md) | [11-ac792-touch](dispatch-prompts/11-ac792-touch.md) | P2；与 10 协调 owner；AC792 需单独确认设备。 |
+
+## 状态摘要
+
+详见 [2026-11-13 状态与迁移记录](2026-11-13-status.md)。当前只有代码/SDK静态证据，没有本目录新增的硬件验收报告：KWS 仍未接入，VAD 是 RMS 能量检测且采集回调已接入；TAL archive 的 PI32 链接兼容未决；OTA 容量/分区需按当前基线重测；AC791 双摄拓扑未证；AC792 DVP/CSI-2 配套 PR 未集成；触摸无启用 TKL 接口；PWM 通道与 UART1 RX 仍待物理验收。#276 已合并；#279 已 closed 未合并，派发时重查关闭原因。
+
+## 并行、共享代码与硬件
+
+- 00 为唯一共享基线检查；01/03 可做互不冲突的只读/隔离工作。02 与 07 共用 `tkl_audio.c`、`tkl_vad.c`、`tkl_kws.c` 及构建清单，必须串行或先指定唯一代码 owner；AC791 完成后再将接口交接给 WL83。
+- 05/06 共用 camera API 和平台 adapter，资料工作可并行，修改公共代码需单一 owner；10/11 共用 touch/LVGL 入口，同样先定 owner。04 依赖 03；08/09 可分别准备，但文档只据验收证据更新结论。
+- 建议 791 硬件队列：语音 → 触摸 → 最小 OTA → chat-bot OTA/恢复 → 双摄；09 如插队须显式交接。792 的触摸、camera、voice、PWM 分别预约，不能假定板已连接。开始前现场核实板卡 revision、端口和操作者，单板/串口单人独占；结束后记录 SHA 并释放。无硬件证据就标未验证。
+- 每次派发都保护已有 dirty、stash 和未跟踪用户文件；不覆盖、不 reset/clean。确认执行 agent 能访问同一机器/项目，不能访问则返回补丁和缺口。任务范围内普通本地修改、相关检查和本地提交可直接执行；首次改变 flash layout、擦除配网/授权等高影响动作按对应任务边界先落实数据保全/恢复；推送、PR、合并、云上传或发布需该次派发明确授权。
+- 本目录任务书和提示词是待派发计划，不是实现或验收记录。静态审查、构建、烧录、真实输入/输出、云端闭环和断电恢复分层汇报；未实际做的步骤写“未运行/未验证”。
+
+## 迁移资料
+
+任务书与提示词已迁入本目录；两份语音输入材料迁入 `D:\tuya_proj\TuyaOpen\.local-jieli-migration\2026-11-13\voice-inputs\`，后续任务 01 使用新路径。旧仓的 refs/stash 与其它迁移备份在 `.local-jieli-migration\2026-11-13\`；旧目录/缓存清理仍在进行，README 不宣称已清完。不要从旧 `D:\tuya_proj\TuyaOpen-JieLi\TuyaOpen` 开 worktree。
