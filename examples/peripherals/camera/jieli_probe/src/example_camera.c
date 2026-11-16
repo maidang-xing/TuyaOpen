@@ -302,6 +302,44 @@ static void __i2c_scan(void)
             dev_close(iic0);
         }
     }
+
+    /* Which of PA2/PA3/PA4 carries the sensor clock? Open video1 so the sensor
+     * starts streaming, then sample the three pins as inputs and count edges. */
+    {
+        void *vdev = dev_open("video1.0", NULL);
+
+        if (vdev == NULL) {
+            printf("[I2CPIN] video1.0 open failed\n");
+        } else {
+            tal_system_sleep(300);
+            gpio_direction_input(IO_PORTA_02);
+            gpio_direction_input(IO_PORTA_03);
+            gpio_direction_input(IO_PORTA_04);
+
+            uint32_t prev    = JL_PORTA->IN;
+            uint32_t edges   = 0;
+            uint32_t last[3] = {0};
+            uint32_t cnt[3]  = {0};
+
+            for (int i = 0; i < 20000; i++) {
+                uint32_t in = JL_PORTA->IN;
+                uint32_t ch = in ^ prev;
+                if (ch & 0x1cu) {
+                    edges++;
+                    for (int b = 0; b < 3; b++) {
+                        if (ch & (1u << (b + 2))) {
+                            cnt[b]++;
+                        }
+                    }
+                }
+                prev    = in;
+                last[0] = in;
+            }
+            printf("[I2CPIN] samples=20000 edges=%u PA2=%u PA3=%u PA4=%u last=0x%08x\n", (unsigned)edges,
+                   (unsigned)cnt[0], (unsigned)cnt[1], (unsigned)cnt[2], (unsigned)last[0]);
+            dev_close(vdev);
+        }
+    }
 }
 #endif
 
