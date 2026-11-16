@@ -507,8 +507,15 @@ static OPERATE_RET __preview_run(void)
 
         uint32_t conv_start = (uint32_t)tal_system_get_millisecond();
 
-#if defined(JIELI_SELECTED_CHIP_WL82)
-        /* Planar YUV422P, read straight from the vendor buffer. */
+#if defined(JIELI_SELECTED_CHIP_WL82) && defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
+        /* SPI GC0310: the vendor 2-wire stream carries packed YUYV, 1280 bytes
+         * per 640-pixel line (spi_video.h calls it yuyv422). */
+        __yuv422_crop_to_rgb565(sg_preview_ptr ? sg_preview_ptr : sg_preview_buf,
+                                sg_preview_w ? (int)sg_preview_w : EXAMPLE_CAMERA_WIDTH,
+                                sg_preview_h ? (int)sg_preview_h : EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
+                                fb->height, YUV_ORDER_YUYV, sg_display_info.is_swap);
+#elif defined(JIELI_SELECTED_CHIP_WL82)
+        /* DVP: planar YUV422P, read straight from the vendor buffer. */
         __yuv422p_scale_to_rgb565(sg_preview_ptr ? sg_preview_ptr : sg_preview_buf,
                                   sg_preview_w ? (int)sg_preview_w : EXAMPLE_CAMERA_WIDTH,
                                   sg_preview_h ? (int)sg_preview_h : EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
@@ -517,7 +524,7 @@ static OPERATE_RET __preview_run(void)
         /* Other platforms deliver packed YUYV here; keep the packed converter
          * so this example still works on the ESP32 config. */
         __yuv422_crop_to_rgb565(sg_preview_buf, EXAMPLE_CAMERA_WIDTH, EXAMPLE_CAMERA_HEIGHT, fb->frame, fb->width,
-                                  fb->height, YUV_ORDER_YUYV, sg_display_info.is_swap);
+                                fb->height, YUV_ORDER_YUYV, sg_display_info.is_swap);
 #endif
         tdl_disp_dev_flush(sg_tdl_disp_hdl, fb);
         sg_preview_ready = 0;
