@@ -29,6 +29,9 @@
 #include "asm/WL82.h"
 
 #define IIC_IOCTL_TX_WITH_START_BIT _IOW('I', 1, unsigned char)
+#define IIC_IOCTL_TX                _IO('I', 3)
+#define IIC_IOCTL_TX_WITH_STOP_BIT  _IOW('I', 4, unsigned char)
+#define IIC_IOCTL_RX_WITH_STOP_BIT  _IOR('I', 6, unsigned char)
 #define IIC_IOCTL_START             _IO('I', 10)
 #define IIC_IOCTL_STOP              _IO('I', 11)
 
@@ -124,6 +127,56 @@ static void __scan_port_line(const char *name, int bit)
            (unsigned)((JL_PORTH->IN >> bit) & 1u));
 }
 
+/* Write one register over the vendor iic1 device. GalaxyCore parts need the
+ * page register 0xFE set before the ID registers answer. */
+static int __i2c_write_reg(void *iic, int addr, uint8_t reg, uint8_t val)
+{
+    int ret = -1;
+
+    dev_ioctl(iic, IIC_IOCTL_START, 0);
+    if (dev_ioctl(iic, IIC_IOCTL_TX_WITH_START_BIT, (unsigned int)(addr << 1))) {
+        goto out;
+    }
+    if (dev_ioctl(iic, IIC_IOCTL_TX, reg)) {
+        goto out;
+    }
+    if (dev_ioctl(iic, IIC_IOCTL_TX_WITH_STOP_BIT, val)) {
+        goto out;
+    }
+    ret = 0;
+
+out:
+    dev_ioctl(iic, IIC_IOCTL_STOP, 0);
+    return ret;
+}
+
+/* Read one register over the vendor iic1 device, so an ACK'd address can be
+ * identified instead of guessed. Mirrors the GC0310 driver's read sequence. */
+static int __i2c_read_reg(void *iic, int addr, uint8_t reg, uint8_t *val)
+{
+    int ret = -1;
+
+    dev_ioctl(iic, IIC_IOCTL_START, 0);
+    if (dev_ioctl(iic, IIC_IOCTL_TX_WITH_START_BIT, (unsigned int)(addr << 1))) {
+        goto out;
+    }
+    tal_system_sleep(2);
+    if (dev_ioctl(iic, IIC_IOCTL_TX_WITH_STOP_BIT, reg)) {
+        goto out;
+    }
+    tal_system_sleep(2);
+    if (dev_ioctl(iic, IIC_IOCTL_TX_WITH_START_BIT, (unsigned int)((addr << 1) | 1))) {
+        goto out;
+    }
+    tal_system_sleep(2);
+    dev_ioctl(iic, IIC_IOCTL_RX_WITH_STOP_BIT, (unsigned int)val);
+    ret = 0;
+
+out:
+    dev_ioctl(iic, IIC_IOCTL_STOP, 0);
+    return ret;
+}
+
 /* Probe every 7-bit address directly on the vendor iic1 device. This does not
  * depend on the BYD3901/GC0310/GC6133 drivers, so an ACK here separates a bus
  * problem from a sensor-driver problem. */
@@ -148,6 +201,17 @@ static void __i2c_scan(void)
         return;
     }
 
+    /* J4 carries RST (PH3) and PWDN. The vendor camera1_data uses PH3 as its
+     * reset line, so release reset before reading IDs: a sensor held in reset
+     * still ACKs its address but returns 0x00/0xff from every register. The
+     * MCLK (PH2, output channel 1) must run as well, otherwise the sensor's
+     * digital core cannot answer register reads. */
+    gpio_output_channle(IO_PORTH_02, CH1_PLL_24M);
+    tal_system_sleep(20);
+    gpio_direction_output(IO_PORTH_03, 1);
+    tal_system_sleep(10);
+    printf("[I2CSCAN] XCLK PH2 on (CH1_PLL_24M), released RST (PH3 high)\n");
+
     for (int addr = I2C_SCAN_FIRST; addr <= I2C_SCAN_LAST; addr++) {
         int ret;
 
@@ -158,6 +222,19 @@ static void __i2c_scan(void)
         if (ret == 0) {
             ack_count++;
             printf("[I2CSCAN] ACK 0x%02x (write byte 0x%02x)\n", addr, (addr << 1) & 0xff);
+            {
+                static const uint8_t regs[] = {0x00, 0x0a, 0x0b, 0xf0, 0xf1};
+                printf("[I2CSCAN]   0x%02x regs:", addr);
+                for (unsigned i = 0; i < sizeof(regs); i++) {
+                    uint8_t v = 0xff;
+                    if (__i2c_read_reg(iic, addr, regs[i], &v) == 0) {
+                        printf(" %02x=%02x", regs[i], v);
+                    } else {
+                        printf(" %02x=RD-ERR", regs[i]);
+                    }
+                }
+                printf("\n");
+            }
         }
     }
 
@@ -165,10 +242,66 @@ static void __i2c_scan(void)
     if (ack_count == 0) {
         printf("[I2CSCAN] no ACK: bus idle/no device -> J4 power, module contact or SCL/SDA wiring\n");
     } else {
-        printf("[I2CSCAN] expected: BYD3901 0x6e, GC0310 0x21, GC6133 0x40\n");
+        /* GalaxyCore sensors answer their ID only after the page register is
+         * set, and need a settle delay. Try the standard 0xFE=0xF0 page on
+         * every address that ACKed; GC0310 should report 0xA3/0x10 and GC6133
+         * 0xBA at 0xF0. */
+        static const int candidates[] = {0x21, 0x38, 0x3c};
+
+        for (unsigned c = 0; c < sizeof(candidates) / sizeof(candidates[0]); c++) {
+            int     addr = candidates[c];
+            uint8_t id0  = 0;
+            uint8_t id1  = 0;
+
+            printf("[I2CSCAN] identify 0x%02x: page 0xfe=0xf0\n", addr);
+            if (__i2c_read_reg(iic, addr, 0xf0, &id0) != 0) {
+                printf("[I2CSCAN] 0x%02x f0 read failed\n", addr);
+                continue;
+            }
+            (void)__i2c_write_reg(iic, addr, 0xfe, 0xf0);
+            tal_system_sleep(10);
+            if (__i2c_read_reg(iic, addr, 0xf0, &id0) == 0 && __i2c_read_reg(iic, addr, 0xf1, &id1) == 0) {
+                printf("[I2CSCAN] 0x%02x id f0=%02x f1=%02x\n", addr, id0, id1);
+                if (addr == 0x21) {
+                    /* Reproduce the vendor's reset (1 -> 0 -> 1) and read again:
+                     * the probe reports "iic write err" right after this, so
+                     * this isolates reset timing from the bus itself. */
+                    gpio_direction_output(IO_PORTH_03, 1);
+                    gpio_direction_output(IO_PORTH_03, 0);
+                    tal_system_sleep(1);
+                    gpio_direction_output(IO_PORTH_03, 1);
+                    tal_system_sleep(5);
+                    uint8_t r0  = 0;
+                    uint8_t r1  = 0;
+                    int     ok0 = __i2c_read_reg(iic, addr, 0xf0, &r0);
+                    int     ok1 = __i2c_read_reg(iic, addr, 0xf1, &r1);
+                    printf("[I2CSCAN] 0x21 after reset: ok=%d/%d f0=%02x f1=%02x\n", ok0, ok1, r0, r1);
+                }
+            } else {
+                printf("[I2CSCAN] 0x%02x id read failed\n", addr);
+            }
+        }
     }
 
     dev_close(iic);
+
+    /* The vendor drivers open iic0 for ISP_DEV_0 and iic1 otherwise. Check the
+     * same sensor through iic0 as well: if only one bus answers, the probe
+     * failure is a bus routing issue, not the sensor. */
+    {
+        void   *iic0 = dev_open("iic0", NULL);
+        uint8_t v    = 0;
+
+        if (iic0 == NULL) {
+            printf("[I2CSCAN] dev_open(iic0) failed\n");
+        } else {
+            (void)__i2c_write_reg(iic0, 0x21, 0xfe, 0xf0);
+            tal_system_sleep(5);
+            int ok = __i2c_read_reg(iic0, 0x21, 0xf0, &v);
+            printf("[I2CSCAN] iic0 0x21 f0: ok=%d val=%02x\n", ok, v);
+            dev_close(iic0);
+        }
+    }
 }
 #endif
 
