@@ -333,6 +333,15 @@ static void __i2c_scan(void)
                     if (__i2c_read_reg(ii, 0x21, 0x10, &reg10) == 0) {
                         printf("[I2CPIN] 0x21 reg10 after stream-on=0x%02x\n", reg10);
                     }
+
+                    /* 0x10 may live on page 0x00: try the same write there. */
+                    (void)__i2c_write_reg(ii, 0x21, 0xfe, 0x00);
+                    tal_system_sleep(5);
+                    (void)__i2c_write_reg(ii, 0x21, 0x10, 0x94);
+                    tal_system_sleep(50);
+                    if (__i2c_read_reg(ii, 0x21, 0x10, &reg10) == 0) {
+                        printf("[I2CPIN] 0x21 reg10 page0 after stream-on=0x%02x\n", reg10);
+                    }
                     dev_close(ii);
                 }
             }
