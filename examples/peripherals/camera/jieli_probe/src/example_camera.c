@@ -177,6 +177,37 @@ out:
     return ret;
 }
 
+/* Count transitions on PA2/PA3/PA4 by polling the port input register. */
+static uint32_t __sample_pa_edges(uint32_t n, uint32_t *pa2, uint32_t *pa3, uint32_t *pa4)
+{
+    uint32_t prev  = JL_PORTA->IN;
+    uint32_t edges = 0;
+    uint32_t a = 0, b = 0, c = 0;
+
+    for (uint32_t i = 0; i < n; i++) {
+        uint32_t in = JL_PORTA->IN;
+        uint32_t ch = in ^ prev;
+
+        if (ch & 0x1cu) {
+            edges++;
+            if (ch & 0x04) {
+                a++;
+            }
+            if (ch & 0x08) {
+                b++;
+            }
+            if (ch & 0x10) {
+                c++;
+            }
+        }
+        prev = in;
+    }
+    *pa2 = a;
+    *pa3 = b;
+    *pa4 = c;
+    return edges;
+}
+
 /* Probe every 7-bit address directly on the vendor iic1 device. This does not
  * depend on the BYD3901/GC0310/GC6133 drivers, so an ACK here separates a bus
  * problem from a sensor-driver problem. */
@@ -304,7 +335,12 @@ static void __i2c_scan(void)
     }
 
     /* Which of PA2/PA3/PA4 carries the sensor clock? Open video1 so the sensor
-     * starts streaming, then sample the three pins as inputs and count edges. */
+     * starts streaming, then sample the three pins as inputs and count edges.
+     *
+     * The vendor table keeps its SPI-output block on page 0x03
+     * (GC0310_config_SENSOR: 0xfe=0x03 then 0x02/0x03/0x51..0x67, with 0x64
+     * "sck always" and 0x65 the head sync code). If those writes did not stick
+     * the sensor stays mute on PCLK, so read the page back before sampling. */
     {
         void *vdev = dev_open("video1.0", NULL);
 
@@ -312,36 +348,30 @@ static void __i2c_scan(void)
             printf("[I2CPIN] video1.0 open failed\n");
         } else {
             tal_system_sleep(300);
+            printf("[I2CPIN] after video1 open: IOMAP CON0=0x%08x CON1=0x%08x CON2=0x%08x\n", (unsigned)JL_IOMAP->CON0,
+                   (unsigned)JL_IOMAP->CON1, (unsigned)JL_IOMAP->CON2);
+            printf("[I2CPIN] PORT A: DIR=0x%08x DIE=0x%08x IN=0x%08x\n", (unsigned)JL_PORTA->DIR,
+                   (unsigned)JL_PORTA->DIE, (unsigned)JL_PORTA->IN);
 
-            /* Is the sensor actually streaming? GC0310 keeps stream control in
-             * 0x10 on page 0xF0; 0x94 is stream-on, 0x88 is off. Read it, force
-             * stream-on, and read it back before sampling the data pins. */
             {
-                void   *ii    = dev_open("iic1", NULL);
-                uint8_t reg10 = 0;
+                void         *ii      = dev_open("iic1", NULL);
+                uint8_t       v       = 0;
+                const uint8_t page3[] = {0x02, 0x03, 0x51, 0x53, 0x59, 0x5d, 0x60, 0x64, 0x65};
+                int           k;
 
                 if (ii != NULL) {
-                    (void)__i2c_write_reg(ii, 0x21, 0xfe, 0xf0);
+                    (void)__i2c_write_reg(ii, 0x21, 0xfe, 0x03);
                     tal_system_sleep(5);
-                    if (__i2c_read_reg(ii, 0x21, 0x10, &reg10) == 0) {
-                        printf("[I2CPIN] 0x21 reg10=0x%02x\n", reg10);
-                    } else {
-                        printf("[I2CPIN] 0x21 reg10 read failed\n");
+                    for (k = 0; k < (int)sizeof(page3); k++) {
+                        if (__i2c_read_reg(ii, 0x21, page3[k], &v) == 0) {
+                            printf("[I2CPIN] page3 0x%02x=0x%02x\n", page3[k], v);
+                        } else {
+                            printf("[I2CPIN] page3 0x%02x read failed\n", page3[k]);
+                        }
                     }
-                    (void)__i2c_write_reg(ii, 0x21, 0x10, 0x94);
-                    tal_system_sleep(50);
-                    if (__i2c_read_reg(ii, 0x21, 0x10, &reg10) == 0) {
-                        printf("[I2CPIN] 0x21 reg10 after stream-on=0x%02x\n", reg10);
-                    }
-
-                    /* 0x10 may live on page 0x00: try the same write there. */
+                    /* Leave the part on its default page, as the vendor table
+                     * does at the end of channel setup. */
                     (void)__i2c_write_reg(ii, 0x21, 0xfe, 0x00);
-                    tal_system_sleep(5);
-                    (void)__i2c_write_reg(ii, 0x21, 0x10, 0x94);
-                    tal_system_sleep(50);
-                    if (__i2c_read_reg(ii, 0x21, 0x10, &reg10) == 0) {
-                        printf("[I2CPIN] 0x21 reg10 page0 after stream-on=0x%02x\n", reg10);
-                    }
                     dev_close(ii);
                 }
             }
@@ -350,27 +380,24 @@ static void __i2c_scan(void)
             gpio_direction_input(IO_PORTA_03);
             gpio_direction_input(IO_PORTA_04);
 
-            uint32_t prev    = JL_PORTA->IN;
-            uint32_t edges   = 0;
-            uint32_t last[3] = {0};
-            uint32_t cnt[3]  = {0};
+            /* video1.0 open clears the PH2 XCLK output channel, so the module
+             * is mute until it is re-armed after dev_open (measured: PA3 shows
+             * no PCLK at all before the re-arm, thousands of edges after). */
+            gpio_output_channle(IO_PORTH_02, CH2_PLL_24M);
+            tal_system_sleep(150);
 
-            for (int i = 0; i < 20000; i++) {
-                uint32_t in = JL_PORTA->IN;
-                uint32_t ch = in ^ prev;
-                if (ch & 0x1cu) {
-                    edges++;
-                    for (int b = 0; b < 3; b++) {
-                        if (ch & (1u << (b + 2))) {
-                            cnt[b]++;
-                        }
-                    }
-                }
-                prev    = in;
-                last[0] = in;
+            {
+                uint32_t cnt[3] = {0};
+                uint32_t edges  = __sample_pa_edges(8000000, &cnt[0], &cnt[1], &cnt[2]);
+
+                /* The sensor only clocks PCLK while a frame is on the wire (the
+                 * vendor header: "有数据的时候才有时钟，空闲时候时钟无"), and one
+                 * VGA frame is ~13 ms of activity in a ~66 ms period, so a
+                 * short window usually lands in the idle gap. 8M iterations
+                 * span several frames. */
+                printf("[I2CPIN] samples=8000000 edges=%u PA2=%u PA3=%u PA4=%u last=0x%08x\n", (unsigned)edges,
+                       (unsigned)cnt[0], (unsigned)cnt[1], (unsigned)cnt[2], (unsigned)JL_PORTA->IN);
             }
-            printf("[I2CPIN] samples=20000 edges=%u PA2=%u PA3=%u PA4=%u last=0x%08x\n", (unsigned)edges,
-                   (unsigned)cnt[0], (unsigned)cnt[1], (unsigned)cnt[2], (unsigned)last[0]);
             dev_close(vdev);
         }
     }
