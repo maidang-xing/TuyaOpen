@@ -312,6 +312,31 @@ static void __i2c_scan(void)
             printf("[I2CPIN] video1.0 open failed\n");
         } else {
             tal_system_sleep(300);
+
+            /* Is the sensor actually streaming? GC0310 keeps stream control in
+             * 0x10 on page 0xF0; 0x94 is stream-on, 0x88 is off. Read it, force
+             * stream-on, and read it back before sampling the data pins. */
+            {
+                void   *ii    = dev_open("iic1", NULL);
+                uint8_t reg10 = 0;
+
+                if (ii != NULL) {
+                    (void)__i2c_write_reg(ii, 0x21, 0xfe, 0xf0);
+                    tal_system_sleep(5);
+                    if (__i2c_read_reg(ii, 0x21, 0x10, &reg10) == 0) {
+                        printf("[I2CPIN] 0x21 reg10=0x%02x\n", reg10);
+                    } else {
+                        printf("[I2CPIN] 0x21 reg10 read failed\n");
+                    }
+                    (void)__i2c_write_reg(ii, 0x21, 0x10, 0x94);
+                    tal_system_sleep(50);
+                    if (__i2c_read_reg(ii, 0x21, 0x10, &reg10) == 0) {
+                        printf("[I2CPIN] 0x21 reg10 after stream-on=0x%02x\n", reg10);
+                    }
+                    dev_close(ii);
+                }
+            }
+
             gpio_direction_input(IO_PORTA_02);
             gpio_direction_input(IO_PORTA_03);
             gpio_direction_input(IO_PORTA_04);
