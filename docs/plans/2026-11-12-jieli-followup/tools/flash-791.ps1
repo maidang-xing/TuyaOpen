@@ -10,7 +10,7 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'touch')]
+    [ValidateSet('dvp', 'dvp640', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'touch')]
     [string]$Image,
 
     [switch]$Wait
@@ -218,6 +218,30 @@ $images = @{
         Sha  = '1060c40a99316631f0e3ad082846c14e49fee26b900384a60432b2315d86b507'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'VGA 640x480, GC0310 VTS 1590 (~4 fps), clean-frame-only delivery'
+    }
+    spivga4fpstidy = @{
+        File = 'spi-vga4fps-49759776.bin'
+        Sha  = '49759776986e9c0edfa8fdde76c3c4db259a4b6289bbe546e5c8592d55fe8caa'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'VGA 4fps clean-frame build after code tidy (stats label)'
+    }
+    spivga4fpstidy2 = @{
+        File = 'spi-vga4fps-c05d2600.bin'
+        Sha  = 'c05d2600d98de70ab3452d98604af7f249fde11923f4fae02ca1ae6a16c6d245'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI VGA 4fps clean-frame build after tidy (corrected config choice)'
+    }
+    spifalsehead = @{
+        File = 'spi-vga4fps-a5d9c263.bin'
+        Sha  = 'a5d9c2637459ecb3d71011353ab7d92f6db589bdec5d7bc3d855ec7410bc3be1'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI VGA 4fps; line start validated by framing, false 0x80 heads skipped'
+    }
+    spipadstable = @{
+        File = 'spi-vga-pad-31d4021f.bin'
+        Sha  = '31d4021f8bde2068a2f5df8011483228c4e5feeeedad4e25a48300598054ac18'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI VGA, vendor VTS, false-head validation + last-row padding'
     }
     touch = @{
         File = 'touch-54a61aa5.bin'
