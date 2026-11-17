@@ -15,11 +15,9 @@
 ************************macro define************************
 ***********************************************************/
 
-
 /***********************************************************
 ***********************typedef define***********************
 ***********************************************************/
-
 
 /***********************************************************
 ***********************variable define**********************
@@ -33,11 +31,11 @@ static OPERATE_RET __example_vad_init(void)
     OPERATE_RET rt = OPRT_OK;
 
     TKL_VAD_CONFIG_T vad_config;
-    vad_config.sample_rate = 16000;
-    vad_config.channel_num = 1;
-    vad_config.speech_min_ms = 300;
-    vad_config.noise_min_ms = 500;
-    vad_config.scale = 1.0;
+    vad_config.sample_rate       = 16000;
+    vad_config.channel_num       = 1;
+    vad_config.speech_min_ms     = 300;
+    vad_config.noise_min_ms      = 500;
+    vad_config.scale             = 1.0;
     vad_config.frame_duration_ms = 10;
 
     TUYA_CALL_ERR_RETURN(tkl_vad_init(&vad_config));
@@ -49,8 +47,8 @@ static OPERATE_RET __example_vad_init(void)
     return OPRT_OK;
 }
 
-static void __example_get_audio_frame(TDL_AUDIO_FRAME_FORMAT_E type, TDL_AUDIO_STATUS_E status,\
-                                      uint8_t *data, uint32_t len)
+static void __example_get_audio_frame(TDL_AUDIO_FRAME_FORMAT_E type, TDL_AUDIO_STATUS_E status, uint8_t *data,
+                                      uint32_t len)
 {
     tkl_vad_feed(data, len);
 }
@@ -72,7 +70,7 @@ static OPERATE_RET __example_audio_open(void)
 void user_main(void)
 {
     static TKL_VAD_STATUS_T last_state = TKL_VAD_STATUS_NONE;
-    TKL_VAD_STATUS_T state = TKL_VAD_STATUS_NONE;
+    TKL_VAD_STATUS_T        state      = TKL_VAD_STATUS_NONE;
 
     tal_log_init(TAL_LOG_LEVEL_DEBUG, 1024, (TAL_LOG_OUTPUT_CB)tkl_log_output);
 
@@ -93,13 +91,13 @@ void user_main(void)
 
     __example_vad_init();
 
-    while(1) {
+    while (1) {
         state = tkl_vad_get_status();
 
-        if(last_state != state) {
-            if(TKL_VAD_STATUS_SPEECH == state) {
+        if (last_state != state) {
+            if (TKL_VAD_STATUS_SPEECH == state) {
                 PR_DEBUG("VAD status: SPEECH");
-            } else if(TKL_VAD_STATUS_NONE == state) {
+            } else if (TKL_VAD_STATUS_NONE == state) {
                 PR_DEBUG("VAD status: NONE");
             }
         }
@@ -107,7 +105,6 @@ void user_main(void)
 
         tal_system_sleep(10);
     }
-
 
     return;
 }
@@ -147,9 +144,11 @@ static void tuya_app_thread(void *arg)
 void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
-    thrd_param.stackDepth = 1024 * 4;
-    thrd_param.priority = THREAD_PRIO_1;
-    thrd_param.thrdname = "tuya_app_main";
+    /* tkl_vad_init() builds the RNN VAD's MFCC/FFT state on this task; the
+     * frame processing itself runs on the TKL VAD task. */
+    thrd_param.stackDepth = 1024 * 8;
+    thrd_param.priority   = THREAD_PRIO_1;
+    thrd_param.thrdname   = "tuya_app_main";
     tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param);
 }
 #endif
