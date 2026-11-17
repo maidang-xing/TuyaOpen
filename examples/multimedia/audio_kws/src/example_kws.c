@@ -43,6 +43,8 @@ static OPERATE_RET __example_kws_init(void)
         tkl_kws_wakeup_word_config((TKL_KWS_WAKEUP_WORD_E *)cWAKEUP_KEYWORD_LIST, CNTSOF(cWAKEUP_KEYWORD_LIST)),
         __KWS_INIT_ERR);
 
+    TUYA_CALL_ERR_GOTO(tkl_kws_enable(), __KWS_INIT_ERR);
+
     sg_feed_buff_len = tkl_kws_get_process_uint_size() * KWS_PROCE_UNIT_NUM;
     PR_DEBUG("sg_feed_buff_len:%d", sg_feed_buff_len);
     TUYA_CALL_ERR_GOTO(tuya_ring_buff_create(sg_feed_buff_len + tkl_kws_get_process_uint_size(),
@@ -65,6 +67,11 @@ __KWS_INIT_ERR:
 static void __example_get_audio_frame(TDL_AUDIO_FRAME_FORMAT_E type, TDL_AUDIO_STATUS_E status, uint8_t *data,
                                       uint32_t len)
 {
+    /* Capture may deliver its first frame before the ring exists if the order
+     * in user_main is ever changed back; never hand it a NULL ring buffer. */
+    if (sg_feed_ringbuff == NULL) {
+        return;
+    }
     tuya_ring_buff_write(sg_feed_ringbuff, data, len);
 }
 
@@ -134,9 +141,17 @@ void user_main(void)
     /*hardware register*/
     board_register_hardware();
 
+    /* The ring buffer must exist before capture starts: tdl_audio_open()
+     * delivers its first frame from the audio task, and writing that into a
+     * NULL ring leaves the example in a silent, non-obvious state. */
+    if (__example_kws_init() != OPRT_OK) {
+        PR_ERR("kws init failed, capture not started");
+        return;
+    }
+
     __example_audio_open();
 
-    __example_kws_init();
+    PR_NOTICE("kws ready, unit=%d bytes", tkl_kws_get_process_uint_size());
 
     while (1) {
         wakeup_word = __kws_recognize_wakeup_keyword();
