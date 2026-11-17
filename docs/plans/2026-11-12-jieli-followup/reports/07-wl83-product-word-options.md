@@ -72,3 +72,16 @@
 2. **若选 B，先做“只构建、不烧录”的 WL83 TAL 链接探针**（当前即可做）：`audio_subsys.a` 放入 WL83 `liba/`、libc++ 路径改 `ucos/`、补 `memcmp/strcmp/strlen/strncmp`，目标是在 map 中看到 `keyword_tflite_*`/`g_fsmn_*`/`rnn_vad_*`。
 3. **是否授权 AC791 硬件窗口跑 40-token 探针**（`taltokens` preset，624,176 B，从未上板）以反推 token 序列。
 4. **license/训练合同**：厂商 `jlkws` 仍使用临时 license（02 报告定位第 119,999 帧后截断），量产需正式授权——这会影响选 A 还是 B。
+
+## 7. WL83 TAL 链接探针结果（2026-11-18 00:2x，只构建、未烧录）
+
+结论：**路线 B 在 WL83 上链接可行**。用 `audio/tal-engine`（`419ba56c`）为基线，做了三处临时接线后，WL83 AC792N 的 `your_chat_bot`（WAKEUP 模式）**BUILD SUCCESS**，产物 2,967,456 B，SHA256 `6b08e377…`。
+
+- 平台探针分支 `probe/wl83-tal-link`（`370a0831`，本地、未推送）：
+  - `sdk_overlay.py`：`tal_audio` 链接改用 `include_lib/c++/libstdc++/ucos/{libc++.a,libc++abi.a}` 并额外链接 `libemutls.a`（WL82 路径保持不变）；
+  - `tal_cxx_shim.c`：在 `JIELI_SELECTED_CHIP_WL83` 下补 `memcmp/strcmp/strncmp/strlen`（WL83 的 `repack_libc.sh` 删掉了这些对象；WL82 不定义，避免与它自己的 libc 重复）。
+- `audio_subsys.a`（SHA256 `39f290da…`，与 `.local-jieli-migration/2026-11-13/voice-inputs` 和 02 evidence 三份一致）手工放入 `chip/wl83/AC792_SDK/sdk/cpu/wl83/liba/`，未纳入版本库；归档为 pi32v2 bitcode，与 WL83 工具链/链接模式一致。
+- 应用侧探针（本地分支 `tmp/07-tal-probe`，`81233fe2`，未推送）：AC792N 板 Kconfig 增加 `JIELI_TAL_AUDIO_ENGINE`（与 AC79 板同义）、`TKL_Kconfig` 声明平台 manifest 要求的 `ENABLE_DVP/ENABLE_CSI2` 门（默认关，探针不拉摄像头代码），并新增 `config/JIELI_AC792N_Develop_Board_tal_probe.config`。
+- 链接证据：staged `board/wl83/Makefile` 的 Tuya 链接组包含 `cpu/wl83/liba/audio_subsys.a`、`ucos/libc++.a`、`ucos/libc++abi.a`、`ucos/libemutls.a`；`sdk.map` 中 `tkl_vad.c.o` 解析 `rnn_vad_create`、`tkl_kws.c.o` 解析 `keyword_tflite_get_mem_size`，并带入 `wekws::*` C++ 对象与模型数据 `g_fsmn_v8_0515_avg_int8_model_data`；`pi32v2-nm` 能在 `sdk.elf` 中看到 `keyword_tflite_reset`、`rnn_vad_init/destroy` 等符号。
+- 仍缺（选 B 后才是实现工作）：① 归档默认模型是 v8，不是 02 使用的 nhty 模型——需接入 `tal_nhty_model.c` 式强符号替换（136,392 B）；② 产品词 token ID 表仍需训练侧提供（40-token 探针未上板）；③ TAL 分支 `tkl_kws.c` 是 pull 模式，产品走采集回调，需要 ring+task 包装或改 pull；④ 探针的 libc 字符串实现与 `-u`/`--allow-multiple-definition` 属探针级接线，正式合入前需按 WL83 libc 实际情况复核；⑤ 未上板，唤醒率/误唤醒/耗时全未知。
+- 复现要点：平台 checkout `probe/wl83-tal-link`（或 `audio/tal-engine` 打上该提交）、拷入 `audio_subsys.a`、应用 checkout `tmp/07-tal-probe`、用 `JIELI_AC792N_Develop_Board_tal_probe.config` 构建；探针 worktree 已删除，只保留分支。
