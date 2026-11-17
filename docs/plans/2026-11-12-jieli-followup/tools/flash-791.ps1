@@ -10,8 +10,12 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'touch')]
+    [ValidateSet('dvp', 'dvp640', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'touch', 'spitddd', 'dvptdd')]
     [string]$Image,
+
+    # isd_download needs the app's USB device to be enumerated when it opens
+    # it; a crashing or hung app shows up for a fraction of a second per boot.
+    [int]$Attempts = 8,
 
     [switch]$Wait
 )
@@ -26,6 +30,12 @@ $images = @{
         Sha  = 'af87a582b978aee8b459f1b07cc0e6228b0cee4bd0de26d2eff568ff05c7043c'
         Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\05-camera\examples\peripherals\camera\output_display\.build\jieli-staging\build\cpu\wl82\tools'
         Note = 'DVP 320x240@25 live preview, conv timing, review fixes'
+    }
+    dvptdd = @{
+        File = 'dvp-4fe36c41.bin'
+        Sha  = '4fe36c410c63d0341efb16d9d49cc0c8ebbda044df8b75b7a9ca466c21963dde'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'output_display dvp_lcd profile with boot markers, checked against TDL camera path'
     }
     dvp640 = @{
         File = 'dvp-640x480-10fps-fbe11b1c.bin'
@@ -243,6 +253,66 @@ $images = @{
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'SPI VGA, vendor VTS, false-head validation + last-row padding'
     }
+    spi48m = @{
+        File = 'spi-48m-3cb59a80.bin'
+        Sha  = '3cb59a804f0d94d456b5cefe19cfced595b8a2feaa28e77fc5f77326560d1553'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI VGA with GC0310 48M pclk branch (link clock x2)'
+    }
+    spilineirqdma = @{
+        File = 'spi-lineirq-dma-922ffbd9.bin'
+        Sha  = '922ffbd9fdd6d4f3150253da64b4e9eeaa73355ff933c39b4f0e6c2e6035e7cb'
+        Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\05-camera\examples\peripherals\camera\output_display\.build\jieli-staging\build\cpu\wl82\tools'
+        Note = 'SPI preview, per-line IRQ + DMA row copy (vendor ISR scheme), 640x480@4'
+    }
+    spilineirq = @{
+        File = 'spi-lineirq-f251a227.bin'
+        Sha  = 'f251a227c78bb64cb42ec5c8889c6ecb4e01a529e396a9e1dbe4a1040be14d9d'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI VGA via vendor-style per-line IRQ receive (JIELI_SPI_LINE_IRQ=1)'
+    }
+    spiupstream = @{
+        File = 'spi-upstream-99a2db6e.bin'
+        Sha  = '99a2db6e8e516805b7a1c9809c0dde1f5e675777e04a7fd3d93de75f061f58c2'
+        Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\05-camera\examples\peripherals\camera\output_display\.build\jieli-staging\build\cpu\wl82\tools'
+        Note = 'SPI VGA 4fps with upstream example_camera.c unchanged; 2 FBs (config macro bug)'
+    }
+    spiupstream3fb = @{
+        File = 'spi-upstream3fb-8c39c3b8.bin'
+        Sha  = '8c39c3b807065a5ea0cafc673f6f9f8e46129f8f31c4b7046c0ee35239b44e85'
+        Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\05-camera\examples\peripherals\camera\output_display\.build\jieli-staging\build\cpu\wl82\tools'
+        Note = 'SPI VGA 4fps, upstream example, yuv_order from TDD, 3 FBs'
+    }
+    spitddd = @{
+        File = 'spi-tdd-17f9b72e.bin'
+        Sha  = '17f9b72e87a74c3611508c7078adaca1fbbb866e1ab28cad080e0b8e1ee19f52'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'output_display spi_tdd profile with raw boot markers (TDD GC0310 bring-up)'
+    }
+    spitddsensor = @{
+        File = 'spi-tddsensor-5eafd609.bin'
+        Sha  = '5eafd6094120326ad70a6c4bbd32459d13cf9a12fa660fbb04fba318004fb761'
+        Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\05-camera\examples\peripherals\camera\output_display\.build\jieli-staging\build\cpu\wl82\tools'
+        Note = 'SPI VGA, GC0310 configured by TDD over IIC1 (no video1), 24 MHz table, 3 FBs'
+    }
+    talprobe = @{
+        File = 'tal-probe-minimal-e3532fb5.bin'
+        Sha  = 'e3532fb5807fbb4ea899973dc01e5905f490f218477cb5672170efe6a5c1f9e7'
+        Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\02-voice\tal-probe-minimal'
+        Note = 'TAL audio engine minimal probe (624,112 B): keyword_tflite init + PCM, boot markers'
+    }
+    audiovad = @{
+        File = 'audio-vad-ef600bb8.bin'
+        Sha  = 'ef600bb86f224403d51e32a72f0ff3ca3f4188d2167ba9a8d7c91835435c8390'
+        Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\05-camera\examples\multimedia\audio_vad\.build\jieli-staging\build\cpu\wl82\tools'
+        Note = 'audio_vad on audio/tal-engine (stop-timeout guard, join handshake, re-init hysteresis)'
+    }
+    audiokws = @{
+        File = 'audio-kws-de71c3cc.bin'
+        Sha  = 'de71c3ccf7137c5683aa28b9717616e218265ca4bd9d03450e0b25fb38ee2ce3'
+        Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\05-camera\examples\multimedia\audio_kws\.build\jieli-staging\build\cpu\wl82\tools'
+        Note = 'audio_kws on audio/tal-engine (76-byte result struct, forward_pcm 1=hit, 44 KiB arena)'
+    }
     touch = @{
         File = 'touch-54a61aa5.bin'
         Sha  = '54a61aa539f11be81cd960017da29e7681cd66a056d219706ffa1b970ab629ad'
@@ -297,11 +367,30 @@ $log = Join-Path $logDir "flash-791-$Image-$stamp.log"
 
 Push-Location $tools
 try {
-    & .\isd_download.exe isd_config.ini -gen2 -tonorflash -dev wl82 -boot 0x1c02000 `
-        -div1 -wait 5000 -uboot uboot.boot -app app.bin cfg_tool.bin -res cfg -reboot 2000 -extend-bin 2>&1 |
-        Tee-Object -FilePath $log | Select-Object -Last 12
+    # A crashing (or half-initialised) app enumerates for a fraction of a
+    # second per boot, so a single isd_download run usually starts while the
+    # device is gone and exits "Device Offline". Re-check for the device
+    # before every attempt and retry; the download itself then holds the chip
+    # in update mode once one attempt lands. The 2026-11-17 VAD recovery
+    # succeeded on the first synchronised attempt after two plain failures.
+    $attempts = [Math]::Max(1, $Attempts)
+    for ($i = 1; $i -le $attempts; $i++) {
+        if (-not (Get-JieliDevice)) {
+            Start-Sleep -Milliseconds 250
+            continue
+        }
+        Write-Host "[flash-791] attempt $i/$attempts"
+        & .\isd_download.exe isd_config.ini -gen2 -tonorflash -dev wl82 -boot 0x1c02000 `
+            -div1 -wait 5000 -uboot uboot.boot -app app.bin cfg_tool.bin -res cfg -reboot 2000 -extend-bin 2>&1 |
+            Tee-Object -FilePath $log | Select-Object -Last 12
+        if ($LASTEXITCODE -eq 0) {
+            break
+        }
+        Write-Host "[flash-791] attempt $i failed (exit $LASTEXITCODE), retrying ..."
+        Start-Sleep -Milliseconds 300
+    }
     if ($LASTEXITCODE -ne 0) {
-        throw "isd_download exit $LASTEXITCODE (log: $log)"
+        throw "isd_download exit $LASTEXITCODE after $attempts attempts (log: $log)"
     }
 } finally {
     Pop-Location
