@@ -4,7 +4,7 @@
 
 ## 当前基线（2026-11-13）
 
-- 唯一后续任务基线：`D:\tuya_proj\TuyaOpen`，upstream/master `055042a8119b3a21910761bc13f171da19cf35fc`（#800）。PR #799 已合并；旧 HEAD、旧平台 pin 和旧目录只作历史，不阻塞工作。
+- 唯一后续任务基线：`D:\tuya_proj\TuyaOpen`，upstream/master `055042a8119b3a21910761bc13f171da19cf35fc`（#800）。2026-11-16 复核：`origin/master` 已到 `530aeafd`（仅 4 个 CI 提交，未拉取）。2026-11-17 复核：`origin/master` 已到 `2022c929`（`530aeafd..2022c929` 仅 2 个 T9 AEC 提交，未触及 JIELI/camera/ota/audio 路径）；平台 `master` 仍为 pin `c967f4b1`。PR #799 已合并；旧 HEAD、旧平台 pin 和旧目录只作历史，不阻塞工作。
 - `platform/JIELI` 是独立 clone，clean、无 alternates；当前 checkout `c967f4b174480ff1df966eeea80bee1b0edcb0f6`，与 `platform/platform_config.yaml` pin 一致（#45 Windows 工具链修复）。JIELI Windows PI32 工具链已在该 pin 的 tracked 路径 `platform/JIELI/tools/toolchains/windows/pi32`；Linux 缓存可重建。
 - 00 的迁移基线核对已完成；本轮未做构建、烧录、串口或实机测试。每个任务派发时仍要核查基线漂移和 dirty。
 - 主仓、平台仓和文档仓是独立 Git 仓库。先确认 `D:\tuya_proj\TuyaOpen\.worktrees` 已由本地 exclude 忽略；否则仅向 `.git/info/exclude` 添加本地规则（不改 tracked ignore）。编码任务在 `D:\tuya_proj\TuyaOpen\.worktrees\<任务ID>` 建主仓 worktree；平台另行 checkout 当前 YAML pin。任务 08 的 worktree 必须从 TuyaOpen.io 自己的 master 创建，可放在上述 `.worktrees\docs-08`，不得把 TuyaOpen SDK master 当文档仓基线。
@@ -28,7 +28,7 @@
 
 ## 状态摘要
 
-详见 [2026-11-13 状态与迁移记录](2026-11-13-status.md)。当前只有代码/SDK静态证据，没有本目录新增的硬件验收报告：KWS 仍未接入，VAD 是 RMS 能量检测且采集回调已接入；TAL archive 的 PI32 链接兼容未决；OTA 容量/分区需按当前基线重测；AC791 双摄拓扑未证；AC792 DVP/CSI-2 配套 PR 未集成；触摸无启用 TKL 接口；PWM 通道与 UART1 RX 仍待物理验收。#276 已合并；#279 已 closed 未合并，派发时重查关闭原因。
+详见 [验收矩阵](acceptance-matrix.md) 与 [2026-11-13 状态记录](2026-11-13-status.md)（含 2026-11-16/17 各段追加）。截至 2026-11-17：05 的 SPI 由 TDD 配置 GC0310（`0xa310`）、≈4.84 fps、`tag_err=0` 长稳，SPI 镜像可从 PR 头逐字节重建；SPI 紫/粉偏色待目视复验、DVP 单模组待复验。02 的 VAD 9 分 08 秒实机通过，KWS 引擎运行通过；产品词缺 token 序列（nhty 模型 + 40-token 探针已备 `taltokens` preset，**未上板**）。03/04 离线容量矩阵完成：8 MiB 双 bank 需裁 `audlogo`+`ui_res` 或改 16 MiB，**未烧录**。06 仅构建级，PR #23 与 #47 组合仍有 WL83 vendor 构建面缺口（`TCFG_AUDIO_CVP_NS_MODE`）。07/09/11 缺硬件或仪器；08 本地构建通过未发布。PR：平台 #47/#48/#49、应用 #2/#4/#5 已推、CI 绿、MERGEABLE；#23 仍 CONFLICTING。硬件复接顺序见 [hardware-reconnect-runbook.md](hardware-reconnect-runbook.md)。
 
 ## 并行、共享代码与硬件
 
