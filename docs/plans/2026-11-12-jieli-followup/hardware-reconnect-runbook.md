@@ -46,6 +46,15 @@
 - 触摸按 README 硬件队列（语音之后）单独预约。
 - 09 PWM/UART 波形需仪器，另行约时；无仪器不做结论。
 
+## 7. AC792N 摄像头（06，仅构建级已验，实机为新增项）
+
+- 镜像：应用分支 `task/06-ac792-camera-adapt`（`69137bf9`）+ 平台 `camera/wl83-dvp`（`6bdb310a`）；示例 `examples/peripherals/camera/output_display` 选 `JIELI_AC792N_Develop_Board_dvp.config`（J49 DVP0，JPEG 输出）。对应构建产物 558,220 B / `77dedf11…`（构建级，非本场烧录记录）。
+- 只接 J49（DVP0）；J47（CSI-2）与 DVP0 共用 PD11–PD14，不能同时接。**不要同时打开触摸**：camera 上电用 PE6，而 PE6 是触摸 RST。
+- 串口期望：`[camera] DVP0 started (640x480)` → `[camera] first frame: 640x480 jpeg len=...`；屏上应出现解码后的画面（示例用 `tal_image_jpeg_decode_rgb565`，JPEG 路径不做旋转）。
+- 若无帧：先查 sensor 供电/复位时序（PE6 LDO、PD8 XCLK、PE9 RESET）与 IIC1（PE7/PE8）地址 0x21 探测；`server_open video1.1` 失败或 `VIDEO_REQ_REC` 非 0 会直接打印。
+- CSI-2 单独构建：同一示例改临时配置（`CONFIG_ENABLE_CSI2=y`、`CONFIG_CAMERA_NAME="camera_csi2"`、关 DVP、保留 `CONFIG_EXAMPLE_CAMERA_JPEG=y`），构建级已过（556,396 B / `71d82aa7…`）；实机未验。
+- 判据：有效帧 + 屏显至少 60 s 无复位；只到构建或只到“串口 first frame”不构成出图验收。
+
 ## 交接
 
 结束时记录：板卡 revision、COM、操作者、所烧镜像 SHA、日志路径，并释放占用。任何未实际执行的步骤写“未运行”。
