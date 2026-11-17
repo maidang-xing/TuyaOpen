@@ -28,7 +28,7 @@
 
 ## 状态摘要
 
-详见 [验收矩阵](acceptance-matrix.md) 与 [2026-11-13 状态记录](2026-11-13-status.md)（含 2026-11-16/17 各段追加）。截至 2026-11-17：05 的 SPI 由 TDD 配置 GC0310（`0xa310`）、≈4.84 fps、`tag_err=0` 长稳，SPI 镜像可从 PR 头逐字节重建；SPI 紫/粉偏色待目视复验、DVP 单模组待复验。02 的 VAD 9 分 08 秒实机通过，KWS 引擎运行通过；产品词缺 token 序列（nhty 模型 + 40-token 探针已备 `taltokens` preset，**未上板**）。03/04 离线容量矩阵完成：8 MiB 双 bank 需裁 `audlogo`+`ui_res` 或改 16 MiB，**未烧录**。06 仅构建级，PR #23 与 #47 组合仍有 WL83 vendor 构建面缺口（`TCFG_AUDIO_CVP_NS_MODE`）。07/09/11 缺硬件或仪器；08 本地构建通过未发布。PR：平台 #47/#48/#49、应用 #2/#4/#5 已推、CI 绿、MERGEABLE；#23 仍 CONFLICTING。硬件复接顺序见 [hardware-reconnect-runbook.md](hardware-reconnect-runbook.md)。
+详见 [验收矩阵](acceptance-matrix.md) 与 [2026-11-13 状态记录](2026-11-13-status.md)（含 2026-11-16/17 各段追加）。截至 2026-11-17：05 的 SPI 由 TDD 配置 GC0310（`0xa310`）、≈4.84 fps、`tag_err=0` 长稳，SPI 镜像可从 PR 头逐字节重建；SPI 紫/粉偏色待目视复验、DVP 单模组待复验。02 的 VAD 9 分 08 秒实机通过，KWS 引擎运行通过；产品词缺 token 序列（nhty 模型 + 40-token 探针已备 `taltokens` preset，**未上板**）。03/04 离线容量矩阵完成：8 MiB 双 bank 需裁 `audlogo`+`ui_res` 或改 16 MiB，**未烧录**；04 另有两处本地 OTA 修复（平台 `f288868a` 写失败判定、应用 `7022af27` 数据失败上报）仅过语法检查、未推送。06 仅构建级：WL83 DVP 后端已本地集成到 `camera/wl83-dvp`（AC792N DVP 构建通过，558,092 B；WL82 构建未受影响；**未推送**），但后端只交付 JPEG、示例按 YUV422 显示，硬件验收前需对齐格式契约；AC792N 实机出帧未验；PR #23 仍 CONFLICTING。07/09/11 缺硬件或仪器；08 本地构建通过未发布。PR：平台 #47/#48/#49、应用 #2/#4/#5 已推、MERGEABLE（2026-11-17 复核 checks：平台 #47–#49 仅 Git Repo Sync=SUCCESS，#46 无 checks，应用侧 review/Git Repo Sync 均为 SKIPPED——两仓库都没有构建型 CI，不能以“CI 绿”代替构建/实机证据）；#23 仍 CONFLICTING。硬件复接顺序见 [hardware-reconnect-runbook.md](hardware-reconnect-runbook.md)。
 
 ## 并行、共享代码与硬件
 
