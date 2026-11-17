@@ -89,6 +89,7 @@ __EXIT:
 static OPERATE_RET __tdd_dvp_frame_post_handler(TUYA_DVP_FRAME_MANAGE_T *dvp_frame, void *args)
 {
     TDD_CAMERA_FRAME_T *tdd_frame = NULL;
+    OPERATE_RET         rt        = OPRT_OK;
 
     if (NULL == dvp_frame || NULL == dvp_frame->arg) {
         return OPRT_INVALID_PARM;
@@ -104,7 +105,13 @@ static OPERATE_RET __tdd_dvp_frame_post_handler(TUYA_DVP_FRAME_MANAGE_T *dvp_fra
     tdd_frame->frame.data_len        = dvp_frame->data_len;
     tdd_frame->frame.total_frame_len = dvp_frame->total_frame_len;
 
-    return tdl_camera_post_tdd_frame((TDD_CAMERA_DEV_HANDLE_T)sg_dvp_dev, (TDD_CAMERA_FRAME_T *)dvp_frame->arg);
+    rt = tdl_camera_post_tdd_frame((TDD_CAMERA_DEV_HANDLE_T)sg_dvp_dev, tdd_frame);
+    if (rt != OPRT_OK) {
+        /* The queue refused the frame (consumer behind): return it to the
+         * pool here, or two overruns exhaust the raw pool for good. */
+        tdl_camera_release_tdd_frame((TDD_CAMERA_DEV_HANDLE_T)sg_dvp_dev, tdd_frame);
+    }
+    return rt;
 }
 
 /**
@@ -202,17 +209,29 @@ static OPERATE_RET __tdd_camera_dvp_open(TDD_CAMERA_DEV_HANDLE_T device, TDD_CAM
     TUYA_CALL_ERR_RETURN(__tdd_camera_dvp_init(dvp_dev, cfg));
 
     if (dvp_dev->intfs.init) {
-        TUYA_CALL_ERR_RETURN(dvp_dev->intfs.init(&p_usr_cfg->i2c, dvp_dev->intfs.arg));
+        rt = dvp_dev->intfs.init(&p_usr_cfg->i2c, dvp_dev->intfs.arg);
+        if (rt != OPRT_OK) {
+            goto __ERR_DEINIT;
+        }
     }
 
     if (dvp_dev->intfs.set_ppi) {
         TUYA_CAMERA_PPI_E ppi = (TUYA_CAMERA_PPI_E)((cfg->width << 16) | cfg->height);
-        TUYA_CALL_ERR_RETURN(dvp_dev->intfs.set_ppi(&p_usr_cfg->i2c, ppi, cfg->fps, dvp_dev->intfs.arg));
+        rt                    = dvp_dev->intfs.set_ppi(&p_usr_cfg->i2c, ppi, cfg->fps, dvp_dev->intfs.arg);
+        if (rt != OPRT_OK) {
+            goto __ERR_DEINIT;
+        }
     }
 
     dvp_dev->is_inited = true;
 
     return tkl_dvp_start();
+
+__ERR_DEINIT:
+    /* tkl_dvp_init() already ran: release its buffers so a retry does not
+     * overwrite the static pointers and leak the previous set. */
+    (void)tkl_dvp_deinit();
+    return rt;
 }
 
 /**
