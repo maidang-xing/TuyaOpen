@@ -32,7 +32,8 @@
 
 - 烧 `audiokws`：`audio-kws-de71c3cc.bin`，SHA `de71c3cc…`。
 - 判据：启动无 constructor CHECK / `VIR_EXIT`（TAL 引擎 arena 44 KiB）；单位计数递增。
-- **命中唤醒词仍缺训练侧 token/vocab 表**，词表到位前只验“不崩溃、持续识别”，不标“唤醒成功”。
+- **产品词「你好涂鸦」token 反推（本场必须做，做完产品词才有下一步）**：烧厂商 40-token 探针（平台 `task/02-voice-platform` 的 `apps/demo/tal_probe_tokens`，用 nhty 模型替代默认模型，报告记录 2,936,752 B / SHA `4fd38c41…`，若镜像丢失先按同 demo 重建）。串口收集 `[TAL_TOKENS] HIT ... idx= start= end= score=`，按 start/end 顺序得到 token 序列；把序列写进 `tkl_kws` 的 `keyword_tflite_add_keyword`，再复测真人发音。
+- 在 token 序列和真人命中都拿到前，KWS 只能标“引擎运行正常”，不标“唤醒成功”。
 
 ## 5. OTA A/B（03/04）
 
