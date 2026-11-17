@@ -149,15 +149,26 @@ void user_main(void)
 {
     OPERATE_RET rt = OPRT_OK;
 
+    /* Raw printf markers: the Jieli TDD path can stall before the log system
+     * flushes anything, and a silent UART then cannot be told apart from a
+     * thread that never started. */
+    printf("[CAM] user_main enter\n");
+
     /* basic init */
     tal_log_init(TAL_LOG_LEVEL_DEBUG, 4096, (TAL_LOG_OUTPUT_CB)tkl_log_output);
+    printf("[CAM] log ready\n");
 
     /*hardware register*/
     board_register_hardware();
+    printf("[CAM] board ready\n");
 
-    TUYA_CALL_ERR_LOG(__display_init());
+    rt = __display_init();
+    printf("[CAM] display init rt=%d\n", rt);
+    TUYA_CALL_ERR_LOG(rt);
 
-    TUYA_CALL_ERR_LOG(__camera_init());
+    rt = __camera_init();
+    printf("[CAM] camera init rt=%d\n", rt);
+    TUYA_CALL_ERR_LOG(rt);
 
     while (1) {
         tal_system_sleep(1000);
@@ -204,9 +215,12 @@ static void tuya_app_thread(void *arg)
 void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
-    thrd_param.stackDepth   = 1024 * 4;
-    thrd_param.priority     = THREAD_PRIO_1;
-    thrd_param.thrdname     = "tuya_app_main";
-    tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param);
+    printf("[CAM] app_main entry\n");
+    thrd_param.stackDepth = 1024 * 8;
+    thrd_param.priority   = THREAD_PRIO_1;
+    thrd_param.thrdname   = "tuya_app_main";
+    if (tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param) != OPRT_OK) {
+        printf("[CAM] app task create failed\n");
+    }
 }
 #endif
