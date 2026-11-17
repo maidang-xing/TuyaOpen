@@ -202,6 +202,12 @@ static void tuya_app_thread(void *arg)
 void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
+    /* Raw puts, not PR_*: this runs before tal_log_init(), so a hang or a
+     * failed task creation above user_main() is otherwise completely silent.
+     * Appending this marker to the boot log separates "the entry never ran"
+     * from "the application thread never started". puts keeps the 2 KiB
+     * vendor app_core stack in mind. */
+    puts("[KWS] app_main entry");
     /* keyword_tflite_forward_pcm() runs the MFCC front-end and the TFLite
      * Micro interpreter inline on this task, so 4 KiB (the template default)
      * is not enough. The Jieli task stacks come from the vendor task pool; if
@@ -212,10 +218,10 @@ void tuya_app_main(void)
     thrd_param.priority   = THREAD_PRIO_1;
     thrd_param.thrdname   = "tuya_app_main";
     if (tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param) != OPRT_OK) {
-        printf("[KWS] 16 KiB app task failed, retrying with 8 KiB\n");
+        puts("[KWS] 16 KiB app task failed, retrying with 8 KiB");
         thrd_param.stackDepth = 1024 * 8;
         if (tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param) != OPRT_OK) {
-            printf("[KWS] app task creation failed\n");
+            puts("[KWS] app task creation failed");
         }
     }
 }
