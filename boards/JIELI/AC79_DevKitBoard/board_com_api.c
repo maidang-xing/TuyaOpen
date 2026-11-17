@@ -40,6 +40,9 @@
     ((defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)) ||                                               \
      (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
 #include "tdd_camera_dvp.h"
+#if defined(JIELI_CAMERA_TDD_SENSOR) && (JIELI_CAMERA_TDD_SENSOR == 1)
+#include "tdd_camera_gc0310_spi.h"
+#endif
 #define JIELI_CAMERA_DEV_NAME "camera"
 #endif
 
@@ -64,6 +67,15 @@
 #define JIELI_8080_DISPLAY_NAME   "display"
 #define JIELI_8080_DISPLAY_WIDTH  320
 #define JIELI_8080_DISPLAY_HEIGHT 480
+#endif
+
+#if defined(JIELI_CAMERA_TDD_SENSOR) && (JIELI_CAMERA_TDD_SENSOR == 1)
+/* tkl_dvp declares this weak and calls it after arming SPI2. Keeping the
+ * board glue here lets the platform stay sensor-agnostic. */
+OPERATE_RET tkl_camera_sensor_restart(void)
+{
+    return tdd_camera_gc0310_spi_restart();
+}
 #endif
 
 OPERATE_RET board_register_hardware(void)
@@ -141,6 +153,19 @@ OPERATE_RET board_register_hardware(void)
     ((defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)) ||                                               \
      (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
     {
+#if defined(JIELI_CAMERA_TDD_SENSOR) && (JIELI_CAMERA_TDD_SENSOR == 1)
+        /* The TDD owns the sensor: IIC1 on PH0/PH1, reset on PH3. tkl_dvp
+         * skips video1 and asks tdd_camera_gc0310_spi_restart() to re-run the
+         * table once SPI2 is armed. */
+        TDD_DVP_SR_USR_CFG_T camera_cfg = {
+            .pwr = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
+            .rst = {.pin = TUYA_GPIO_NUM_115, .active_level = TUYA_GPIO_LEVEL_LOW},
+            .i2c = {.port = TUYA_I2C_NUM_1, .clk = 112, .sda = 113},
+            .clk = 24000000,
+        };
+
+        ret = tdd_camera_gc0310_spi_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg);
+#else
         /* The vendor sensor drivers own I2C, reset and the register table,
          * and the TKL adapter owns the capture device. Nothing in this
          * structure opens an I2C port or toggles a GPIO: TUYA_I2C_NUM_MAX /
@@ -165,6 +190,7 @@ OPERATE_RET board_register_hardware(void)
         TDD_DVP_SR_INTFS_T camera_intfs = {0};
 
         ret = tdl_camera_dvp_device_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg, &camera_intfs);
+#endif
         if (ret != OPRT_OK) {
             return ret;
         }

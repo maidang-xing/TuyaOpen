@@ -115,6 +115,14 @@ choice
 endchoice
 
 if JIELI_CAMERA_PATH_DVP || JIELI_CAMERA_PATH_SPI
+    # SPI path only: configure GC0310 from the TDD sensor driver over IIC1
+    # instead of the vendor video1 sensor device. tkl_dvp then skips opening
+    # video1 and asks this driver to restart the sensor after SPI2 is armed.
+    config JIELI_CAMERA_TDD_SENSOR
+        bool "Configure the SPI sensor from TDD (no vendor video1 driver)"
+        depends on JIELI_CAMERA_PATH_SPI
+        default n
+
     config JIELI_BOARD_CAMERA_WIDTH
         int "Camera frame width"
         default 640 if JIELI_CAMERA_PATH_DVP
