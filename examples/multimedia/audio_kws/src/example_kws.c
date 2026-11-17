@@ -8,6 +8,8 @@
 #include "tuya_ringbuf.h"
 #include "tal_api.h"
 
+#include <stdio.h>
+
 #include "tkl_output.h"
 #include "tkl_kws.h"
 #include "tdl_audio_manage.h"
@@ -201,11 +203,20 @@ void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
     /* keyword_tflite_forward_pcm() runs the MFCC front-end and the TFLite
-     * Micro interpreter inline on this task; 4 KiB (the template default)
-     * overflows once the first unit reaches the model. */
+     * Micro interpreter inline on this task, so 4 KiB (the template default)
+     * is not enough. The Jieli task stacks come from the vendor task pool; if
+     * a 16 KiB request does not fit, fall back to the 8 KiB the VAD example
+     * proves is available and say so -- an uncreated task leaves the whole
+     * application silent with no other symptom. */
     thrd_param.stackDepth = 1024 * 16;
     thrd_param.priority   = THREAD_PRIO_1;
     thrd_param.thrdname   = "tuya_app_main";
-    tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param);
+    if (tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param) != OPRT_OK) {
+        printf("[KWS] 16 KiB app task failed, retrying with 8 KiB\n");
+        thrd_param.stackDepth = 1024 * 8;
+        if (tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param) != OPRT_OK) {
+            printf("[KWS] app task creation failed\n");
+        }
+    }
 }
 #endif
