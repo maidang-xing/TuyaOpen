@@ -53,3 +53,14 @@
 3. 09 外围：AC791 UART1 RX 需独立 USB-TTL（不得占用 COM8）；AC792 PWM 需 AC792N 与示波器/LA。
 4. 02 语音端到端：用户选择暂缓配网；恢复时需重新占用 COM8 并重烧对应镜像。
 5. 05/06/07/11 AC792：AC792N 当前未连接；接入后按 camera/voice/touch 分别预约。
+
+## 2026-11-17 晚（本会话收尾登记）
+
+- 板卡按用户要求**保持断开**（“当前设备先断开，先完成实现软件适配”）；本会话未占用任何 COM 口，也未烧录。
+- 待板卡复接后的顺序与判据见 [hardware-reconnect-runbook.md](hardware-reconnect-runbook.md)：
+  1. 05 SPI：`spitddd`（紫/粉偏色目视复验、`tag_err` 恢复）；
+  2. 05 DVP：只接 J1，烧 `dvphead`（当前 PR 头重建，411,433 B）；
+  3. 02 VAD 9 分钟 + KWS `audiokws`（引擎运行）；
+  4. 02 产品词：`taltokens`（nhty 模型 + 40-token 探针，624,176 B）反推 token；
+  5. OTA 仅在方案（16 MiB vs 裁 `audlogo`+`ui_res`）确定并授权改分区后执行。
+- 06 的构建面候选修复保留在平台本地分支 `camera/wl83-media-switch`（`5b748fb1`），未推送；AC792N 实机出帧仍待硬件。
