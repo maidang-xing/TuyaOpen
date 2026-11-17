@@ -80,6 +80,13 @@ config JIELI_BOARD_HAS_DISPLAY
     bool
     default n
 
+# Use the user-supplied TAL audio_subsys archive for VAD/KWS instead of the
+# vendor RMS VAD and jlsp far-keyword engine. The archive is pi32v2 bitcode and
+# needs libc++/libc++abi plus tal_cxx_shim.c at link time.
+config JIELI_TAL_AUDIO_ENGINE
+    bool "Use the supplied TAL audio engine for VAD/KWS"
+    default n
+
 # TKL UART1 is the SDK's uart2 block, which has one fixed pin group on this
 # chip: PH2 (TX) / PH3 (RX). PH2 is also the PWM0 timer output, so a project
 # uses one or the other, not both.

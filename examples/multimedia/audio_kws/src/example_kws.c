@@ -8,6 +8,8 @@
 #include "tuya_ringbuf.h"
 #include "tal_api.h"
 
+#include <stdio.h>
+
 #include "tkl_output.h"
 #include "tkl_kws.h"
 #include "tdl_audio_manage.h"
@@ -15,12 +17,11 @@
 /***********************************************************
 ************************macro define************************
 ***********************************************************/
-#define KWS_PROCE_UNIT_NUM    30
+#define KWS_PROCE_UNIT_NUM 30
 
 /***********************************************************
 ***********************typedef define***********************
 ***********************************************************/
-
 
 /***********************************************************
 ***********************variable define**********************
@@ -30,7 +31,7 @@ const static TKL_KWS_WAKEUP_WORD_E cWAKEUP_KEYWORD_LIST[] = {
 };
 
 static TUYA_RINGBUFF_T sg_feed_ringbuff;
-static uint32_t sg_feed_buff_len = 0;
+static uint32_t        sg_feed_buff_len = 0;
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
@@ -39,14 +40,19 @@ static OPERATE_RET __example_kws_init(void)
     OPERATE_RET rt = OPRT_OK;
 
     TUYA_CALL_ERR_GOTO(tkl_kws_init(), __KWS_INIT_ERR);
+    printf("[KWS] tkl_kws_init ok\n");
 
-    TUYA_CALL_ERR_GOTO(tkl_kws_wakeup_word_config((TKL_KWS_WAKEUP_WORD_E *)cWAKEUP_KEYWORD_LIST,\
-                      CNTSOF(cWAKEUP_KEYWORD_LIST)), __KWS_INIT_ERR);
+    TUYA_CALL_ERR_GOTO(
+        tkl_kws_wakeup_word_config((TKL_KWS_WAKEUP_WORD_E *)cWAKEUP_KEYWORD_LIST, CNTSOF(cWAKEUP_KEYWORD_LIST)),
+        __KWS_INIT_ERR);
+
+    TUYA_CALL_ERR_GOTO(tkl_kws_enable(), __KWS_INIT_ERR);
 
     sg_feed_buff_len = tkl_kws_get_process_uint_size() * KWS_PROCE_UNIT_NUM;
     PR_DEBUG("sg_feed_buff_len:%d", sg_feed_buff_len);
     TUYA_CALL_ERR_GOTO(tuya_ring_buff_create(sg_feed_buff_len + tkl_kws_get_process_uint_size(),
-                                             OVERFLOW_PSRAM_STOP_TYPE, &sg_feed_ringbuff), __KWS_INIT_ERR);
+                                             OVERFLOW_PSRAM_STOP_TYPE, &sg_feed_ringbuff),
+                       __KWS_INIT_ERR);
 
     return OPRT_OK;
 
@@ -61,9 +67,14 @@ __KWS_INIT_ERR:
     return rt;
 }
 
-static void __example_get_audio_frame(TDL_AUDIO_FRAME_FORMAT_E type, TDL_AUDIO_STATUS_E status,\
-                                      uint8_t *data, uint32_t len)
+static void __example_get_audio_frame(TDL_AUDIO_FRAME_FORMAT_E type, TDL_AUDIO_STATUS_E status, uint8_t *data,
+                                      uint32_t len)
 {
+    /* Capture may deliver its first frame before the ring exists if the order
+     * in user_main is ever changed back; never hand it a NULL ring buffer. */
+    if (sg_feed_ringbuff == NULL) {
+        return;
+    }
     tuya_ring_buff_write(sg_feed_ringbuff, data, len);
 }
 
@@ -83,9 +94,9 @@ static OPERATE_RET __example_audio_open(void)
 
 static TKL_KWS_WAKEUP_WORD_E __kws_recognize_wakeup_keyword(void)
 {
-    uint32_t i = 0, fc = 0;
+    uint32_t              i = 0, fc = 0;
     TKL_KWS_WAKEUP_WORD_E wakeup_word = TKL_KWS_WAKEUP_WORD_UNKNOWN;
-    uint32_t uint_size = 0, feed_size = 0;
+    uint32_t              uint_size = 0, feed_size = 0;
 
     uint_size = tkl_kws_get_process_uint_size();
     feed_size = tuya_ring_buff_used_size_get(sg_feed_ringbuff);
@@ -131,21 +142,29 @@ void user_main(void)
     PR_NOTICE("Platform commit-id:  %s", PLATFORM_COMMIT);
 
     /*hardware register*/
+    printf("[KWS] user_main, registering hardware\n");
     board_register_hardware();
+
+    /* The ring buffer must exist before capture starts: tdl_audio_open()
+     * delivers its first frame from the audio task, and writing that into a
+     * NULL ring leaves the example in a silent, non-obvious state. */
+    if (__example_kws_init() != OPRT_OK) {
+        PR_ERR("kws init failed, capture not started");
+        return;
+    }
 
     __example_audio_open();
 
-    __example_kws_init();
+    PR_NOTICE("kws ready, unit=%d bytes", tkl_kws_get_process_uint_size());
 
-    while(1) {
+    while (1) {
         wakeup_word = __kws_recognize_wakeup_keyword();
-        if(wakeup_word != TKL_KWS_WAKEUP_WORD_UNKNOWN) {
+        if (wakeup_word != TKL_KWS_WAKEUP_WORD_UNKNOWN) {
             PR_NOTICE("kws wakeup key: %d", wakeup_word);
-        } 
+        }
 
         tal_system_sleep(10);
     }
-
 
     return;
 }
@@ -185,9 +204,27 @@ static void tuya_app_thread(void *arg)
 void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
-    thrd_param.stackDepth = 1024 * 4;
-    thrd_param.priority = THREAD_PRIO_1;
-    thrd_param.thrdname = "tuya_app_main";
-    tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param);
+    /* Raw printf, not PR_*: this runs before tal_log_init(), so a hang or a
+     * failed task creation above user_main() is otherwise completely silent.
+     * Appending this marker to the boot log separates "the entry never ran"
+     * from "the application thread never started". printf keeps the 2 KiB
+     * vendor app_core stack in mind. */
+    printf("[KWS] app_main entry\n");
+    /* keyword_tflite_forward_pcm() runs the MFCC front-end and the TFLite
+     * Micro interpreter inline on this task, so 4 KiB (the template default)
+     * is not enough. The Jieli task stacks come from the vendor task pool; if
+     * a 16 KiB request does not fit, fall back to the 8 KiB the VAD example
+     * proves is available and say so -- an uncreated task leaves the whole
+     * application silent with no other symptom. */
+    thrd_param.stackDepth = 1024 * 16;
+    thrd_param.priority   = THREAD_PRIO_1;
+    thrd_param.thrdname   = "tuya_app_main";
+    if (tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param) != OPRT_OK) {
+        printf("[KWS] 16 KiB app task failed, retrying with 8 KiB\n");
+        thrd_param.stackDepth = 1024 * 8;
+        if (tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param) != OPRT_OK) {
+            printf("[KWS] app task creation failed\n");
+        }
+    }
 }
 #endif
