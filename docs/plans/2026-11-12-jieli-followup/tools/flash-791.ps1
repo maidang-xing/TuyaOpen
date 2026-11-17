@@ -284,8 +284,8 @@ $images = @{
         Note = 'SPI VGA 4fps, upstream example, yuv_order from TDD, 3 FBs'
     }
     spitddd = @{
-        File = 'spi-tdd-17f9b72e.bin'
-        Sha  = '17f9b72e87a74c3611508c7078adaca1fbbb866e1ab28cad080e0b8e1ee19f52'
+        File = 'spi-tdd-bda963a3.bin'
+        Sha  = 'bda963a345edea63b55cee98e0d21716c5fb33eaa0ce3b3f9fd3c08fe568d6e1'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'output_display spi_tdd profile with raw boot markers (TDD GC0310 bring-up)'
     }
