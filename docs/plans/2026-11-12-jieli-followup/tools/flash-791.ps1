@@ -10,7 +10,7 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'touch', 'spitddd', 'dvptdd')]
+    [ValidateSet('dvp', 'dvp640', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd')]
     [string]$Image,
 
     # isd_download needs the app's USB device to be enumerated when it opens
@@ -312,6 +312,12 @@ $images = @{
         Sha  = 'de71c3ccf7137c5683aa28b9717616e218265ca4bd9d03450e0b25fb38ee2ce3'
         Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\05-camera\examples\multimedia\audio_kws\.build\jieli-staging\build\cpu\wl82\tools'
         Note = 'audio_kws on audio/tal-engine (76-byte result struct, forward_pcm 1=hit, 44 KiB arena)'
+    }
+    taltokens = @{
+        File = 'tal-tokens-f0a4675a.bin'
+        Sha  = 'f0a4675a7a129c6051f700e3b7f19c1622afe27a7ca3a53092ed55cfed7a5127'
+        Dir  = 'D:\tuya_proj\TuyaOpen\.worktrees\02-voice\apps\tuya.ai\your_chat_bot\.build\jieli-staging\build\cpu\wl82\tools'
+        Note = 'vendor tal_probe_tokens demo: nhty (你好涂鸦) model + SAPI PCM, 40 token classes, batch 15'
     }
     touch = @{
         File = 'touch-54a61aa5.bin'
