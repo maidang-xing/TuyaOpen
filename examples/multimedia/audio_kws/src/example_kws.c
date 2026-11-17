@@ -40,6 +40,7 @@ static OPERATE_RET __example_kws_init(void)
     OPERATE_RET rt = OPRT_OK;
 
     TUYA_CALL_ERR_GOTO(tkl_kws_init(), __KWS_INIT_ERR);
+    printf("[KWS] tkl_kws_init ok\n");
 
     TUYA_CALL_ERR_GOTO(
         tkl_kws_wakeup_word_config((TKL_KWS_WAKEUP_WORD_E *)cWAKEUP_KEYWORD_LIST, CNTSOF(cWAKEUP_KEYWORD_LIST)),
@@ -141,6 +142,7 @@ void user_main(void)
     PR_NOTICE("Platform commit-id:  %s", PLATFORM_COMMIT);
 
     /*hardware register*/
+    printf("[KWS] user_main, registering hardware\n");
     board_register_hardware();
 
     /* The ring buffer must exist before capture starts: tdl_audio_open()
