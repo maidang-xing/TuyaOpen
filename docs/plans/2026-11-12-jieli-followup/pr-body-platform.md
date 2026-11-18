@@ -39,6 +39,7 @@ AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/vi
 
 - `tkl_dvp.h` 增加能力宏 `TKL_DVP_HAS_PULL_API`：共享的 `src/peripherals/camera/tdd_camera` 据此选择拉取实现。仍使用 v1 回调 API 的平台（T5AI、ESP32）不定义该宏，继续编译原有实现，互不影响。
 - 验证组合：JIELI `spi_tdd` / `dvp_lcd` BUILD SUCCESS；T5AI `TUYA_T5AI_BOARD` 摄像头板在与应用 PR #2 的组合下 BUILD SUCCESS。
+- 实机回归（本头构建）：`spi_tdd` 干净构建烧录后连续 **175 s / 776 帧 / 4.43 fps / 480.0 行/帧 / `tag_err=0` / 零异常**，用户目视 SPI 画面正常（`serial-COM8-20261118-175026.log`）。
 - 后续项：T5AI TKL DVP 迁移到 v2（平台仓独立 PR + T5 硬件验证）后，可删除共享核心中的 legacy 分支。
 
 ## 2026-11-17 更新：TDD 归属 sensor 的 SPI 路径实机通过

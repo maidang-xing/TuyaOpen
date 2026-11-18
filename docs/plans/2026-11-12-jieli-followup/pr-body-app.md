@@ -50,6 +50,7 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 - 改为**能力宏守卫**：平台头定义 `TKL_DVP_HAS_PULL_API` 时编译拉取实现，否则编译原有的回调实现（`#else` 分支与 master 逐字节一致）。`sync_polarity` 字段同样守卫（该类型在 v2 头叫 `TUYA_DVP_SYNC_MODE_E`，在 v1 头叫 `TUYA_DVP_SYNC_MODE`）。
 - 还原 `clang-format` 噪声：`tdl_camera_manage.c` 由 140/138 降到 **4/1**（唯一语义改动是 `raw_flow_task` 栈 8 KiB → 16 KiB），`tdd_camera_dvp.h` 由 19/12 降到 **12/0**，`tdd_camera_dvp.c` 变为纯新增（339/1）。
 - 构建验证：JIELI `spi_tdd`、`dvp_lcd` BUILD SUCCESS；**T5AI `TUYA_T5AI_BOARD` 摄像头板 BUILD SUCCESS**（守卫前该组合在 `TUYA_DVP_SYNC_MODE_E` 处失败）。
+- 实机回归（本头构建）：`spi_tdd` 干净构建烧录后连续 **175 s / 776 帧 / 4.43 fps / 480.0 行/帧 / `tag_err=0` / 零异常**，用户目视 SPI 画面正常（`serial-COM8-20261118-175026.log`）。
 
 ## 已知后续项
 
