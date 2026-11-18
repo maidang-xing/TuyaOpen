@@ -6,16 +6,17 @@
 
 - 现场确认板卡 revision、USB/串口枚举（**不沿用历史 COM8**），单人独占登记到 `hardware-ledger.md`。
 - 镜像从 `images/` 取，烧录后核对 SHA；`tools/flash-791.ps1` 已内置各 preset 的 SHA。
-- 当前分支基线：应用 `camera/tdd-refactor`（= PR #2，`8304d183`：DVP 满屏 + SPI 几何保护）、平台 `camera/ac791-clean`（= PR #47，`660f2f59`），显示 TE 修复另见 fork PR #6（`83c7407a`）。
+- 当前分支基线：应用 `camera/tdd-refactor`（= PR #2，`8304d183`：DVP 满屏 + SPI 几何保护）、平台 `camera/ac791-clean`（= PR #47，`6562c41`，含 660f2f59 的实机修复与 6562c41 的生命周期/内存加固），显示 TE 修复另见 fork PR #6（`83c7407a`）。
 
 ## 1. SPI 摄像头（05，J4，重点：紫/粉偏色复验）
 
-- 只接 J4 模组。**先烧 `spibase`**（`spi-base-e8fcc4e5.bin`，430,692 B，SHA `e8fcc4e5…`）：当前基线的干净重建镜像（GC0310 表已对齐厂商 304 条、几何保护、显示 TE 修复、默认 YUYV）。它取代 `spitddd`（`bda963a3…`）作为本轮首烧。
+- 只接 J4 模组。**先烧 `spibase`**（`spi-base2-1444db37.bin`，430,692 B，SHA `1444db37…`）：当前基线的干净重建镜像（GC0310 表已对齐厂商 304 条、几何保护、显示 TE 修复、平台 `6562c41` 的 SPI 内存修复、默认 YUYV）。它取代 `spitddd`（`bda963a3…`）作为本轮首烧。
 - 串口判据：`[CAM] app_main entry` → `first frame 640x480 len=614400`；持续 ≥60 s，行/帧 ≈480，`tag_err` 不累积，无复位。
 - **画面判据（本次核心）**：颜色与厂商 demo 一致，不得偏紫/偏粉；无撕裂、无错位行。表已改为“仅厂商实际执行的 304 条写”，属紫/粉问题的直接修复，需目视重新确认。
 - 观察 tag 错误恢复：人为扰动/长时间运行后出现 `SPI: tag error N, resyncing` 时应自动恢复出帧（`6c36e54f`）。
-- 若 `spibase` 仍偏紫/粉：再烧 `spiyuv`（`spi-yuvbi-9fd1535e.bin`，431,012 B，SHA `9fd1535e…`）——单次烧录完成顺序二分：同一路画面每 10 帧（≈2.3 s）在 `YUYV`/`UYVY` 间切换，串口同步打印 `[CAM] yuv_order=<order> frame=N`，并在初始化时回读 GC0310 页 0 的 `[CAM] gc0310 awb 8b..90 = …`（厂商表期望 `00 00 00 00 00 c9`，其中 `0x90=0xc9` 是稳定 AWB）。
-  - 目视判据：哪种顺序下颜色自然即取哪种；两种都偏紫/粉则排除字节序，转向 AWB/ISP（看回读值是否被块注释备选覆盖），再对照 `gc0310.c` 的 0x8c/0x8d 两组增益块。
+- 若 `spibase` 仍偏紫/粉：再烧 `spiyuv`（`spi-yuvbi3-ac4f2c39.bin`，431,364 B，SHA `ac4f2c39…`）——单次烧录完成顺序二分：同一路画面每 10 帧（≈2.3 s）在 `YUYV`/`UYVY` 间切换，串口同步打印 `[CAM] yuv_order=<order> frame=N`。
+  - 寄存器回读（本次关键证据）：`[CAM] init page1 awb 8b..90 = 00 00 00 00 00 c9`（AWB 块在 **page 1**；`0x90=0xc9` 是稳定 AWB）与 `[CAM] init page0 pll f7..fa = 88 00 4f 32`、`page0 8f..90 = aa 8c`（证明页选与实际落写）；TDD 在 SPI 武装后会重启传感器，故还有一组 `restart` 前缀的同格式回读，应以 restart 组为准。
+  - 目视判据：哪种顺序下颜色自然即取哪种；两种都偏紫/粉则排除字节序。此时若白色物体仍偏色，说明不是 U/V 互换（白色 U=V=128 与顺序无关），按顺序看：① AWB 收敛（厂商丢弃前 4 帧；等 10–30 s 看是否褪色并观察 `tag_err` 是否累积）；② 复位/XCLK 顺序（TDD 在 XCLK 关闭时先复位，厂商先开 XCLK 且两次复位/ID；可改 XCLK 提前与复位释放延时再验）；③ YVYU 变体（现有枚举只有 YUYV/UYVY；若前两步都不成立，再做字节 1/3 交换的临时变体）。
   - 该镜像用临时诊断源码构建（已从分支还原，副本在 `.local-jieli-migration/2026-11-18/`），不要与 PR 内容混淆。
 - 证据：串口日志 + 屏幕照片/录屏，路径写入矩阵 05 行。
 

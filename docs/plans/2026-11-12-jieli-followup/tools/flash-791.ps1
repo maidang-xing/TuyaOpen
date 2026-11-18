@@ -116,16 +116,16 @@ $images = @{
         Note = 'DVP v2 final + 320x240 -> 320x480 row-doubled preview'
     }
     spiyuv = @{
-        File = 'spi-yuvbi-9fd1535e.bin'
-        Sha  = '9fd1535ee8d44fc9c13c243d186e506a7ac0c0b952c4e901023f36bd69f52f36'
+        File = 'spi-yuvbi3-ac4f2c39.bin'
+        Sha  = 'ac4f2c39b86c1af9f07fb7470799b6610538f719fb038b3b87a72b144bb9909b'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
-        Note = 'SPI VGA colour bisect: YUYV/UYVY alternate every 10 frames + GC0310 AWB regs 8b..90'
+        Note = 'SPI VGA colour bisect (platform 6562c41): YUYV/UYVY every 10 frames; page-1 AWB + page-0 PLL readback'
     }
     spibase = @{
-        File = 'spi-base-e8fcc4e5.bin'
-        Sha  = 'e8fcc4e5506869399a4288907b6dc02057f8bcbc62a21fe732c9ba001d2fd3fc'
+        File = 'spi-base2-1444db37.bin'
+        Sha  = '1444db37f6c410a4037edd88596950654f66209250f00c162f450635eb7c8f74'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
-        Note = 'SPI VGA baseline: fixed GC0310 table, geometry guard, display TE fix, declared YUYV'
+        Note = 'SPI VGA baseline: fixed GC0310 table, geometry guard, display TE fix, DVP statics out of the SPI build'
     }
     dvphead = @{
         File = 'dvp-head-68a633ea.bin'
