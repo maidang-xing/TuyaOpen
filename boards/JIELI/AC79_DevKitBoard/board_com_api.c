@@ -40,7 +40,7 @@
     ((defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)) ||                                               \
      (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
 #include "tdd_camera_dvp.h"
-#if defined(JIELI_CAMERA_TDD_SENSOR) && (JIELI_CAMERA_TDD_SENSOR == 1)
+#if defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
 #include "tdd_camera_gc0310_spi.h"
 #endif
 #define JIELI_CAMERA_DEV_NAME "camera"
@@ -69,7 +69,7 @@
 #define JIELI_8080_DISPLAY_HEIGHT 480
 #endif
 
-#if defined(JIELI_CAMERA_TDD_SENSOR) && (JIELI_CAMERA_TDD_SENSOR == 1)
+#if defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
 /* tkl_dvp declares this weak and calls it after arming SPI2. Keeping the
  * board glue here lets the platform stay sensor-agnostic. */
 OPERATE_RET tkl_camera_sensor_restart(void)
@@ -153,7 +153,7 @@ OPERATE_RET board_register_hardware(void)
     ((defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)) ||                                               \
      (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
     {
-#if defined(JIELI_CAMERA_TDD_SENSOR) && (JIELI_CAMERA_TDD_SENSOR == 1)
+#if defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
         /* The TDD owns the sensor: IIC1 on PH0/PH1, reset on PH3. tkl_dvp
          * skips video1 and asks tdd_camera_gc0310_spi_restart() to re-run the
          * table once SPI2 is armed. */
@@ -198,7 +198,7 @@ OPERATE_RET board_register_hardware(void)
 #if defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)
                "DVP (J1/video0)"
 #else
-               "SPI (J4/video1+spi2)"
+               "SPI (J4/spi2, TDD sensor)"
 #endif
         );
     }
