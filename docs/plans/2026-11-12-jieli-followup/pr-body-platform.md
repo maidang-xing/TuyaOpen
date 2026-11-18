@@ -71,3 +71,28 @@ AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/vi
 - `52b1322`：SPI 接收路径在 CPU 读取前对 DMA 帧缓冲执行 `flushinv_dcache`（行中断与整包两条路径），避免复用帧池条目时读到上一轮的缓存行——**已随 2026-11-18 SPI 实机验收通过**。
 - 实机复验（DVP）：`dvphard`（`dvp-v2-harden-1461b9eb.bin`）启动链全绿；`dvpharddiag` 连续 **129.8 s / 3,720 帧 / drops=0 / 零 exception**；`52b1322` 头复验 **133.4 s / 3,820 帧 / drops=0**。
 - 配套：显示 TE 引脚未初始化修复（PR maidang-xing/TuyaOpen#6），未合并时单独构建需带上，否则 `display init rt=-2`。
+
+## 2026-11-18 评审清理：`tkl_dvp` 只保留 TDD 传感器路径（`4918f5c2`）
+
+SPI 路径原先还挂着一套厂商 `video1.0` 传感器开流逻辑（`spi_sensor_open_thread` + `s_sensor_ready/s_sensor_done` 握手），由 `JIELI_CAMERA_TDD_SENSOR` 与 TDD 路径二选一。TDD 路径验收通过后删除该分支：提前开 PH2 XCLK、SPI2 armed 后重启传感器、teardown 在 SPI 路径上全部变为无条件行为（**-140 行**）。
+
+同时把厂商 `gc0310.c` 还原为原厂版本：此前的 9 行补丁（ID 页切换 + 复位后延时）只服务那条已删除的厂商路径；TuyaOpen 侧寄存器表由 TDD 传感器驱动负责，vendor 文件保持原样。
+
+> ⚠️ 必须与应用仓 `camera/tdd-refactor` 的 `ba696866`（PR #2）同落：本文件的 SPI 分支读同一个 Kconfig 宏 `JIELI_CAMERA_PATH_SPI`。
+
+验证：AC791 `spi_tdd` 用本树构建、烧录 → 640×480 4.43 fps、480.0 行/帧、`tag_err=0`、175 s 零异常；DVP profile 构建通过。
+
+## 2026-11-18 IIC 总线 A/B：硬件 IIC1 vs 软件 IIC（`fc558435`）
+
+评审的问题是"为什么不用 TKL pinmux / 硬件 IIC 上 PH0/PH1"。现状澄清：**IIC 引脚本来就是 pinmux + 板级配置**——共享 TDD 在 `tdd_dvp_i2c_init()` 里对 `cfg->clk/sda`（板级传 112/113 = PH0/PH1）调用 `tkl_io_pinmux_config()`；`tkl_i2c.c` 只决定 vendor `iic1` 设备节点注册成硬件还是软件控制器。本提交把该节点里硬编码的 `IO_PORTH_00/01` 改成读 `TUYA_BOARD_IIC1_SCL/SDA_PIN`（板级 Kconfig 在 SPI 路径下默认就是 PH0/PH1），引脚名只留一处。
+
+A/B（同一棵树，只改节点类型；`spi_tdd` profile，AC791 + J4 GC0310）：
+
+| 变体 | iic1 节点 | 结果 |
+|---|---|---|
+| A | 硬件 IIC，PH0/PH1 | ID 探测与整张寄存器表**都通过**，但 SPI 收到 **0 帧**、`tag_err` ≈2700/s、画面全无 |
+| B | 软件 IIC（bit-bang），PH0/PH1 | **4.44 fps / 479.8 行/帧 / `tag_err=0`** |
+
+结论：硬件控制器在这两个焊盘上不可用——它们与传感器 2-wire SPI 的时钟/数据复用，硬件 IIC 占用引脚后 SPI 收不到有效行。软件 IIC 保留。日志 `logs/boot-ab-hwiic.log`（A）、`logs/serial-COM8-20261118-192756.log`（B）。
+
+> 更正早前记录：此前"硬件 IIC 会让开机静默"的结论**作废**——那次是在清理未完成的中间树上测的，A/B 不可信；本次在最终树上重做，变体 A 能正常启动并完成 I2C 初始化全程。

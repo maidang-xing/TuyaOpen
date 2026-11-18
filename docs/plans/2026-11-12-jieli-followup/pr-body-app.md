@@ -72,3 +72,23 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 - `845048d2` 示例铺满：320×240 帧先转 RGB565 临时帧；面板高度为两倍时每行写两遍，铺满 320×480；其它尺寸回退 1:1。
 - 配套：平台 PR #47（静态 BSS overlay 缓冲 + 采集/转换分任务 + volatile 转换 + SPI DMA 帧缓存失效）、显示 TE 修复 PR maidang-xing/TuyaOpen#6。
 - `8304d183` 几何保护：RGB565 临时帧只在“面板宽=相机宽且高≥2×相机高”时分配和使用，其它几何直接转进面板 FB；DVP 几何行为不变。
+
+## 2026-11-18 评审清理：SPI 只留一条路径（`ba696866`）
+
+评审的两个问题是"都走 TDD/TKL 了为什么还改厂商 `gc0310.c`"和"为什么堆了这么多 `JIELI_*` 宏"。根因是 SPI 路径一度并存两套实现——厂商 `video1.0` 驱动与 TDD 传感器驱动——靠 Kconfig 的 `JIELI_CAMERA_TDD_SENSOR` 二选一。TDD 路径验收通过后另一条已无 profile 使用，本次把开关和它带出来的东西一起删掉：
+
+- 删 `JIELI_CAMERA_TDD_SENSOR`：SPI 路径固定由 TDD 配置传感器（IIC1 在 PH0/PH1）。`board_com_api.c` 三处守卫与 `tkl_camera_sensor_restart()` 钩子改用 `JIELI_CAMERA_PATH_SPI`。
+- 删 `JIELI_CAMERA_SPI_EDGE_{SMPH,SMPL,H_SMPH}` 与 `JIELI_CAMERA_I2C_SCAN`：全仓无消费者（平台 staging 固定写板级 demo 的 SMPH），都是 bring-up 期实验开关。
+- 删 `JIELI_AC79_DevKitBoard_spi_lcd(.qvga)` 两个 profile：走厂商 video1 路径，随开关一起退役；`spi_tdd` 保留。
+- 保留 `CONFIG_EXAMPLE_CAMERA_WIDTH/HEIGHT/FPS`：`example_camera.c` 用它们填 `cfg.width/height/fps`，不是死配置（删掉后示例按 Kconfig 默认 480×480@20 打开并挂死——已实测）。
+
+配套平台侧清理在平台 PR #47（`tkl_dvp.c` 删厂商 video1 线程与握手、厂商 `gc0310.c` 还原原样）。**两侧必须同落**：`tkl_dvp.c` 的 SPI 分支读同一个 Kconfig 宏，只改应用侧会让 TKL 退回厂商 video1 路径、板级却注册 TDD 传感器，开机卡死在相机初始化（已实测）。
+
+验证（清理后的树）：
+
+- `spi_tdd` 干净构建 → 烧录 → **4.43 fps / 480.0 行/帧 / `tag_err=0`，175 s 连续 776 帧、零异常**（`serial-COM8-20261118-190828.log`）。
+- `dvp_lcd` profile BUILD SUCCESS；**T5AI 摄像头板 BUILD SUCCESS**（legacy 回调路径不受影响）。
+
+## 2026-11-18 IIC 总线（配合平台 PR #47 `fc558435`）
+
+板级 `TDD_DVP_SR_USR_CFG_T.i2c = {port = TUYA_I2C_NUM_1, clk = 112, sda = 113}` 会由共享 TDD 通过 `tkl_io_pinmux_config()` 落到 PH0/PH1，`iic1` 的引脚也改由板级 Kconfig 提供（此前在平台 `tkl_i2c.c` 里硬编码）。平台侧做了硬件 IIC1 与软件 IIC 的 A/B：硬件节点能让 ID 探测和寄存器表通过，但 SPI 一帧都收不到（`tag_err` ≈2700/s），因为 PH0/PH1 与传感器 2-wire SPI 复用；软件 IIC 维持 4.44 fps / `tag_err=0`。详见平台 PR #47。
