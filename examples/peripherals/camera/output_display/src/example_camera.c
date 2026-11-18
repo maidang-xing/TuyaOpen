@@ -49,6 +49,11 @@ static TDL_FB_MANAGE_HANDLE_T sg_fb_manage = NULL;
 static TDL_CAMERA_HANDLE_T sg_tdl_camera_hdl = NULL;
 static TUYA_YUV422_ORDER_E sg_yuv_order      = TUYA_YUV422_UYVY;
 
+/* RGB565 scratch frame used to stretch the camera picture over the panel:
+ * the panel is 320x480 while the camera sends 320x240, so each source row is
+ * written twice. */
+static uint8_t *sg_conv_buf = NULL;
+
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
@@ -56,13 +61,49 @@ static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA
 {
     OPERATE_RET            rt         = OPRT_OK;
     TDL_DISP_FRAME_BUFF_T *convert_fb = NULL;
+    TDL_DISP_FRAME_BUFF_T  scratch;
 
     convert_fb = tdl_disp_get_free_fb(sg_fb_manage);
     TUYA_CHECK_NULL_RETURN(convert_fb, OPRT_COM_ERROR);
 
-    TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, convert_fb,
+    if (sg_conv_buf == NULL) {
+        TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, convert_fb,
+                                                        sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION,
+                                                        sg_yuv_order));
+        tdl_disp_dev_flush(sg_tdl_disp_hdl, convert_fb);
+        return rt;
+    }
+
+    memset(&scratch, 0, sizeof(scratch));
+    scratch.type   = convert_fb->type;
+    scratch.fmt    = convert_fb->fmt;
+    scratch.width  = frame->width;
+    scratch.height = frame->height;
+    scratch.len    = (uint32_t)frame->width * frame->height * 2U;
+    scratch.frame  = sg_conv_buf;
+
+    TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, &scratch,
                                                     sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION,
                                                     sg_yuv_order));
+
+    /* Fill the panel by duplicating every source row when the panel is twice
+     * as tall as the camera picture (320x480 panel, 320x240 camera). */
+    if (convert_fb->width == frame->width && convert_fb->height >= (uint16_t)(2U * frame->height) &&
+        convert_fb->frame != NULL) {
+        uint32_t       row_bytes = (uint32_t)frame->width * 2U;
+        uint8_t       *dst       = convert_fb->frame;
+        const uint8_t *src       = sg_conv_buf;
+        uint16_t       row;
+
+        for (row = 0; row < frame->height; row++) {
+            memcpy(dst, src, row_bytes);
+            memcpy(dst + row_bytes, src, row_bytes);
+            dst += 2U * row_bytes;
+            src += row_bytes;
+        }
+    } else if (convert_fb->frame != NULL) {
+        memcpy(convert_fb->frame, sg_conv_buf, scratch.len);
+    }
 
     tdl_disp_dev_flush(sg_tdl_disp_hdl, convert_fb);
 
@@ -102,6 +143,13 @@ static OPERATE_RET __display_init(void)
 
     for (uint8_t i = 0; i < DISPLAY_FRAME_BUFF_NUM; i++) {
         TUYA_CALL_ERR_LOG(tdl_disp_fb_manage_add(sg_fb_manage, sg_display_info.fmt, width, height));
+    }
+
+    if (sg_conv_buf == NULL) {
+        sg_conv_buf = (uint8_t *)tal_malloc((uint32_t)EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2U);
+        if (sg_conv_buf == NULL) {
+            PR_WARN("no RGB565 scratch buffer; preview stays 1:1");
+        }
     }
 
     return OPRT_OK;
