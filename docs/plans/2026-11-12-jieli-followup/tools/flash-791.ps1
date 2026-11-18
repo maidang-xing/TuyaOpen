@@ -10,7 +10,7 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd')]
+    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill')]
     [string]$Image,
 
     # isd_download needs the app's USB device to be enumerated when it opens
@@ -36,6 +36,84 @@ $images = @{
         Sha  = '4fe36c410c63d0341efb16d9d49cc0c8ebbda044df8b75b7a9ca466c21963dde'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'output_display dvp_lcd profile with boot markers, checked against TDL camera path'
+    }
+    dvp2 = @{
+        File = 'dvp-v2-4ddcf72f.bin'
+        Sha  = '4ddcf72f47943a0de5539e41cb3383e0ffca2f42f0984c0377dc96e6f06006da'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'clean rebuild of TKL/TDD DVP v2 (platform a4aab851 / app 53ad1852), 422,604 B'
+    }
+    dvpdiag = @{
+        File = 'dvp-v2-diag-a2a32bbf.bin'
+        Sha  = 'a2a32bbfc09fbc826aa64fb8a36b0473bddbefa67d95de37d2e20d608c1654c3'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 diagnostic: prints SET_FMT/GET_OVERLAY fields, no cache op/convert/deliver'
+    }
+    dvpbisect = @{
+        File = 'dvp-v2-bisect-43dfa09e.bin'
+        Sha  = '43dfa09edc119b4e00c5e17f0b6e17852dca94585dca8a390ef498178b8568d7'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 bisect: frames 1-20 cache op, 21-40 +convert, 41+ +deliver; markers name the faulting stage'
+    }
+    dvpfix = @{
+        File = 'dvp-v2-fix-a5fe2492.bin'
+        Sha  = 'a5fe249269c77cac07651ff92eb4ed4f7e81e9d8beab42183673ce98e4fce2cc'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 + optnone conversion + layout probe + TE gpio_cfg zero-init'
+    }
+    dvpclear = @{
+        File = 'dvp-v2-clearfirst-9fa2b577.bin'
+        Sha  = '9fa2b5772a9aca7cf07a1595686de372cc610a84ab2016979083889a558e30c6'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2: CLEAR_OVERLAY before reading, vendor-demo order; phases A/B/C markers'
+    }
+    dvpstage = @{
+        File = 'dvp-v2-stage-a4e97b15.bin'
+        Sha  = 'a4e97b153f7a25a8669d588d93d2866ef63e3bcf9de131fedd8017def45bbb77'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2: memcpy frame to staging + CLEAR before converting (release vendor buffer early)'
+    }
+    dvpprobe = @{
+        File = 'dvp-v2-probe-f9040c98.bin'
+        Sha  = 'f9040c98b66a02225f35a0d97c3ceb85ae1614c9219251acd237eb140958b579'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 probe: P2 full-buffer read, P3 memcpy, P4 convert(stage), P5 stage+convert+deliver'
+    }
+    dvpdemo = @{
+        File = 'dvp-v2-demo-ed732288.bin'
+        Sha  = 'ed732288bbf64a010e00587f09755edc635d8684e8fd74af56d43bfcd480fbc5'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 vendor-demo overlay mode + volatile byte reads + aligned u32 stores + staged copy'
+    }
+    dvpdecouple = @{
+        File = 'dvp-v2-decouple-a4b06822.bin'
+        Sha  = 'a4b06822fce59435c799cfbddc189dd4b7a4251431defe9145b53d44145a7e06'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 decoupled (queue reset on start): capture task GET+stage-copy+CLEAR, cam_proc converts/delivers'
+    }
+    dvpnodisp = @{
+        File = 'dvp-v2-nodisp-41664aaa.bin'
+        Sha  = '41664aaa287b5c705ddb9637eb6be34adc592709bf1ce84af692fcfbb507c3c8'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 decoupled, display init skipped: isolates the camera path from the EMI/panel hang'
+    }
+    dvpstatic = @{
+        File = 'dvp-v2-static-e07ebdb7.bin'
+        Sha  = 'e07ebdb79fd2dca8dafa1523e66e210e31691e153139a22044fe2099fd8ba188'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 hybrid mode with a 153,600-byte 32-aligned BSS overlay buffer (vendor storage class)'
+    }
+    dvpfinal = @{
+        File = 'dvp-v2-final-2af653d1.bin'
+        Sha  = '2af653d1a07e7c8adf7c6aa9def980665a4925bf00cafc4a1d2e1323eb9245bb'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 final: static overlay buffer + decoupled capture/convert, periodic diagnostics removed'
+    }
+    dvpfill = @{
+        File = 'dvp-v2-fill-ed1b448e.bin'
+        Sha  = 'ed1b448ef767c17a703ae9bfc933437da6c6f17bc15fd4430351eea2e528bc38'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP v2 final + 320x240 -> 320x480 row-doubled preview'
     }
     dvphead = @{
         File = 'dvp-head-68a633ea.bin'

@@ -20,9 +20,16 @@
 ## 2. DVP 摄像头（05，J1）
 
 - **只接 J1 模组并断开 J4**：两模组同时连接时共用 PA2/PA3/PA4、PH0–PH3 且同 I2C 地址 0x42，vendor video0 探测会读到 GC0310 的 `0xa310` 并误判，随后 `video.c:558` 断言复位——这是 11-17 “一直重启”的已证原因，不是代码回归。
-- 烧 `dvphead`：`dvp-head-68a633ea.bin`，411,433 B，SHA `68a633ea…`（当前 PR 头重建，含错误路径修复；旧的 `dvptdd`/`dvp-4fe36c41` 仅作对照基线）。
-- 判据：sensor 名探测成功、有效帧、帧率与配置一致、无复位；画面颜色/几何正常。
-- 证据同上；若仍复位，先记录探测到的 sensor 名再判断。
+- **先起抓取再烧**：`tools/capture-791.ps1 -Seconds 150 -Port COM8 -Baud 115200`，然后 `tools/flash-791.ps1 -Image <preset>`（板子须为 `WL82 UDISK`/`WL82 UBOOT1.00`；崩溃循环后 USB 不枚举时只能 `UPDATE+RESET`）。
+- **按顺序烧 DVP v2 候选**（均为本地构建、已归档；板卡需在 UBOOT）：
+  1. `dvpdemo` = `dvp-v2-demo-ed732288.bin`（423,500 B）——厂商 `get_yuv_data.c` 外部缓冲模式（`SET_FMT` 只设 type+format、`SET_OVERLAY(&yuv)`、64 字节对齐）+ `volatile` 字节读/对齐 32 位写转换 + 暂存拷贝；镜像内含 P1–P5 分段打印与每 10 帧 `P5 delivered frame N`。
+  2. 若失败，`dvpprobe` = `dvp-v2-probe-f9040c98.bin`（旧混合模式分段：P2 整缓冲校验和、P3 memcpy、P4 staging 转换，各带 ms）；若 P2/P4 暴露出"抓取线程停留越久越容易崩"，改烧 `dvpdecouple` = `dvp-v2-decouple-a4b06822.bin`（423,344 B，厂商外部缓冲模式 + 采集任务只做 GET/拷贝/CLEAR、独立 `cam_proc` 任务做转换与投递）。
+  3. 若整机卡在 `[EMI]emi open success`（显示初始化，不属于相机代码），改烧 `dvpnodisp` = `dvp-v2-nodisp-41664aaa.bin`（415,120 B，跳过 `__display_init`，只验证相机链路；预期 `[CAM] display init skipped (diag)` → `camera init rt=0` → `[camera] delivered 20 frames…`）。
+  4. 若读走整帧后下一次 GET 就崩（`dvpprobe` 的 P1 后即复位），先烧 `dvpstatic` = `dvp-v2-static-e07ebdb7.bin`（423,408 B，overlay 缓冲改为 153,600 字节 32 对齐 BSS 静态数组，匹配厂商 demo 的存储属性）。
+  5. 再失败，`dvpstage` = `dvp-v2-stage-a4e97b15.bin`（仅暂存拷贝）、`dvpclear`/`dvpfix` 作对照；`dvphead`（`dvp-head-68a633ea.bin`）是 v1 基线，实机已知 `first frame` 后 `isc bandwith err`→`axi_rd_inv`。
+- 判据：`display init rt=0`；`sensor: GC2145`、`320x240 fps=20`；P1–P4 逐段通过且无 `exception`；出现持续 `P5 delivered frame N`；屏上出现画面（示例按 YUYV→RGB565 刷屏）。
+- 已知线索：`dvpfix`/`dvpclear` 实机的异常 PC 已符号化到厂商 `isc_sen_isr0`（ISP 传感器中断）与 `wl80_video1_ioctl`，属 ISP 缓冲/时序问题，不是单纯转换代码错误。
+- 证据同上；若仍复位，先记录探测到的 sensor 名与最后一条 `P?` 标记再判断。
 
 ## 3. VAD（02）
 
