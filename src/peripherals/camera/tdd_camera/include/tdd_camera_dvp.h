@@ -15,6 +15,7 @@
 #define __TDD_CAMERA_DVP_H__
 
 #include "tuya_cloud_types.h"
+#include "tkl_dvp.h"
 #include "tdl_camera_driver.h"
 #include "tdd_camera_dvp_i2c.h"
 
@@ -46,6 +47,9 @@ typedef struct {
      * the platform decide this (GC0310 over SPI is packed YUYV); TDL hands it
      * to consumers through TDL_CAMERA_DEV_INFO_T.yuv_order. */
     TUYA_YUV422_ORDER_E yuv_order;
+    /* HSYNC/VSYNC polarity the sensor drives; the TKL DVP interface requires
+     * it in its init config and does not probe it. 0 = both high valid. */
+    TUYA_DVP_SYNC_MODE_E sync_polarity;
 } TDD_DVP_SR_CFG_T;
 
 typedef struct {
