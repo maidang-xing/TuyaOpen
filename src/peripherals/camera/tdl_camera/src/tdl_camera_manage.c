@@ -275,10 +275,9 @@ static OPERATE_RET __camera_manage_init(TDL_CAMERA_FMT_E out_fmt)
         }
 
         if (NULL == sg_camera_manage.raw_thrd) {
-            /* The frame callback runs on this thread, and consumers commonly
-             * convert and push the frame to a display here. 8 KiB was enough
-             * for the callback itself but overflowed once a board's display
-             * flush chain was added underneath it. */
+            /* The frame callback runs on this thread and consumers commonly
+             * convert and push the frame to a display there; 8 KiB overflowed
+             * once a board's display flush chain was added underneath it. */
             THREAD_CFG_T thread_cfg = {16384, THREAD_PRIO_1, "raw_flow_task", 0};
             TUYA_CALL_ERR_RETURN(tal_thread_create_and_start(&(sg_camera_manage.raw_thrd), NULL, NULL, __raw_flow_task,
                                                              NULL, &thread_cfg));

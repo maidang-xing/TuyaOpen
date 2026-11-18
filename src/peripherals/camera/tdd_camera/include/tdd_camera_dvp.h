@@ -47,9 +47,13 @@ typedef struct {
      * the platform decide this (GC0310 over SPI is packed YUYV); TDL hands it
      * to consumers through TDL_CAMERA_DEV_INFO_T.yuv_order. */
     TUYA_YUV422_ORDER_E yuv_order;
-    /* HSYNC/VSYNC polarity the sensor drives; the TKL DVP interface requires
-     * it in its init config and does not probe it. 0 = both high valid. */
+#if defined(TKL_DVP_HAS_PULL_API)
+    /* HSYNC/VSYNC polarity the sensor drives; the v2 TKL DVP interface
+     * requires it in its init config and does not probe it. 0 = both high
+     * valid. The type is spelled TUYA_DVP_SYNC_MODE_E on this platform and
+     * TUYA_DVP_SYNC_MODE on the legacy ones, so the field is v2-only. */
     TUYA_DVP_SYNC_MODE_E sync_polarity;
+#endif
 } TDD_DVP_SR_CFG_T;
 
 typedef struct {
