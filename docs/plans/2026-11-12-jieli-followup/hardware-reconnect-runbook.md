@@ -6,11 +6,11 @@
 
 - 现场确认板卡 revision、USB/串口枚举（**不沿用历史 COM8**），单人独占登记到 `hardware-ledger.md`。
 - 镜像从 `images/` 取，烧录后核对 SHA；`tools/flash-791.ps1` 已内置各 preset 的 SHA。
-- 当前分支基线：应用 `camera/tdd-refactor`（= PR #2，`8304d183`：DVP 满屏 + SPI 几何保护）、平台 `camera/ac791-clean`（= PR #47，`6562c41`，含 660f2f59 的实机修复与 6562c41 的生命周期/内存加固），显示 TE 修复另见 fork PR #6（`83c7407a`）。
+- 当前分支基线：应用 `camera/tdd-refactor`（= PR #2，`8304d183`：DVP 满屏 + SPI 几何保护）、平台 `camera/ac791-clean`（= PR #47，`52b1322`：660f2f59 实机修复 + 6562c41 生命周期/内存加固 + 52b1322 SPI DMA 帧缓存失效），显示 TE 修复另见 fork PR #6（`83c7407a`）。
 
 ## 1. SPI 摄像头（05，J4，重点：紫/粉偏色复验）
 
-- 只接 J4 模组。**先烧 `spibase`**（`spi-base2-1444db37.bin`，430,692 B，SHA `1444db37…`）：当前基线的干净重建镜像（GC0310 表已对齐厂商 304 条、几何保护、显示 TE 修复、平台 `6562c41` 的 SPI 内存修复、默认 YUYV）。它取代 `spitddd`（`bda963a3…`）作为本轮首烧。
+- 只接 J4 模组。**先烧 `spibase`**（`spi-base3-556e7662.bin`，430,692 B，SHA `556e7662…`）：当前基线的干净重建镜像（GC0310 表已对齐厂商 304 条、几何保护、显示 TE 修复、平台 `6562c41` 的 SPI 内存修复与 `52b1322` 的 DMA 帧缓存失效、默认 YUYV）。它取代 `spitddd`（`bda963a3…`）作为本轮首烧。
 - 串口判据：`[CAM] app_main entry` → `first frame 640x480 len=614400`；持续 ≥60 s，行/帧 ≈480，`tag_err` 不累积，无复位。
 - **画面判据（本次核心）**：颜色与厂商 demo 一致，不得偏紫/偏粉；无撕裂、无错位行。表已改为“仅厂商实际执行的 304 条写”，属紫/粉问题的直接修复，需目视重新确认。
 - 观察 tag 错误恢复：人为扰动/长时间运行后出现 `SPI: tag error N, resyncing` 时应自动恢复出帧（`6c36e54f`）。

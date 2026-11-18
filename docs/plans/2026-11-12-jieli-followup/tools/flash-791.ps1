@@ -134,10 +134,10 @@ $images = @{
         Note = 'SPI VGA colour bisect (platform 6562c41): YUYV/UYVY every 10 frames; page-1 AWB + page-0 PLL readback'
     }
     spibase = @{
-        File = 'spi-base2-1444db37.bin'
-        Sha  = '1444db37f6c410a4037edd88596950654f66209250f00c162f450635eb7c8f74'
+        File = 'spi-base3-556e7662.bin'
+        Sha  = '556e766290eb64ba557977621980b6eab8f8e713100aa521a8e6abce7dd70b61'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
-        Note = 'SPI VGA baseline: fixed GC0310 table, geometry guard, display TE fix, DVP statics out of the SPI build'
+        Note = 'SPI VGA baseline: fixed table, geometry guard, TE fix, DVP statics guarded, SPI DMA frame cache invalidation'
     }
     dvphead = @{
         File = 'dvp-head-68a633ea.bin'
