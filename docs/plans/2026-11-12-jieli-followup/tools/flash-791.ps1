@@ -10,7 +10,7 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill')]
+    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'spiyuv')]
     [string]$Image,
 
     # isd_download needs the app's USB device to be enumerated when it opens
@@ -114,6 +114,12 @@ $images = @{
         Sha  = 'ed1b448ef767c17a703ae9bfc933437da6c6f17bc15fd4430351eea2e528bc38'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'DVP v2 final + 320x240 -> 320x480 row-doubled preview'
+    }
+    spiyuv = @{
+        File = 'spi-yuvbi-9fd1535e.bin'
+        Sha  = '9fd1535ee8d44fc9c13c243d186e506a7ac0c0b952c4e901023f36bd69f52f36'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI VGA colour bisect: YUYV/UYVY alternate every 10 frames + GC0310 AWB regs 8b..90'
     }
     dvphead = @{
         File = 'dvp-head-68a633ea.bin'
