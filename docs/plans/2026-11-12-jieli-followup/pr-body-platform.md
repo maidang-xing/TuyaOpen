@@ -103,3 +103,9 @@ A/B（同一棵树，只改节点类型；`spi_tdd` profile，AC791 + J4 GC0310�
 - `board_config.py`：删掉板级已不存在的 SPI 采样沿分支（staged 值本来就是厂商 demo 的 SMPH），去掉 `video1` 旧措辞。
 
 构建/实机：`spi_tdd`、`dvp_lcd` 均 BUILD SUCCESS；`spi_tdd` 实机 4.4 fps、`tag_err=0`、启动日志零 E 级错误。
+
+## 2026-11-19 结构对齐：平台只认板级 flag（`720bb6b0`）
+
+`tkl_dvp.c` 与 staging 工具改读 `JIELI_BOARD_CAMERA_DVP/_SPI` 和 `JIELI_BOARD_CAMERA_WIDTH/HEIGHT/FPS`——这些是板级从"Camera module"选择里 staged 出来的。适配层里不再出现传感器名或"路径"字样；没 staged 时保留 640×480 兜底。
+
+验证：`spi_tdd`、`dvp_lcd` BUILD SUCCESS；`spi_tdd` 实机 4.4 fps / `tag_err=0` / 60 s。

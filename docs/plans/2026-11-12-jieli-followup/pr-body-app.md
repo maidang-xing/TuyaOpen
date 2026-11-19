@@ -108,3 +108,22 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 实机（`b351a22b…`，spi_tdd）：`gc0310 chip id 0xa310` → `SPI capture started` → `first frame 640x480`，**4.4 fps / 479.8 行/帧 / `tag_err=0`，启动日志 0 条 E 级错误**；`dvp_lcd` BUILD SUCCESS。
 
 > ⚠️ 依赖：AC791 上单独构建本分支时，8080 面板需要 **PR #6（`83c7407a`）** 的 TE 引脚修复，否则 `display init rt=-2`、帧全部丢弃（日志刷 `fb_manage null`）。
+
+## 2026-11-19 结构对齐 T5：按"模组"而不是"路径"（`8eecd3a0`）
+
+板级 Kconfig 原来选的是"摄像头路径"（DVP/SPI）——这描述的是厂商管线，不是板子。现在选**装的是哪个模组**，形状与 T5AI 的 `TUYA_T5AI_BOARD_CAMERA` 一致（两路共用引脚，所以仍是 choice）：
+
+```
+choice "Camera module"
+  JIELI_BOARD_CAMERA_NONE
+  JIELI_BOARD_CAMERA_GC2145   "GC2145 on J1 (24-pin DVP)"
+  JIELI_BOARD_CAMERA_GC0310   "GC0310 on J4 (12-pin SPI)"
+```
+
+- `board_com_api.h` 新增 `BOARD_CAMERA_I2C_PORT/SCL/SDA`、`BOARD_CAMERA_RST_PIN`、`BOARD_CAMERA_POWER_PIN`、`BOARD_CAMERA_CLK`，每个模组一套，和 T5AI 板级头同形；
+- `board_com_api.c` 用这些宏注册对应 TDD 驱动（DVP 模组仍由厂商 video0 管传感器，本轮只做结构对齐，不改行为）；
+- 示例 profile 改成选模组。
+
+平台侧（PR #47 `720bb6b0`）改为读板级 staging 的 `JIELI_BOARD_CAMERA_DVP/_SPI` 与 `JIELI_BOARD_CAMERA_WIDTH/HEIGHT/FPS`，适配层里不再出现任何"路径"字样。
+
+验证：`spi_tdd`、`dvp_lcd` 均 BUILD SUCCESS；`spi_tdd` 实机启动链完整、**4.4 fps / 479.4 行/帧 / `tag_err=0`，60 s**。
