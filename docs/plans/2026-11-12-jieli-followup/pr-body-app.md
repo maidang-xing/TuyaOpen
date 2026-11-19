@@ -52,6 +52,48 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 - 构建验证：JIELI `spi_tdd`、`dvp_lcd` BUILD SUCCESS；**T5AI `TUYA_T5AI_BOARD` 摄像头板 BUILD SUCCESS**（守卫前该组合在 `TUYA_DVP_SYNC_MODE_E` 处失败）。
 - 实机回归（本头构建）：`spi_tdd` 干净构建烧录后连续 **175 s / 776 帧 / 4.43 fps / 480.0 行/帧 / `tag_err=0` / 零异常**，用户目视 SPI 画面正常（`serial-COM8-20261118-175026.log`）。
 
+## 2026-11-19 拉模式核心独立成文件（`08c90e15`）
+
+共享核心不再携带平台决策：
+
+| 文件 | 内容 |
+|---|---|
+| `tdd_camera/src/dvp/tdd_camera_dvp.c` | **与 master 逐字节一致**（回调实现，T5AI 用） |
+| `tdd_camera/src/dvp/tdd_camera_dvp_pull.c` | 新增：拉模式实现（`tkl_dvp_get_frame` + 帧池 + 事件） |
+| `tdd_camera/src/dvp/tdd_camera_dvp_gc2145.c` | **与 master 逐字节一致**（上游 GC2145 驱动，5 个 T5AI 板在注册它） |
+| `tdd_camera/src/dvp/tdd_camera_dvp_gc2145_v1.c` | 新增：杰理的 GC2145 驱动（`yuv_order`、restart 钩子、chip-id 回读、QVGA→VGA 回退） |
+| `tdd_camera/src/dvp/tdd_camera_gc0310_spi.c` | 新增：SPI 模组（GC0310）驱动 |
+
+两个核心都实现 `tdl_camera_dvp_device_register()`，因此构建层二选一：新增 `CONFIG_ENABLE_DVP_PULL`（默认 n），两个 JIELI profile 打开它。CMake 用 `list(FILTER ... EXCLUDE REGEX)` 只编一个，避免重复符号。
+
+构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd`、`spi_tdd` → `tdd_camera_dvp_pull.c` + `tdd_camera_dvp_gc2145_v1.c`；T5AI → `tdd_camera_dvp.c` + `tdd_camera_dvp_gc2145.c`；三者 0 error。
+
+## 2026-11-19 头文件也拆开（`d6511159`）
+
+上一节只拆了 `.c`，共享头文件仍带着杰理字段。本轮把头文件也恢复：
+
+| 文件 | 内容 |
+|---|---|
+| `tdd_camera_dvp.h` | **与 master 逐字节一致**（T5AI 及其传感器用） |
+| `tdd_camera_gc2145.h` | **与 master 逐字节一致** |
+| `tdd_camera_dvp_v1.h` | 新增：同 master 的结构与入口，多 `yuv_order` 和守卫内的 `sync_polarity` |
+| `tdd_camera_gc2145_v1.h` | 新增：GC2145 注册 + `tdd_camera_dvp_gc2145_restart()` |
+
+杰理的核、两个传感器驱动、板级 `board_com_api.c` 只包含 `*_v1.h`。
+
+CMake 同步收紧：拉模式分支排除 `tdd_camera_dvp.c`、`gc0308`、`gc2145`、`ov2640`，回调分支排除 `pull`、`gc2145_v1`、`gc0310_spi`。必要性：被排除的传感器按 master 的较小配置结构编译，而拉模式核心会读 `yuv_order`，同编就是越界读。
+
+构建验证：JIELI `dvp_lcd`、`spi_tdd` → `tdd_camera_dvp_pull.c` + `tdd_camera_dvp_gc2145_v1.c` + `tdd_camera_gc0310_spi.c` + `tdd_camera_dvp_i2c.c`；T5AI → `tdd_camera_dvp.c` + `gc0308` + `gc2145` + `ov2640` + `i2c`；三者 0 error。
+
+## 2026-11-19 预览几何：320×480 直出、1:1 居中裁剪（`77e3aab3` / `a3c89d5a`）
+
+- 面板 320×480、传感器 640×480：铺满必然要缩放或丢弃。此前是"320×240 转换 + 每行写两遍"，画面被纵向拉伸、且丢掉一半行。
+- 改为按面板尺寸请求 **320×480**，平台侧给 **1:1 居中裁剪**（`tkl_dvp` 取中间 320 列、全部 480 行，不缩放）。示例回到上游转换路径，`sg_conv_buf` / 逐行复制 / `tal_malloc` 全部删除，`example_camera.c` 现在相对 master 只剩 framebuffer 数一个 Kconfig 开关。
+- 代价：横向视野约为原来的中间一半；收益：不变形、垂直 480 行全用、示例无几何特例。内存 +约 768 KB（TKL 输出缓冲/ch1 池、TDL raw 池按 320×480 重算，减掉不再需要的临时帧）。
+- 实机（`dvpcrop` `2ccac400`）：用户目视**画面正常、无拉伸**。
+- 示例零改动（`bd7b38b7`）：两个 framebuffer 够用，原先为 SPI 慢路径加的 `EXAMPLE_DISPLAY_FRAME_BUFF_NUM` Kconfig 与第 3 个缓冲已删除，`example_camera.c` 与 `output_display/Kconfig` 相对 master **零差异**；本 PR 的示例侧改动只剩两个新增的 board profile。
+- 同提交带上 `a3c89d5a`（= PR maidang-xing/TuyaOpen#6 的 `83c7407a`）：`tdd_display_mcu8080.c` 的 `TUYA_GPIO_BASE_CFG_T gpio_cfg = {0}`。没有它 AC79 的 TE 引脚初始化返回 `-2`，display open 失败、每帧被丢（`fb_manage null`）。
+
 ## 2026-11-19 同步极性显式化 + 注释精简（`17b39cdb`）
 
 - 传感器描述符显式写 `.sync_polarity = TUYA_DVP_SYNC_MODE_0`（GC2145 与 GC0310 SPI 各一处，v2 守卫内），不再依赖零初始化：AC791 的 DVP 两路 sync 都是高有效。
@@ -69,8 +111,8 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 | `tdl_camera_manage.c` | +139/−138 | **0**（栈改动已回退，文件与 master 一致） |
 | `tdd_camera_dvp.c` | +390/−53 | **+339/−1**（v2 拉取实现；`#else` 分支与 master 逐字节一致） |
 | `tdd_camera_dvp_gc2145.c` | +116/−48 | **+73/−0** |
-| `tdd_camera_dvp.h` | +19/−12 | **+12/−0** |
-| `tdd_camera_gc2145.h` | +6/−1 | **+11/−0** |
+| `tdd_camera_dvp.h` | +19/−12 | **0**（字段已迁到 `tdd_camera_dvp_v1.h`） |
+| `tdd_camera_gc2145.h` | +6/−1 | **0**（restart 声明已迁到 `tdd_camera_gc2145_v1.h`） |
 | `example_camera.c` | +64/−21 | **+54/−4** |
 | `board_com_api.c` | 含 1 行对齐改动 | 已还原 |
 
