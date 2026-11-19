@@ -18,12 +18,16 @@ if (CONFIG_ENABLE_DVP STREQUAL "y")
     # Two DVP cores live in that directory and both implement the device
     # registration; keep the one the platform's TKL can drive.
     if (CONFIG_ENABLE_DVP_PULL STREQUAL "y")
-        # JIELI keeps its own core and its own GC2145 driver
+        # JIELI keeps its own core, its own GC2145 driver and the SPI module;
+        # the remaining sensors build against tdd_camera_dvp.h's smaller config.
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp[.]c$")
+        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc0308[.]c$")
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc2145[.]c$")
+        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_ov2640[.]c$")
     else()
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_pull[.]c$")
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc2145_v1[.]c$")
+        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_gc0310_spi[.]c$")
     endif()
 endif()
 

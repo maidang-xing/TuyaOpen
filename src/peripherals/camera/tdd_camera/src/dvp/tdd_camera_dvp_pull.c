@@ -18,7 +18,7 @@
 #include "tkl_system.h"
 #include "tkl_thread.h"
 
-#include "tdd_camera_dvp.h"
+#include "tdd_camera_dvp_v1.h"
 
 
 /***********************************************************

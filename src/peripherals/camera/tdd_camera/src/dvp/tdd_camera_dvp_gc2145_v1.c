@@ -16,7 +16,7 @@
 #include "tkl_gpio.h"
 
 #include "tdd_camera_gc2145_init_seq.h"
-#include "tdd_camera_gc2145.h"
+#include "tdd_camera_gc2145_v1.h"
 
 /***********************************************************
 ************************macro define************************

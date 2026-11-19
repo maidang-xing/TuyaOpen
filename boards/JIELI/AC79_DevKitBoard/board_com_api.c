@@ -38,12 +38,12 @@
 #if defined(ENABLE_CAMERA) && (ENABLE_CAMERA == 1) &&                                                                  \
     ((defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)) ||                                       \
      (defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)))
-#include "tdd_camera_dvp.h"
+#include "tdd_camera_dvp_v1.h"
 #if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
 #include "tdd_camera_gc0310_spi.h"
 #endif
 #if defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)
-#include "tdd_camera_gc2145.h"
+#include "tdd_camera_gc2145_v1.h"
 #endif
 #define JIELI_CAMERA_DEV_NAME "camera"
 #endif

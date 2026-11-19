@@ -15,7 +15,6 @@
 #define __TDD_CAMERA_DVP_H__
 
 #include "tuya_cloud_types.h"
-#include "tkl_dvp.h"
 #include "tdl_camera_driver.h"
 #include "tdd_camera_dvp_i2c.h"
 
@@ -44,12 +43,6 @@ typedef struct {
     uint32_t              max_width;
     uint32_t              max_height;
     TUYA_FRAME_FMT_E      fmt;
-    /* Byte order the transport delivers; forwarded to TDL as yuv_order. */
-    TUYA_YUV422_ORDER_E   yuv_order;
-#if defined(TKL_DVP_HAS_PULL_API)
-    /* HSYNC/VSYNC polarity the sensor drives; the v2 TKL requires it. */
-    TUYA_DVP_SYNC_MODE_E  sync_polarity;
-#endif
 }TDD_DVP_SR_CFG_T;
 
 typedef struct {
