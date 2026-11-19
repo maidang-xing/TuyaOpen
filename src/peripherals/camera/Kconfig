@@ -6,4 +6,11 @@ if (ENABLE_CAMERA)
     config CAMERA_NAME
         string "the name of camera"
         default "camera"
+    config ENABLE_DVP_PULL
+        bool "TKL DVP exposes the pull API"
+        default n
+        help
+            Selects the DVP core that pulls frames through tkl_dvp_get_frame()
+            instead of the callback API. Turn it on only when the platform
+            header defines TKL_DVP_HAS_PULL_API.
 endif

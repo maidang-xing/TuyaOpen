@@ -13,8 +13,15 @@ get_filename_component(MODULE_NAME ${MODULE_PATH} NAME)
 # LIB_SRCS
 file(GLOB_RECURSE camera_srcs "${MODULE_PATH}/tdl_camera/src/*.c")
 
-if (CONFIG_ENABLE_DVP STREQUAL "y")   
+if (CONFIG_ENABLE_DVP STREQUAL "y")
     file(GLOB_RECURSE tdd_camera_dvp_srcs "${MODULE_PATH}/tdd_camera/src/dvp/*.c")
+    # Two DVP cores live in that directory and both implement the device
+    # registration; keep the one the platform's TKL can drive.
+    if (CONFIG_ENABLE_DVP_PULL STREQUAL "y")
+        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp[.]c$")
+    else()
+        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_pull[.]c$")
+    endif()
 endif()
 
 set(LIB_SRCS ${camera_srcs} ${tdd_camera_dvp_srcs})
