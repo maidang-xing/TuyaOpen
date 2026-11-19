@@ -56,7 +56,8 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 
 - 传感器描述符显式写 `.sync_polarity = TUYA_DVP_SYNC_MODE_0`（GC2145 与 GC0310 SPI 各一处，v2 守卫内），不再依赖零初始化：AC791 的 DVP 两路 sync 都是高有效。
 - 配套平台 `3a166adb` 会把不支持的极性判为 `OPRT_NOT_SUPPORTED`，两边取值必须一致；H-V 互换仍由板级 `JIELI_BOARD_CAMERA_HV_SYNC_SWAP` 表达，与极性无关。
-- 本轮新增注释统一收成一行说明，`raw_flow_task` 的 16 KiB 栈保留并注明原因（回调线程上要跑转换 + 刷屏；8 KiB 实测溢出）。
+- 本轮新增注释统一收成一行说明。
+- `raw_flow_task` 的 8 KiB→16 KiB 已回退（`65796869`）：该改动没有对应的溢出记录（板上两次真溢出是厂商 demo 的 `spi_auto` 2 KB 与 `audio_encoder` 4 KB），且 T5AI 一直以 8 KiB 跑同一个 `tdl_camera_manage.c` 与同一个回调；`tdl_camera_manage.c` 现已与 master 零差异。
 - 构建：T5AI、JIELI `dvp_lcd`、JIELI `spi_tdd` 均 BUILD SUCCESS。
 
 ## 2026-11-19 格式噪声清理（评审项）
@@ -65,7 +66,7 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 
 | 文件 | 清理前 | 清理后 |
 |---|---|---|
-| `tdl_camera_manage.c` | +139/−138 | **+4/−1**（`raw_flow_task` 栈 8 KiB → 16 KiB） |
+| `tdl_camera_manage.c` | +139/−138 | **0**（栈改动已回退，文件与 master 一致） |
 | `tdd_camera_dvp.c` | +390/−53 | **+339/−1**（v2 拉取实现；`#else` 分支与 master 逐字节一致） |
 | `tdd_camera_dvp_gc2145.c` | +116/−48 | **+73/−0** |
 | `tdd_camera_dvp.h` | +19/−12 | **+12/−0** |
