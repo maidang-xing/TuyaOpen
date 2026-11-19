@@ -27,9 +27,9 @@
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_0
 #elif defined(EXAMPLE_CAMERA_IMG_ROTATION_90) && (EXAMPLE_CAMERA_IMG_ROTATION_90 == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_90
-#elif defined(EXAMPLE_CAMERA_IMG_ROTATION_180) && (EXAMPLE_CAMERA_IMG_ROTATION_180 == 1)
+#elif defined(EXAMPLE_CAMERA_IMG_ROTATION_180) && (EXAMPLE_CAMERA_IMG_ROTATION_180  == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_180
-#elif defined(EXAMPLE_CAMERA_IMG_ROTATION_270) && (EXAMPLE_CAMERA_IMG_ROTATION_270 == 1)
+#elif defined(EXAMPLE_CAMERA_IMG_ROTATION_270) && (EXAMPLE_CAMERA_IMG_ROTATION_270  == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_270
 #else
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_0
@@ -42,12 +42,12 @@
 /***********************************************************
 ***********************variable define**********************
 ***********************************************************/
-static TDL_DISP_HANDLE_T      sg_tdl_disp_hdl = NULL;
-static TDL_DISP_DEV_INFO_T    sg_display_info;
+static TDL_DISP_HANDLE_T sg_tdl_disp_hdl = NULL;
+static TDL_DISP_DEV_INFO_T sg_display_info;
 static TDL_FB_MANAGE_HANDLE_T sg_fb_manage = NULL;
 
 static TDL_CAMERA_HANDLE_T sg_tdl_camera_hdl = NULL;
-static TUYA_YUV422_ORDER_E sg_yuv_order      = TUYA_YUV422_UYVY;
+static TUYA_YUV422_ORDER_E sg_yuv_order = TUYA_YUV422_UYVY;
 
 /* RGB565 scratch frame, used only when the panel is 2x the camera height. */
 static uint8_t *sg_conv_buf = NULL;
@@ -57,8 +57,9 @@ static uint8_t *sg_conv_buf = NULL;
 ***********************************************************/
 static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA_FRAME_T *frame)
 {
-    OPERATE_RET            rt         = OPRT_OK;
+    OPERATE_RET rt = OPRT_OK;
     TDL_DISP_FRAME_BUFF_T *convert_fb = NULL;
+
 
     convert_fb = tdl_disp_get_free_fb(sg_fb_manage);
     TUYA_CHECK_NULL_RETURN(convert_fb, OPRT_COM_ERROR);
@@ -66,34 +67,40 @@ static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA
     /* The converter does not scale: a panel twice as tall as the picture is
      * filled by converting into the scratch frame and writing every row twice.
      * Any other geometry converts straight into the panel framebuffer. */
-    if (sg_conv_buf == NULL || convert_fb->frame == NULL || convert_fb->width != frame->width ||
+    if (sg_conv_buf == NULL || convert_fb->frame == NULL || convert_fb->width != frame->width || \
         convert_fb->height < (uint16_t)(2U * frame->height)) {
-        TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, convert_fb,
-                                                        sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION,
+        TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, \
+                                                        convert_fb, sg_display_info.is_swap,\
+                                                        EXAMPLE_CAMERA_IMG_ROTATION, \
                                                         sg_yuv_order));
+
         tdl_disp_dev_flush(sg_tdl_disp_hdl, convert_fb);
+
         return rt;
     }
 
-    TDL_DISP_FRAME_BUFF_T scratch = {
-        .type   = convert_fb->type,
-        .fmt    = convert_fb->fmt,
-        .width  = frame->width,
-        .height = frame->height,
-        .len    = (uint32_t)frame->width * frame->height * 2U,
-        .frame  = sg_conv_buf,
-    };
+    {
+        TDL_DISP_FRAME_BUFF_T scratch = {
+            .type   = convert_fb->type,
+            .fmt    = convert_fb->fmt,
+            .width  = frame->width,
+            .height = frame->height,
+            .len    = (uint32_t)frame->width * frame->height * 2U,
+            .frame  = sg_conv_buf,
+        };
 
-    TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, &scratch,
-                                                    sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION,
-                                                    sg_yuv_order));
+        TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, &scratch, \
+                                                        sg_display_info.is_swap, \
+                                                        EXAMPLE_CAMERA_IMG_ROTATION, \
+                                                        sg_yuv_order));
 
-    for (uint16_t row = 0; row < frame->height; row++) {
-        uint32_t row_bytes = (uint32_t)frame->width * 2U;
-        uint8_t *src       = sg_conv_buf + (uint32_t)row * row_bytes;
-        uint8_t *dst       = convert_fb->frame + (uint32_t)row * 2U * row_bytes;
-        memcpy(dst, src, row_bytes);
-        memcpy(dst + row_bytes, src, row_bytes);
+        for (uint16_t row = 0; row < frame->height; row++) {
+            uint32_t row_bytes = (uint32_t)frame->width * 2U;
+            uint8_t *src = sg_conv_buf + (uint32_t)row * row_bytes;
+            uint8_t *dst = convert_fb->frame + (uint32_t)row * 2U * row_bytes;
+            memcpy(dst, src, row_bytes);
+            memcpy(dst + row_bytes, src, row_bytes);
+        }
     }
 
     tdl_disp_dev_flush(sg_tdl_disp_hdl, convert_fb);
@@ -103,9 +110,9 @@ static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA
 
 static OPERATE_RET __display_init(void)
 {
-    OPERATE_RET rt     = OPRT_OK;
-    uint16_t    width  = EXAMPLE_CAMERA_WIDTH;
-    uint16_t    height = EXAMPLE_CAMERA_HEIGHT;
+    OPERATE_RET rt = OPRT_OK;
+    uint16_t width = EXAMPLE_CAMERA_WIDTH;
+    uint16_t height = EXAMPLE_CAMERA_HEIGHT;
 
     memset(&sg_display_info, 0, sizeof(TDL_DISP_DEV_INFO_T));
 
@@ -132,12 +139,12 @@ static OPERATE_RET __display_init(void)
     width  = sg_display_info.width;
     height = sg_display_info.height;
 
-    for (uint8_t i = 0; i < DISPLAY_FRAME_BUFF_NUM; i++) {
+    for(uint8_t i=0; i<DISPLAY_FRAME_BUFF_NUM; i++) {
         TUYA_CALL_ERR_LOG(tdl_disp_fb_manage_add(sg_fb_manage, sg_display_info.fmt, width, height));
     }
 
     /* Only the 2x-tall panel needs the scratch frame. */
-    if (sg_conv_buf == NULL && sg_display_info.width == EXAMPLE_CAMERA_WIDTH &&
+    if (sg_conv_buf == NULL && sg_display_info.width == EXAMPLE_CAMERA_WIDTH && \
         sg_display_info.height >= (uint16_t)(2U * EXAMPLE_CAMERA_HEIGHT)) {
         sg_conv_buf = (uint8_t *)tal_malloc((uint32_t)EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2U);
         if (sg_conv_buf == NULL) {
@@ -150,7 +157,7 @@ static OPERATE_RET __display_init(void)
 
 static OPERATE_RET __camera_init(void)
 {
-    OPERATE_RET      rt = OPRT_OK;
+    OPERATE_RET rt = OPRT_OK;
     TDL_CAMERA_CFG_T cfg;
 
     memset(&cfg, 0, sizeof(TDL_CAMERA_CFG_T));
@@ -166,9 +173,9 @@ static OPERATE_RET __camera_init(void)
     tdl_camera_dev_get_info(sg_tdl_camera_hdl, &cam_info);
     sg_yuv_order = cam_info.yuv_order;
 
-    cfg.fps     = EXAMPLE_CAMERA_FPS;
-    cfg.width   = EXAMPLE_CAMERA_WIDTH;
-    cfg.height  = EXAMPLE_CAMERA_HEIGHT;
+    cfg.fps = EXAMPLE_CAMERA_FPS;
+    cfg.width = EXAMPLE_CAMERA_WIDTH;
+    cfg.height = EXAMPLE_CAMERA_HEIGHT;
     cfg.out_fmt = TDL_CAMERA_FMT_YUV422;
 
     cfg.get_frame_cb = __get_camera_raw_frame_cb;
@@ -245,9 +252,9 @@ static void tuya_app_thread(void *arg)
 void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
-    thrd_param.stackDepth   = 1024 * 4;
-    thrd_param.priority     = THREAD_PRIO_1;
-    thrd_param.thrdname     = "tuya_app_main";
+    thrd_param.stackDepth = 1024 * 4;
+    thrd_param.priority = THREAD_PRIO_1;
+    thrd_param.thrdname = "tuya_app_main";
     tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param);
 }
 #endif

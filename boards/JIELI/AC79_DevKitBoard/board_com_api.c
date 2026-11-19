@@ -145,7 +145,7 @@ OPERATE_RET board_register_hardware(void)
              * lands mid scan-out and the picture shows a split line that
              * moves with the refresh phase. Pin number = port C * 16 + 0. */
             .te_pin  = TUYA_GPIO_NUM_32,
-            .te_mode = TUYA_GPIO_IRQ_RISE,
+            .te_mode   = TUYA_GPIO_IRQ_RISE,
             /* The TKL 8080 backend stores this but the vendor `emi` device owns
              * the bus timing, so it is informational only. */
             .clk       = 0,
