@@ -142,3 +142,7 @@ A/B（同一棵树，只改节点类型；`spi_tdd` profile，AC791 + J4 GC0310�
 - **`5261adf0` 类型**：`tkl_dvp.c` 的 `u8/u16/u32/s32` 等 135 处换成 TuyaOpen 的 `UINT8_T/UINT16_T/UINT32_T/INT32_T`；厂商 `sensor_ops` 的函数指针签名底层类型一致，不受影响。
 
 验证：`dvp_lcd`、`spi_tdd` BUILD SUCCESS；DVP 镜像与改前逐字节比对只差 3 字节（构建戳），其余完全一致。
+
+### 类型拼写最终收敛（`ee416a7c`）
+
+核对后发现 TuyaOpen 的约定是 **stdint**：应用仓 `src/` 里 `uint32_t` 有 40,864 处而 `UINT32_T` 只有 13 处（且都在自带别名的 `tuya_ai_service` 里），平台其它 TKL 头（gpio/pwm/spi/uart/i2c）也全是 `uint*_t`；唯一的例外是 registry 的 v2 `tkl_dvp.h`。因此**不往 `tuya_cloud_types.h` 补 `UINT*_T/VOID_T`**，而是把 vendored 的契约头与 `tkl_dvp.c` 改成 `uint8_t/uint16_t/uint32_t/uint64_t/void`。DVP 镜像与改前仅差 5 字节构建戳。

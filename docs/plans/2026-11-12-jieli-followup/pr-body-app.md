@@ -159,3 +159,5 @@ DVP 传感器交给 TDD 后第一次上板：先是 `video_ioct: err = 11` 一�
 
 - 删除 `JIELI_BOARD_IIC1_SOFTWARE`：IIC1 是软件还是硬件由平台按芯片与引脚决定（PH0/PH1 → 软件，因为摄像头模组在这两个焊盘上跑 2-wire 总线），板级只保留引脚声明，应用/板级都不再出现"软件/硬件"字样。
 - `tdd_camera_dvp.h` 的注释改为"v2 极性类型是共享枚举的别名"，与平台 `9fdfb9f8` 一致。
+
+- `b9607d33`：平台 v2 头统一成 stdint/void 后，共享 TDD 的事件回调也随之写 `void`（不再依赖 `VOID_T`）。
