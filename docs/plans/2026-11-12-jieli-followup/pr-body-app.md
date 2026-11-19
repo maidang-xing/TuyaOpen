@@ -92,3 +92,19 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 ## 2026-11-18 IIC 总线（配合平台 PR #47 `fc558435`）
 
 板级 `TDD_DVP_SR_USR_CFG_T.i2c = {port = TUYA_I2C_NUM_1, clk = 112, sda = 113}` 会由共享 TDD 通过 `tkl_io_pinmux_config()` 落到 PH0/PH1，`iic1` 的引脚也改由板级 Kconfig 提供（此前在平台 `tkl_i2c.c` 里硬编码）。平台侧做了硬件 IIC1 与软件 IIC 的 A/B：硬件节点能让 ID 探测和寄存器表通过，但 SPI 一帧都收不到（`tag_err` ≈2700/s），因为 PH0/PH1 与传感器 2-wire SPI 复用；软件 IIC 维持 4.44 fps / `tag_err=0`。详见平台 PR #47。
+
+## 2026-11-19 评审收敛：示例回到上游 + IIC 选择下沉到板级（`517857f0`）
+
+评审意见两条：`example_camera.c` 不该有这么多改动（应完全兼容）；软件/硬件 IIC 与摄像头选择应在 board 文件里用一个宏决定。
+
+- 示例回到 master + **两处功能性改动**（净 48/4，此前 93/24）：
+  1. `EXAMPLE_DISPLAY_FRAME_BUFF_NUM`：SPI 路径 4.4 fps 下需要 3 个缓冲；
+  2. 320×480 面板的 2× 垂直填充——`tdl_disp_convert_yuv422_to_fb` 不缩放（`tal_image_yuv422_to_rgb.c:146` 取 `min(in,out)`），不填就只有上半屏。
+  其余 clang-format 噪声、`[CAM]` 启动标记、4 KiB→8 KiB 栈全部回退；**4 KiB 栈实机验证通过**（90 s、4.4 fps、无异常）。
+- **IIC 归属**：板级 Kconfig 新增 `JIELI_BOARD_IIC1_SOFTWARE`（SPI 路径默认 y），平台只问"这条总线是不是软件 IIC"，`tkl_i2c.c` 里不再出现 `JIELI_CAMERA_*`。
+- 引脚只命名一处：`board_com_api.c` 的 `.i2c.clk/sda` 改用 `JIELI_BOARD_IIC1_SCL/SDA_PIN`；iic0 在两路摄像头下都落在相机焊盘，由板级 Kconfig 表达。
+- Kconfig 去掉过时的 `(video1)` 措辞。
+
+实机（`b351a22b…`，spi_tdd）：`gc0310 chip id 0xa310` → `SPI capture started` → `first frame 640x480`，**4.4 fps / 479.8 行/帧 / `tag_err=0`，启动日志 0 条 E 级错误**；`dvp_lcd` BUILD SUCCESS。
+
+> ⚠️ 依赖：AC791 上单独构建本分支时，8080 面板需要 **PR #6（`83c7407a`）** 的 TE 引脚修复，否则 `display init rt=-2`、帧全部丢弃（日志刷 `fb_manage null`）。

@@ -96,3 +96,10 @@ A/B（同一棵树，只改节点类型；`spi_tdd` profile，AC791 + J4 GC0310�
 结论：硬件控制器在这两个焊盘上不可用——它们与传感器 2-wire SPI 的时钟/数据复用，硬件 IIC 占用引脚后 SPI 收不到有效行。软件 IIC 保留。日志 `logs/boot-ab-hwiic.log`（A）、`logs/serial-COM8-20261118-192756.log`（B）。
 
 > 更正早前记录：此前"硬件 IIC 会让开机静默"的结论**作废**——那次是在清理未完成的中间树上测的，A/B 不可信；本次在最终树上重做，变体 A 能正常启动并完成 I2C 初始化全程。
+
+## 2026-11-19 评审收敛：IIC 选择下沉到板级（`1cbd64c1`）
+
+- `tkl_i2c.c` 不再读摄像头宏：板级 staging 一个 `JIELI_BOARD_IIC1_SOFTWARE`，适配层只判断"软件/硬件"；iic0 的 SPI 专用分支一并删除，引脚全部来自板级 Kconfig（`TUYA_BOARD_IIC0/1_*`）。
+- `board_config.py`：删掉板级已不存在的 SPI 采样沿分支（staged 值本来就是厂商 demo 的 SMPH），去掉 `video1` 旧措辞。
+
+构建/实机：`spi_tdd`、`dvp_lcd` 均 BUILD SUCCESS；`spi_tdd` 实机 4.4 fps、`tag_err=0`、启动日志零 E 级错误。
