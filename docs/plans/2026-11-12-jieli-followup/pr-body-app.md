@@ -48,9 +48,25 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 
 - `src/peripherals/camera/tdd_camera` 是**跨平台共享**代码：`CMakeLists.txt` 只要 `CONFIG_ENABLE_DVP=y` 就编译，而 `boards/T5AI/TKL_Kconfig` 默认 `ENABLE_DVP=y`。此前 v2 拉模式重写会让仍使用 v1 回调 API（`TUYA_DVP_CFG_T` + assign/post 回调）的 T5AI 编译失败。
 - 改为**能力宏守卫**：平台头定义 `TKL_DVP_HAS_PULL_API` 时编译拉取实现，否则编译原有的回调实现（`#else` 分支与 master 逐字节一致）。`sync_polarity` 字段同样守卫（该类型在 v2 头叫 `TUYA_DVP_SYNC_MODE_E`，在 v1 头叫 `TUYA_DVP_SYNC_MODE`）。
-- 还原 `clang-format` 噪声：`tdl_camera_manage.c` 由 140/138 降到 **4/1**（唯一语义改动是 `raw_flow_task` 栈 8 KiB → 16 KiB），`tdd_camera_dvp.h` 由 19/12 降到 **12/0**，`tdd_camera_dvp.c` 变为纯新增（339/1）。
+- 还原 `clang-format` 噪声（`ab50873a` 只做到一部分，见下一节）：`tdl_camera_manage.c` 由 140/138 降到 **4/1**（唯一语义改动是 `raw_flow_task` 栈 8 KiB → 16 KiB），`tdd_camera_dvp.h` 由 19/12 降到 **12/0**，`tdd_camera_dvp.c` 变为纯新增（339/1）。
 - 构建验证：JIELI `spi_tdd`、`dvp_lcd` BUILD SUCCESS；**T5AI `TUYA_T5AI_BOARD` 摄像头板 BUILD SUCCESS**（守卫前该组合在 `TUYA_DVP_SYNC_MODE_E` 处失败）。
 - 实机回归（本头构建）：`spi_tdd` 干净构建烧录后连续 **175 s / 776 帧 / 4.43 fps / 480.0 行/帧 / `tag_err=0` / 零异常**，用户目视 SPI 画面正常（`serial-COM8-20261118-175026.log`）。
+
+## 2026-11-19 格式噪声清理（评审项）
+
+上一节的"还原"实际上没落地：`ab50873a` 对 `tdl_camera_manage.c` 只有 +3/−4，树里仍留着约 139/138 的 clang-format 重排。本提交把受影响的文件从 master 原文重建、只重放语义改动：
+
+| 文件 | 清理前 | 清理后 |
+|---|---|---|
+| `tdl_camera_manage.c` | +139/−138 | **+4/−1**（`raw_flow_task` 栈 8 KiB → 16 KiB） |
+| `tdd_camera_dvp.c` | +390/−53 | **+339/−1**（v2 拉取实现；`#else` 分支与 master 逐字节一致） |
+| `tdd_camera_dvp_gc2145.c` | +116/−48 | **+73/−0** |
+| `tdd_camera_dvp.h` | +19/−12 | **+12/−0** |
+| `tdd_camera_gc2145.h` | +6/−1 | **+11/−0** |
+| `example_camera.c` | +64/−21 | **+54/−4** |
+| `board_com_api.c` | 含 1 行对齐改动 | 已还原 |
+
+行为零变化：只去掉了空格/花括号/成员对齐，`git diff -w` 与普通 diff 的行数在这些文件上一致（`tdd_camera_dvp.c` 的 1 行删除是文件末尾无换行符）。T5AI、JIELI DVP、JIELI SPI 三个 profile 重新编译验证通过。
 
 ## 已知后续项
 
