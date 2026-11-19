@@ -31,6 +31,13 @@ AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/vi
 - SPI 链路 2 线 + 字节碎片，VGA 上限约 4–5 fps（厂商参考 5 fps）；传感器固定 VGA，320×240 由主机侧抽取。
 - `stop` join 超时、`cam_proc` 创建失败等错误分支未注入故障，为代码级验证。
 
+## 2026-11-19 同步极性：编不出来就拒绝（`3a166adb`）
+
+- `tkl_dvp_init()` 此前只校验 `sync_polarity` 的范围（0..3）然后丢弃。本平台注册的传感器描述符固定为 HSYNC/VSYNC 都高有效，且厂商描述符是静态的、注册后改不了，所以其它取值**永远达不到**——静默忽略违反接口自身"不支持必须拒绝"的约定。
+- 改为：越界仍 `OPRT_INVALID_PARM`，合法但不支持的极性返回 `OPRT_NOT_SUPPORTED`。
+- 语义澄清并写进 `docs/jieli-tkl.md`：`sync_polarity` 只表达**极性**；WL82 的 **H-V SYNC 互换**是线路映射，由板级 `JIELI_BOARD_CAMERA_HV_SYNC_SWAP` 在编译期写入描述符 `.sync_config`，不经过该字段。
+- 构建：`dvp_lcd`、`spi_tdd` BUILD SUCCESS（应用仓同 head `17b39cdb`）。
+
 ## 构建
 
 `spi_lcd`、`dvp_lcd`、`spi_tdd` 三个 profile 在本分支 head 上均 BUILD SUCCESS。

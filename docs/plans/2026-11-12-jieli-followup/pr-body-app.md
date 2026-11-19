@@ -52,6 +52,13 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 - 构建验证：JIELI `spi_tdd`、`dvp_lcd` BUILD SUCCESS；**T5AI `TUYA_T5AI_BOARD` 摄像头板 BUILD SUCCESS**（守卫前该组合在 `TUYA_DVP_SYNC_MODE_E` 处失败）。
 - 实机回归（本头构建）：`spi_tdd` 干净构建烧录后连续 **175 s / 776 帧 / 4.43 fps / 480.0 行/帧 / `tag_err=0` / 零异常**，用户目视 SPI 画面正常（`serial-COM8-20261118-175026.log`）。
 
+## 2026-11-19 同步极性显式化 + 注释精简（`17b39cdb`）
+
+- 传感器描述符显式写 `.sync_polarity = TUYA_DVP_SYNC_MODE_0`（GC2145 与 GC0310 SPI 各一处，v2 守卫内），不再依赖零初始化：AC791 的 DVP 两路 sync 都是高有效。
+- 配套平台 `3a166adb` 会把不支持的极性判为 `OPRT_NOT_SUPPORTED`，两边取值必须一致；H-V 互换仍由板级 `JIELI_BOARD_CAMERA_HV_SYNC_SWAP` 表达，与极性无关。
+- 本轮新增注释统一收成一行说明，`raw_flow_task` 的 16 KiB 栈保留并注明原因（回调线程上要跑转换 + 刷屏；8 KiB 实测溢出）。
+- 构建：T5AI、JIELI `dvp_lcd`、JIELI `spi_tdd` 均 BUILD SUCCESS。
+
 ## 2026-11-19 格式噪声清理（评审项）
 
 上一节的"还原"实际上没落地：`ab50873a` 对 `tdl_camera_manage.c` 只有 +3/−4，树里仍留着约 139/138 的 clang-format 重排。本提交把受影响的文件从 master 原文重建、只重放语义改动：
