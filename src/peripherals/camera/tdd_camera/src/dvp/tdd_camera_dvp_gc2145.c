@@ -75,18 +75,7 @@ static TDD_DVP_SR_CFG_T sg_dvp_sensor = {
 	.max_width = 1616,
 	.max_height = 1232,
 	.fmt = TUYA_FRAME_FMT_YUV422,
-	/* tkl_dvp packs the ISP output as Y U Y V; the converter defaults to UYVY. */
-	.yuv_order = TUYA_YUV422_YUYV,
-#if defined(TKL_DVP_HAS_PULL_API)
-	/* Both sync lines are active high; the H-V exchange is a line mapping. */
-	.sync_polarity = TUYA_DVP_SYNC_MODE_0,
-#endif
 };
-
-/* Last geometry requested, so a restart after the vendor has enabled the
- * sensor clock can re-apply the same tables. */
-static TUYA_CAMERA_PPI_E sg_ppi = TUYA_CAMERA_PPI_640X480;
-static uint16_t sg_fps = 20;
 
 
 /***********************************************************
@@ -116,25 +105,6 @@ static void __dvp_gc2145_update_reg(TUYA_I2C_NUM_E port, const uint8_t sensor_re
             return;
         }
     }
-}
-
-/**
- * @brief Log the sensor chip id, so a silent I2C fault is visible
- * @param port I2C port number
- * @param tag Short marker identifying the call site
- */
-static void __dvp_gc2145_log_id(TUYA_I2C_NUM_E port, const char *tag)
-{
-    DVP_I2C_REG_CFG_T id_cfg = {
-        .port      = port,
-        .addr      = (GC2145_READ_ADDRESS >> 1),
-        .is_16_reg = 0,
-        .reg       = 0xF0,
-    };
-    uint8_t id[2] = {0};
-    OPERATE_RET rt = tdd_dvp_i2c_read(&id_cfg, sizeof(id), id);
-
-    PR_NOTICE("gc2145 id %s: rt=%d %02x%02x", tag, rt, id[0], id[1]);
 }
 
 /**
@@ -187,8 +157,6 @@ static OPERATE_RET __dvp_gc2145_init(DVP_I2C_CFG_T *i2c, void *arg)
 
     PR_NOTICE("__dvp_gc2145_init");
 
-    __dvp_gc2145_log_id(i2c->port, "init");
-
     return OPRT_OK;
 }
 
@@ -219,17 +187,6 @@ static OPERATE_RET __dvp_gc2145_set_ppi(DVP_I2C_CFG_T *i2c, TUYA_CAMERA_PPI_E pp
         }
     }
 
-    if((NULL == ppi_init_tab) && (ppi == TUYA_CAMERA_PPI_320X240)) {
-        /* No native QVGA table: run VGA and let the TKL decimate. */
-        for(i=0; i<CNTSOF(cPPI_INIT_SEQ_LIST); i++) {
-            if(TUYA_CAMERA_PPI_640X480 == cPPI_INIT_SEQ_LIST[i].ppi) {
-                ppi_init_tab = (CAMERA_PPI_INIT_TAB_T *)&cPPI_INIT_SEQ_LIST[i];
-                ppi          = TUYA_CAMERA_PPI_640X480;
-                break;
-            }
-        }
-    }
-
     for(i=0; i<CNTSOF(cFPS_INIT_SEQ_LIST); i++) {
         if((ppi == cFPS_INIT_SEQ_LIST[i].ppi) && (fps == cFPS_INIT_SEQ_LIST[i].fps)) {
             fps_init_tab = (CAMERA_FPS_INIT_TAB_T *)&cFPS_INIT_SEQ_LIST[i];
@@ -245,32 +202,7 @@ static OPERATE_RET __dvp_gc2145_set_ppi(DVP_I2C_CFG_T *i2c, TUYA_CAMERA_PPI_E pp
         __dvp_gc2145_update_reg(i2c->port, (const uint8_t (*)[2])fps_init_tab->seq_tab, fps_init_tab->tab_size);
     }
 
-    sg_ppi = ppi;
-    sg_fps = fps;
-
     PR_NOTICE("__dvp_gc2145_set_ppi ppi:%x, fps:%d", ppi, fps);
-
-    return OPRT_OK;
-}
-
-/**
- * @brief Replay reset + tables once video0 has powered the sensor clock
- * @return OPRT_OK on success, OPRT_COM_ERROR if the module never registered
- */
-OPERATE_RET tdd_camera_dvp_gc2145_restart(void)
-{
-    DVP_I2C_CFG_T *i2c = &sg_dvp_sensor.usr_cfg.i2c;
-
-    if (i2c->port >= TUYA_I2C_NUM_MAX) {
-        return OPRT_COM_ERROR;
-    }
-
-    (void)tdd_dvp_i2c_init(i2c);
-    (void)__dvp_gc2145_reset(&sg_dvp_sensor.usr_cfg.rst, NULL);
-    (void)__dvp_gc2145_init(i2c, NULL);
-    (void)__dvp_gc2145_set_ppi(i2c, sg_ppi, sg_fps, NULL);
-
-    __dvp_gc2145_log_id(i2c->port, "restart");
 
     return OPRT_OK;
 }
