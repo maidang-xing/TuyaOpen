@@ -76,6 +76,11 @@ static TDD_DVP_SR_CFG_T sg_dvp_sensor = {
     .fmt        = TUYA_FRAME_FMT_YUV422,
 };
 
+/* Last geometry requested, so a restart after the vendor has enabled the
+ * sensor clock can re-apply the same tables. */
+static TUYA_CAMERA_PPI_E sg_ppi = TUYA_CAMERA_PPI_640X480;
+static uint16_t          sg_fps = 20;
+
 /***********************************************************
 ***********************function define**********************
 ***********************************************************/
@@ -103,6 +108,25 @@ static void __dvp_gc2145_update_reg(TUYA_I2C_NUM_E port, const uint8_t sensor_re
             return;
         }
     }
+}
+
+/**
+ * @brief Log the sensor's chip id, so a silent I2C/wiring problem is visible
+ * @param port I2C port number
+ * @param tag Short marker identifying the call site
+ */
+static void __dvp_gc2145_log_id(TUYA_I2C_NUM_E port, const char *tag)
+{
+    DVP_I2C_REG_CFG_T id_cfg = {
+        .port      = port,
+        .addr      = (GC2145_READ_ADDRESS >> 1),
+        .is_16_reg = 0,
+        .reg       = 0xF0,
+    };
+    uint8_t     id[2] = {0};
+    OPERATE_RET rt    = tdd_dvp_i2c_read(&id_cfg, sizeof(id), id);
+
+    PR_NOTICE("gc2145 id %s: rt=%d %02x%02x", tag, rt, id[0], id[1]);
 }
 
 /**
@@ -154,6 +178,8 @@ static OPERATE_RET __dvp_gc2145_init(DVP_I2C_CFG_T *i2c, void *arg)
     __dvp_gc2145_update_reg(i2c->port, cGC2145_INIT_TAB, CNTSOF(cGC2145_INIT_TAB));
 
     PR_NOTICE("__dvp_gc2145_init");
+
+    __dvp_gc2145_log_id(i2c->port, "init");
 
     return OPRT_OK;
 }
@@ -212,7 +238,38 @@ static OPERATE_RET __dvp_gc2145_set_ppi(DVP_I2C_CFG_T *i2c, TUYA_CAMERA_PPI_E pp
         __dvp_gc2145_update_reg(i2c->port, (const uint8_t(*)[2])fps_init_tab->seq_tab, fps_init_tab->tab_size);
     }
 
+    sg_ppi = ppi;
+    sg_fps = fps;
+
     PR_NOTICE("__dvp_gc2145_set_ppi ppi:%x, fps:%d", ppi, fps);
+
+    return OPRT_OK;
+}
+
+/**
+ * @brief Re-run reset + register tables after the vendor has opened video0
+ *
+ * On this board the sensor clock comes from the vendor ISC (PH2 is an output
+ * channel enabled by the video0 open), so the early table written from
+ * tdd_camera_dvp.c lands on a sensor that has no clock yet. tkl_dvp calls this
+ * (through the board's tkl_camera_sensor_restart hook) once video0 is up.
+ *
+ * @return OPRT_OK on success, OPRT_COM_ERROR if the module never registered
+ */
+OPERATE_RET tdd_camera_dvp_gc2145_restart(void)
+{
+    DVP_I2C_CFG_T *i2c = &sg_dvp_sensor.usr_cfg.i2c;
+
+    if (i2c->port >= TUYA_I2C_NUM_MAX) {
+        return OPRT_COM_ERROR;
+    }
+
+    (void)tdd_dvp_i2c_init(i2c);
+    (void)__dvp_gc2145_reset(&sg_dvp_sensor.usr_cfg.rst, NULL);
+    (void)__dvp_gc2145_init(i2c, NULL);
+    (void)__dvp_gc2145_set_ppi(i2c, sg_ppi, sg_fps, NULL);
+
+    __dvp_gc2145_log_id(i2c->port, "restart");
 
     return OPRT_OK;
 }

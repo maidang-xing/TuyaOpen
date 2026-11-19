@@ -24,7 +24,6 @@ extern "C" {
 ************************macro define************************
 ***********************************************************/
 
-
 /***********************************************************
 ***********************typedef define***********************
 ***********************************************************/
@@ -40,6 +39,12 @@ extern "C" {
  * @return OPRT_OK on success, error code otherwise
  */
 OPERATE_RET tdd_camera_dvp_gc2145_register(char *name, TDD_DVP_SR_USR_CFG_T *cfg);
+
+/**
+ * @brief Re-apply reset and register tables after the vendor opened video0
+ * @return OPRT_OK on success, OPRT_COM_ERROR if the sensor was never registered
+ */
+OPERATE_RET tdd_camera_dvp_gc2145_restart(void);
 
 #ifdef __cplusplus
 }
