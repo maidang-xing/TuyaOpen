@@ -10,7 +10,7 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'dvphard', 'dvpharddiag', 'dvphead2', 'spiyuv', 'spibase')]
+    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'dvphard', 'dvpharddiag', 'dvphead2', 'dvptddsensor', 'dvprestart', 'dvphvsync', 'dvpyuyv', 'dvptddfinal', 'spiyuv', 'spibase')]
     [string]$Image,
 
     # isd_download needs the app's USB device to be enumerated when it opens
@@ -36,6 +36,36 @@ $images = @{
         Sha  = '4fe36c410c63d0341efb16d9d49cc0c8ebbda044df8b75b7a9ca466c21963dde'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'output_display dvp_lcd profile with boot markers, checked against TDL camera path'
+    }
+    dvptddfinal = @{
+        File = 'dvp-tdd-final-96603c26.bin'
+        Sha  = '96603c2619d4b1cfc071fe494c6be2fcc1ccc19b02fa8288ab622751286fcad4'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP with the sensor owned by the TDD: restart after video0 open, H/V sync exchange, yuv_order=YUYV (diagnostic counters removed)'
+    }
+    dvpyuyv = @{
+        File = 'dvp-tdd-yuyv-cac7f91f.bin'
+        Sha  = 'cac7f91fcb0f4bdf66c5c2c407f9717a67a52ef9929a184939979a0d64766ff1'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'dvphvsync + yuv_order=YUYV in the GC2145 TDD (fixes the purple/green preview) + 5 s delivery counters'
+    }
+    dvphvsync = @{
+        File = 'dvp-tdd-hvsync-951837bc.bin'
+        Sha  = '951837bc63f583293304de6bb4db4c08365695adcceb27fff7abeff0f3f77f26'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'dvprestart + SYNC0=VSYNC/SYNC1=HSYNC (vendor CONFIG_CAMERA_H_V_EXCHANGE) on the timing descriptor'
+    }
+    dvprestart = @{
+        File = 'dvp-tdd-restart-c78af7be.bin'
+        Sha  = 'c78af7bee2ddce9da4a38868147e360ebd247f05bed6284189b098d9d295bb28'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP TDD sensor + tkl_camera_sensor_restart() replay after video0 open, with gc2145 chip-id readback'
+    }
+    dvptddsensor = @{
+        File = 'dvp-tdd-sensor-te-3c7cea5f.bin'
+        Sha  = '3c7cea5fec4a948fdb61e60a366627d736bee345cc86d16c0369b06a8c03fcb1'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'DVP with the sensor owned by tdd_camera_dvp_gc2145 (app 13af27fe/f183c80d, platform 24003fe3) + display TE fix; sensor 640x480@20, preview 320x240'
     }
     dvp2 = @{
         File = 'dvp-v2-4ddcf72f.bin'

@@ -4,7 +4,7 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 
 | 连接器 | 传感器 | 路径 | 状态 |
 |---|---|---|---|
-| J1（24-pin DVP） | GC2145 | video0 + DVP v2 拉模式 | ✅ 实机 320×240@20，129.8 s / 3,720 帧 / drops=0，目视满屏 |
+| J1（24-pin DVP） | GC2145 | video0 + DVP v2 拉模式 | ✅ 早期 320×240@20 实机 3,720 帧 / drops=0 目视满屏；**2026-11-19 传感器改由 TDD 拥有后重新实机：35.3 s / 571 帧 / drops=0 / ≈17.6 fps，零 `video_ioct` / `isc line err`，画面与颜色目视正常** |
 | J4（12-pin SPI） | GC0310 | video1 + SPI2 逐行中断/DMA | ✅ 实机 640×480 ≈4.4 fps、481.0 行/帧、`tag_err=0`，**目视颜色正常** |
 
 主要提交：
@@ -127,3 +127,30 @@ choice "Camera module"
 平台侧（PR #47 `720bb6b0`）改为读板级 staging 的 `JIELI_BOARD_CAMERA_DVP/_SPI` 与 `JIELI_BOARD_CAMERA_WIDTH/HEIGHT/FPS`，适配层里不再出现任何"路径"字样。
 
 验证：`spi_tdd`、`dvp_lcd` 均 BUILD SUCCESS；`spi_tdd` 实机启动链完整、**4.4 fps / 479.4 行/帧 / `tag_err=0`，60 s**。
+
+## 2026-11-19 步骤 1/2：DVP 传感器也交给 TDD（`13af27fe`、`f183c80d`）
+
+对齐 T5 之后，"谁拥有传感器"只剩一个判据：`TDD_DVP_SR_INTFS_T` 为空表示厂商拥有，非空表示 TDD 拥有。SPI 路径早已是 TDD 拥有，DVP 路径此前仍由厂商 `video0` 的 `gc2145.c` 探针并写寄存器表（TDD 只注册空接口表）。本次把 DVP 也翻过来，两路模组的行为彻底同形：
+
+- **板级**：`board_com_api.c` 的 DVP 分支改调 `tdd_camera_dvp_gc2145_register()`，用 `BOARD_CAMERA_I2C_PORT/SCL/SDA`、`BOARD_CAMERA_RST_PIN`、`BOARD_CAMERA_CLK`——和 SPI 分支同一套宏形状，也是 T5AI 板级头的形状。
+- **TDD**：GC2145 没有原生 QVGA 表（厂商 `GC2145_set_output_size()` 只是在 1616×1232 画布上开窗写 0x09–0x10，不是缩放），所以 `__dvp_gc2145_set_ppi()` 在查不到 QVGA 表时回退到 VGA 表。这与 SPI 路径是同一分工：**传感器跑板级几何，TKL 抽取到调用方要的尺寸**。
+- **profile**：DVP 的板级几何就是传感器几何（640×480@20），示例请求 320×240@20，由 TKL 2:1 抽取交付（`f183c80d` 把示例 fps 从 25 对齐到板级 20，避免示例向 TDD 要一个与平台描述符不同的速率）。
+- **平台侧配套**见 PR #47 `24003fe3`：`tkl_dvp.c` 只保留一个 ops 全空的时序描述符，厂商 ISP 仍能锁存并口时序与几何但不会重写 TDD 刚写的表；DVP 构建不再编译厂商 `gc2145_dvp/gc2145.c`；staging 的 `reset_gpio` 置 -1。
+
+验证状态：
+
+- `dvp_lcd`、`spi_tdd` 均 BUILD SUCCESS（T5AI 摄像头板回归同前，legacy 回调路径未动）。
+- **无模组启动**（`logs/boot-dvp-tdd-noj1.log`）：`camera module: GC2145 on J1 (DVP)` → TDD iic0（clk 112 / sda 113）→ `gc2145 reset pin 115 lv:0` → `dvp initialized` → `sensor info: 640x480 fps=20` → `SET_FMT ok, static overlay buf=…/614400` → `DVP capture started` → `camera init success`。`sensor info` 出自我们的 `GC2145_TIMING` 描述符，说明厂商探针已被正确绕开。
+- **帧率/画面/颜色未复验**：J1 模组当前未接（同一日志里只有 1 Hz 的 `[VIDEO]video_ioct: err = 11`，EAGAIN）。接上 J1 后需要补一轮 320×240 交付计数 + 目视，本 PR 才会回到"两路均实机验收"。
+
+## 2026-11-19 步骤 1 实机：三处根因（`fb0b72b5`、`85174cf3`）
+
+DVP 传感器交给 TDD 后第一次上板：先是 `video_ioct: err = 11` 一帧不出，修好后画面偏紫绿。逐个定位为三件事（平台侧两处配套见 PR #47 `e2413586`、`15f00ae5`）：
+
+1. **传感器时钟**（`fb0b72b5`）：TDD 在 `tkl_dvp_start()` 之前复位并写表，而板上的 24 MHz XCLK（PH2）是 ISC 输出通道，要等厂商 `dev_open("video0.2")` 才使能——表全写在一颗没有时钟的传感器上。新增的 chip-id 读回把这件事直接摊开：`gc2145 id init: rt=0 ffff` →（video0 open）→ `gc2145 id init: rt=0 2145`。修法沿用 SPI 路径既有的钩子：板级 `tkl_camera_sensor_restart()` 在 GC2145 模组下转发到 `tdd_camera_dvp_gc2145_restart()`（复位 + 整表 + set_ppi 重放），平台在 `dev_open` 成功后调用。读回日志保留在 init 与 restart 两处，下次有人动时钟/管脚时一眼能看出来。
+2. **H/V 同步**（平台 `15f00ae5`）：描述符漏了厂商在 `CONFIG_CAMERA_H_V_EXCHANGE` 下写的 `.sync_config`（WL82/AC791 是 SYNC0=VSYNC、SYNC1=HSYNC），表现为持续 `[VIDEO_ISC]isc line err`。
+3. **YUV 序**（`85174cf3`）：`TDD_DVP_SR_CFG_T.yuv_order` 默认 UYVY 被 TDL 一路传到显示转换器，而 `tkl_dvp` 打包的是 YUYV——转换器按错误字节位置取亮/色度，画面偏紫绿。补 `.yuv_order = TUYA_YUV422_YUYV`，与 SPI 模组一致。
+
+实机（AC791 DevKitBoard + J1 GC2145，镜像 `dvp-tdd-yuyv-cac7f91f.bin`）：启动链 `camera module: GC2145 on J1 (DVP)` → `gc2145 id init ffff` → `DVP: TDD sensor restart ret=0` → `gc2145 id ... 2145` → `SET_FMT ok … 614400` → `first frame: 320x240 fmt=1 len=153600`；**35.3 s / 571 帧 / drops=0 / ≈17.6 fps**，零 `video_ioct err`、零 `isc line err`（只剩既有的 `isc bandwith err` ≈2/s）；**用户目视确认画面与颜色正常**（`logs/serial-COM8-20261119-135349.log`）。去掉计数后的最终镜像 `dvp-tdd-final-96603c26.bin` 同样零错误，板子当前运行该镜像。
+
+> 交付率说明：DVP profile 是"传感器 640×480、预览 320×240"，抽取在 `cam_proc` 里逐像素做，比早前 320×240 直采的 ≈28 fps 低（≈17.6 fps）。要提速可让 ISP 侧出小尺寸，或把转换改成对齐宽读。

@@ -13,7 +13,7 @@ AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/vi
 
 | 路径 | 结果 |
 |---|---|
-| DVP / J1（GC2145，320×240@20） | 129.8 s / 3,720 帧 / drops=0 / 零异常（≈28.7 fps）；`52b1322` 复验 133.4 s / 3,820 帧 / drops=0（≈28.6 fps）；**目视满屏** |
+| DVP / J1（GC2145，320×240@20） | 129.8 s / 3,720 帧 / drops=0 / 零异常（≈28.7 fps）；`52b1322` 复验 133.4 s / 3,820 帧 / drops=0（≈28.6 fps）；**目视满屏**。2026-11-19 传感器改由 TDD 拥有后重新实机：**35.3 s / 571 帧 / drops=0 / ≈17.6 fps，零 `video_ioct` / `isc line err`，画面与颜色目视正常** |
 | SPI / J4（GC0310，640×480） | ≈4.47 fps、481.0 行/帧、`tag_err=0`、零异常；**目视颜色正常** |
 
 ## 2026-11-18 SPI/J4 实机验收（平台 head `52b1322`）
@@ -109,3 +109,28 @@ A/B（同一棵树，只改节点类型；`spi_tdd` profile，AC791 + J4 GC0310�
 `tkl_dvp.c` 与 staging 工具改读 `JIELI_BOARD_CAMERA_DVP/_SPI` 和 `JIELI_BOARD_CAMERA_WIDTH/HEIGHT/FPS`——这些是板级从"Camera module"选择里 staged 出来的。适配层里不再出现传感器名或"路径"字样；没 staged 时保留 640×480 兜底。
 
 验证：`spi_tdd`、`dvp_lcd` BUILD SUCCESS；`spi_tdd` 实机 4.4 fps / `tag_err=0` / 60 s。
+
+## 2026-11-19 步骤 1：DVP 的传感器交给 TDD，TKL 只描述时序（`24003fe3`）
+
+应用侧 PR #2 `13af27fe` 把 DVP 传感器翻给 TDD（与 SPI 路径同形）后，`tkl_dvp.c` 不能再扮演"厂商探针"：它注册的 `REGISTER_CAMERA` 会被厂商 ISP 的 `sensor_check` 选中并写寄存器表，与 TDD 刚写的表互相覆盖。本次改为**只描述时序的空壳描述符**：
+
+- `REGISTER_CAMERA(GC2145_TIMING)`：logo/总线/并口极性/几何/fps 保持真实值，`ops.sensor_check/init/set_size_fps` 全部返回 0、不写任何寄存器。厂商 ISP 仍能锁存 DVP 并口时序与几何，但不再碰传感器。
+- 几何来自板级 staging 的 `JIELI_BOARD_CAMERA_WIDTH/HEIGHT/FPS`（`DVP_SENSOR_WIDTH/HEIGHT`），`VIDIOC_SET_FMT` 也按传感器几何下，与 TDD 写进传感器的分辨率一致。
+- 抽取交付：`yuv422p_to_packed_yuyv(src, dst, in_w, in_h, out_w, out_h)` 按 `step_x/step_y` 从传感器几何抽到调用方几何；`dvp_prepare()` 的暂存缓冲按传感器尺寸，交付缓冲按 `s_width×s_height×2`；`init` 的几何校验从"必须相等"放宽为"整数倍"。DVP profile 因此是"传感器 640×480 / 预览 320×240"。
+- `board_config.py`：staged `tuya_camera0_data.reset_gpio` 置 -1（复位归 TDD，与 SPI 分支同形）。
+- `sdk_overlay.py`：DVP 构建剔除厂商 `camera/gc2145_dvp/gc2145.c`，探针不可能再选中厂商驱动；SPI 构建的剔除逻辑不变。
+
+验证：
+
+- `spi_tdd`、`dvp_lcd` BUILD SUCCESS；staged Makefile 对应 `-DJIELI_BOARD_CAMERA_DVP=1`（640×480@20）与 `-DJIELI_BOARD_CAMERA_SPI=1`。
+- 无模组启动：平台选中 `GC2145_TIMING`（日志 `sensor info: 640x480 fps=20` → `SET_FMT ok` → `DVP capture started`），说明厂商探针已被绕开且时序锁存正常。
+- **帧率/画面未复验**：J1 模组当前未接，`video_ioct: err = 11`（EAGAIN）每秒一条，与"传感器不在位"一致。
+
+## 2026-11-19 步骤 1 实机：两处配套修复（`e2413586`、`15f00ae5`）
+
+应用 PR #2 的 `13af27fe` 让 TDD 拥有 DVP 传感器后，上板一帧不出。平台侧两处修复：
+
+- **`e2413586` 时序**：`video0` 的 open 才使能传感器时钟（PH2 是 ISC 输出通道）并把 ISP 拉起来，而 TDD 的表写在 `tkl_dvp_start()` 之前，等于写给了没有时钟的传感器（读回 0xffff）。在 `dev_open("video0.2")` 成功后调用板级的 `tkl_camera_sensor_restart()`——和 SPI 路径 arm 完 SPI2 后用的是同一个钩子，本板上它重放复位 + 寄存器表。
+- **`15f00ae5` H/V 同步**：厂商 GC2145 描述符把 `.sync_config` 包在 `#if CONFIG_CAMERA_H_V_EXCHANGE` 里（WL82/AC791 为 SYNC0=VSYNC、SYNC1=HSYNC）。我们的时序描述符没写这一项，表现是持续 `[VIDEO_ISC]isc line err`、零帧。该宏只在厂商 `app_config.h`，适配层看不到，所以 staging 对 DVP 构建另发 `-DJIELI_BOARD_CAMERA_HV_SYNC_SWAP=1`，`tkl_dvp.c` 据此决定是否写 `.sync_config`。
+
+实机（AC791 + J1 GC2145）：修好后 35.3 s / 571 帧 / drops=0 / ≈17.6 fps，零 `video_ioct` / `isc line err`，画面与颜色用户目视正常（`logs/serial-COM8-20261119-135349.log`）。YUV 序的第三处修复在应用侧（`85174cf3`，`.yuv_order = YUYV`）。
