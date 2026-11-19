@@ -42,6 +42,9 @@
 #if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
 #include "tdd_camera_gc0310_spi.h"
 #endif
+#if defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)
+#include "tdd_camera_gc2145.h"
+#endif
 #define JIELI_CAMERA_DEV_NAME "camera"
 #endif
 
@@ -165,31 +168,20 @@ OPERATE_RET board_register_hardware(void)
 
         ret = tdd_camera_gc0310_spi_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg);
 #else
-        /* The vendor video0 driver owns probe, I2C, reset and the register
-         * table, and the TKL adapter owns the capture device. Nothing in this
-         * structure opens an I2C port or toggles a GPIO: TUYA_I2C_NUM_MAX /
-         * TUYA_GPIO_NUM_MAX disable those TDD-side steps. BOARD_CAMERA_* in
-         * board_com_api.h names the pins the TDD will take over. */
-        TDD_DVP_SR_CFG_T camera_cfg = {
-            .usr_cfg =
-                {
-                    .pwr = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
-                    .rst = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
-                    .i2c = {.port = TUYA_I2C_NUM_MAX},
-                    .clk = BOARD_CAMERA_CLK,
-                },
-            .max_fps    = JIELI_BOARD_CAMERA_FPS,
-            .max_width  = JIELI_BOARD_CAMERA_WIDTH,
-            .max_height = JIELI_BOARD_CAMERA_HEIGHT,
-            .fmt        = TUYA_FRAME_FMT_YUV422,
-            /* The TKL delivers packed YUYV on both paths: the GC0310 SPI
-             * stream is already YUYV, and tkl_dvp interleaves the DVP
-             * sensor's planar YUV422P before handing frames to TDD. */
-            .yuv_order = TUYA_YUV422_YUYV,
+        /* The TDD owns the sensor here too: probe, I2C, reset and the register
+         * table all run before tkl_dvp_start(), and the platform's timing-only
+         * descriptor tells the vendor ISC what to latch. The sensor runs at
+         * the board geometry; tkl_dvp decimates to whatever the caller asks
+         * for, so BOARD_CAMERA_WIDTH/HEIGHT are the sensor size, not the
+         * preview size. */
+        TDD_DVP_SR_USR_CFG_T camera_cfg = {
+            .pwr = {.pin = BOARD_CAMERA_POWER_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
+            .rst = {.pin = BOARD_CAMERA_RST_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
+            .i2c = {.port = BOARD_CAMERA_I2C_PORT, .clk = BOARD_CAMERA_I2C_SCL, .sda = BOARD_CAMERA_I2C_SDA},
+            .clk = BOARD_CAMERA_CLK,
         };
-        TDD_DVP_SR_INTFS_T camera_intfs = {0};
 
-        ret = tdl_camera_dvp_device_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg, &camera_intfs);
+        ret = tdd_camera_dvp_gc2145_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg);
 #endif
         if (ret != OPRT_OK) {
             return ret;
