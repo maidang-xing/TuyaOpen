@@ -53,7 +53,7 @@ static CAMERA_DVP_DEV_T *sg_dvp_dev = NULL;
 ***********************function define**********************
 ***********************************************************/
 /* The v2 TKL reports lifecycle events asynchronously; only log them. */
-static void __tdd_dvp_event_cb(TUYA_CAMERA_EVENT_E event, VOID_T *arg)
+static void __tdd_dvp_event_cb(TUYA_CAMERA_EVENT_E event, void *arg)
 {
     (void)arg;
     switch (event) {
