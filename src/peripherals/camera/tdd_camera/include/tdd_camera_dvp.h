@@ -50,8 +50,8 @@ typedef struct {
 #if defined(TKL_DVP_HAS_PULL_API)
     /* HSYNC/VSYNC polarity the sensor drives; the v2 TKL DVP interface
      * requires it in its init config and does not probe it. 0 = both high
-     * valid. The type is spelled TUYA_DVP_SYNC_MODE_E on this platform and
-     * TUYA_DVP_SYNC_MODE on the legacy ones, so the field is v2-only. */
+     * valid. The values are the shared TUYA_DVP_SYNC_MODE; the v2 spelling is
+     * its TUYA_DVP_SYNC_MODE_E alias, so the field is v2-only. */
     TUYA_DVP_SYNC_MODE_E sync_polarity;
 #endif
 } TDD_DVP_SR_CFG_T;
