@@ -17,11 +17,7 @@
 /***********************************************************
 *************************micro define***********************
 ***********************************************************/
-#ifdef EXAMPLE_DISPLAY_FRAME_BUFF_NUM
-#define DISPLAY_FRAME_BUFF_NUM EXAMPLE_DISPLAY_FRAME_BUFF_NUM
-#else
 #define DISPLAY_FRAME_BUFF_NUM 2
-#endif
 
 #if defined(EXAMPLE_CAMERA_IMG_ROTATION_0) && (EXAMPLE_CAMERA_IMG_ROTATION_0 == 1)
 #define EXAMPLE_CAMERA_IMG_ROTATION TUYA_DISPLAY_ROTATION_0
