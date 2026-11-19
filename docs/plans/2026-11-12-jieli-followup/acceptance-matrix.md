@@ -37,3 +37,5 @@
 - 应用 `13af27fe` + `f183c80d` / 平台 `24003fe3`（已提交，未推送）：DVP 与 SPI 现在同形——板级 `BOARD_CAMERA_*` 宏 + 一个 TDD 驱动拥有传感器，平台只留 ops 全空的时序描述符，厂商 `gc2145_dvp/gc2145.c` 不再参与 DVP 构建。
 - 层级证据：**构建** `dvp_lcd`、`spi_tdd` BUILD SUCCESS；**烧录+启动** 无模组镜像启动链 `camera module: GC2145 on J1 (DVP)` → `sensor info: 640x480 fps=20` → `SET_FMT ok, static overlay buf=…/614400` → `DVP capture started` → `camera init success`（`logs/boot-dvp-tdd-noj1.log`）。
 - **实机帧/画面/颜色未验**：J1 未接（日志 1 Hz `video_ioct: err = 11`）。05 的"DVP ✅"应读作此前的厂商传感器路径，TDD 路径需 J1 接上后重验；`acceptance-matrix` 第 05 行的 ✅ 暂按"结构对齐前"理解。
+
+- **2026-11-19 下午补正（应用 `fb0b72b5`/`85174cf3`、平台 `e2413586`/`15f00ae5`）**：DVP 收归 TDD 后首次上板一帧不出、随后偏紫绿，三处根因全部定位并修复——传感器时钟要等 `dev_open("video0.2")`（TDD 表改在 open 后重放，ID 读回 `ffff`→`2145`）、描述符漏 `.sync_config`（H/V 交换，否则 `isc line err` 不停）、`yuv_order` 默认 UYVY 与 TKL 的 YUYV 打包不符（紫绿）。修后 **35.3 s / 571 帧 / drops=0 / ≈17.6 fps**，零 `video_ioct`/`isc line err`，**用户目视画面与颜色正常**；最终镜像 `dvp-tdd-final-96603c26.bin`。05 的 DVP 条目现在的结论同时覆盖"厂商传感器"与"TDD 传感器"两种实现。
