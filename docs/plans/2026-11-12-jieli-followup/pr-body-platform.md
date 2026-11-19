@@ -134,3 +134,11 @@ A/B（同一棵树，只改节点类型；`spi_tdd` profile，AC791 + J4 GC0310�
 - **`15f00ae5` H/V 同步**：厂商 GC2145 描述符把 `.sync_config` 包在 `#if CONFIG_CAMERA_H_V_EXCHANGE` 里（WL82/AC791 为 SYNC0=VSYNC、SYNC1=HSYNC）。我们的时序描述符没写这一项，表现是持续 `[VIDEO_ISC]isc line err`、零帧。该宏只在厂商 `app_config.h`，适配层看不到，所以 staging 对 DVP 构建另发 `-DJIELI_BOARD_CAMERA_HV_SYNC_SWAP=1`，`tkl_dvp.c` 据此决定是否写 `.sync_config`。
 
 实机（AC791 + J1 GC2145）：修好后 35.3 s / 571 帧 / drops=0 / ≈17.6 fps，零 `video_ioct` / `isc line err`，画面与颜色用户目视正常（`logs/serial-COM8-20261119-135349.log`）。YUV 序的第三处修复在应用侧（`85174cf3`，`.yuv_order = YUYV`）。
+
+## 2026-11-19 评审收敛：接口不重复定义、IIC 端口下沉、统一整数类型
+
+- **`9fdfb9f8` 极性枚举**：`tuya_cloud_types.h` 里本来就有 `TUYA_DVP_SYNC_MODE`（公共内容），`tkl_dvp.h` 不再自带一套：改为 `typedef TUYA_DVP_SYNC_MODE TUYA_DVP_SYNC_MODE_E;`，值不变，旧枚举保留原名（撤销此前的 `_V1_` 改名）。`TUYA_FRAME_FMT_H264_I` 未添加——只有 `request_idr()` 之后才会产生该格式，本移植的 ch3 返回 `OPRT_NOT_SUPPORTED`。
+- **`508658f4` IIC 端口**：删除板级 `JIELI_BOARD_IIC1_SOFTWARE`。应用只按端口号 `tkl_i2c_init()`；端口是硬件还是软件由适配层按芯片与板级引脚在编译期决定（`JIELI_IIC1_IS_SOFTWARE`）：软件 IIC 支持任意 GPIO，硬件 IIC 只支持控制器映射内的引脚（PA7/PA8、PC1/PC2、USB DPA/DMA），其余自动回退软件；PH0/PH1 是摄像头 2-wire 总线，恒走软件。`docs/jieli-tkl.md` 增加端口表、引脚规则与默认推荐引脚（PA0/PA1、PA7/PA8）。
+- **`5261adf0` 类型**：`tkl_dvp.c` 的 `u8/u16/u32/s32` 等 135 处换成 TuyaOpen 的 `UINT8_T/UINT16_T/UINT32_T/INT32_T`；厂商 `sensor_ops` 的函数指针签名底层类型一致，不受影响。
+
+验证：`dvp_lcd`、`spi_tdd` BUILD SUCCESS；DVP 镜像与改前逐字节比对只差 3 字节（构建戳），其余完全一致。

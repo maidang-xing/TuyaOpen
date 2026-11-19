@@ -154,3 +154,8 @@ DVP 传感器交给 TDD 后第一次上板：先是 `video_ioct: err = 11` 一�
 实机（AC791 DevKitBoard + J1 GC2145，镜像 `dvp-tdd-yuyv-cac7f91f.bin`）：启动链 `camera module: GC2145 on J1 (DVP)` → `gc2145 id init ffff` → `DVP: TDD sensor restart ret=0` → `gc2145 id ... 2145` → `SET_FMT ok … 614400` → `first frame: 320x240 fmt=1 len=153600`；**35.3 s / 571 帧 / drops=0 / ≈17.6 fps**，零 `video_ioct err`、零 `isc line err`（只剩既有的 `isc bandwith err` ≈2/s）；**用户目视确认画面与颜色正常**（`logs/serial-COM8-20261119-135349.log`）。去掉计数后的最终镜像 `dvp-tdd-final-96603c26.bin` 同样零错误，板子当前运行该镜像。
 
 > 交付率说明：DVP profile 是"传感器 640×480、预览 320×240"，抽取在 `cam_proc` 里逐像素做，比早前 320×240 直采的 ≈28 fps 低（≈17.6 fps）。要提速可让 ISP 侧出小尺寸，或把转换改成对齐宽读。
+
+## 2026-11-19 评审收敛：板级只声明引脚（`aada30d6`、`f5e3e981`）
+
+- 删除 `JIELI_BOARD_IIC1_SOFTWARE`：IIC1 是软件还是硬件由平台按芯片与引脚决定（PH0/PH1 → 软件，因为摄像头模组在这两个焊盘上跑 2-wire 总线），板级只保留引脚声明，应用/板级都不再出现"软件/硬件"字样。
+- `tdd_camera_dvp.h` 的注释改为"v2 极性类型是共享枚举的别名"，与平台 `9fdfb9f8` 一致。
