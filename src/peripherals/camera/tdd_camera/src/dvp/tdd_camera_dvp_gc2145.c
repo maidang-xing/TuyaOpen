@@ -74,6 +74,10 @@ static TDD_DVP_SR_CFG_T sg_dvp_sensor = {
     .max_width  = 1616,
     .max_height = 1232,
     .fmt        = TUYA_FRAME_FMT_YUV422,
+    /* tkl_dvp packs the ISP's planar output as Y U Y V, so say so: the
+     * consumer-side converter defaults to UYVY and would read luma and chroma
+     * from the wrong bytes (the purple/green preview). */
+    .yuv_order = TUYA_YUV422_YUYV,
 };
 
 /* Last geometry requested, so a restart after the vendor has enabled the
