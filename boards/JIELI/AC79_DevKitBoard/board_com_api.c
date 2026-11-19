@@ -154,13 +154,13 @@ OPERATE_RET board_register_hardware(void)
      (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
     {
 #if defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
-        /* The TDD owns the sensor: IIC1 on PH0/PH1, reset on PH3. tkl_dvp
-         * skips video1 and asks tdd_camera_gc0310_spi_restart() to re-run the
+        /* The TDD owns the sensor: IIC1 on PH0/PH1, reset on PH3. tkl_dvp only
+         * opens spi2 and asks tdd_camera_gc0310_spi_restart() to re-run the
          * table once SPI2 is armed. */
         TDD_DVP_SR_USR_CFG_T camera_cfg = {
             .pwr = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
             .rst = {.pin = TUYA_GPIO_NUM_115, .active_level = TUYA_GPIO_LEVEL_LOW},
-            .i2c = {.port = TUYA_I2C_NUM_1, .clk = 112, .sda = 113},
+            .i2c = {.port = TUYA_I2C_NUM_1, .clk = JIELI_BOARD_IIC1_SCL_PIN, .sda = JIELI_BOARD_IIC1_SDA_PIN},
             .clk = 24000000,
         };
 

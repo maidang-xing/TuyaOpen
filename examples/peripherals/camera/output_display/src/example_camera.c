@@ -49,9 +49,7 @@ static TDL_FB_MANAGE_HANDLE_T sg_fb_manage = NULL;
 static TDL_CAMERA_HANDLE_T sg_tdl_camera_hdl = NULL;
 static TUYA_YUV422_ORDER_E sg_yuv_order      = TUYA_YUV422_UYVY;
 
-/* RGB565 scratch frame used to stretch the camera picture over the panel:
- * the panel is 320x480 while the camera sends 320x240, so each source row is
- * written twice. */
+/* RGB565 scratch frame, used only when the panel is 2x the camera height. */
 static uint8_t *sg_conv_buf = NULL;
 
 /***********************************************************
@@ -61,14 +59,13 @@ static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA
 {
     OPERATE_RET            rt         = OPRT_OK;
     TDL_DISP_FRAME_BUFF_T *convert_fb = NULL;
-    TDL_DISP_FRAME_BUFF_T  scratch;
 
     convert_fb = tdl_disp_get_free_fb(sg_fb_manage);
     TUYA_CHECK_NULL_RETURN(convert_fb, OPRT_COM_ERROR);
 
-    /* The scratch buffer only exists for the stretch geometry (same width,
-     * panel at least twice as tall); every other geometry converts straight
-     * into the panel framebuffer so the converter's stride rules apply. */
+    /* The converter does not scale: a panel twice as tall as the picture is
+     * filled by converting into the scratch frame and writing every row twice.
+     * Any other geometry converts straight into the panel framebuffer. */
     if (sg_conv_buf == NULL || convert_fb->frame == NULL || convert_fb->width != frame->width ||
         convert_fb->height < (uint16_t)(2U * frame->height)) {
         TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, convert_fb,
@@ -78,32 +75,25 @@ static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA
         return rt;
     }
 
-    memset(&scratch, 0, sizeof(scratch));
-    scratch.type   = convert_fb->type;
-    scratch.fmt    = convert_fb->fmt;
-    scratch.width  = frame->width;
-    scratch.height = frame->height;
-    scratch.len    = (uint32_t)frame->width * frame->height * 2U;
-    scratch.frame  = sg_conv_buf;
+    TDL_DISP_FRAME_BUFF_T scratch = {
+        .type   = convert_fb->type,
+        .fmt    = convert_fb->fmt,
+        .width  = frame->width,
+        .height = frame->height,
+        .len    = (uint32_t)frame->width * frame->height * 2U,
+        .frame  = sg_conv_buf,
+    };
 
     TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, &scratch,
                                                     sg_display_info.is_swap, EXAMPLE_CAMERA_IMG_ROTATION,
                                                     sg_yuv_order));
 
-    /* Fill the panel by duplicating every source row when the panel is twice
-     * as tall as the camera picture (320x480 panel, 320x240 camera). */
-    {
-        uint32_t       row_bytes = (uint32_t)frame->width * 2U;
-        uint8_t       *dst       = convert_fb->frame;
-        const uint8_t *src       = sg_conv_buf;
-        uint16_t       row;
-
-        for (row = 0; row < frame->height; row++) {
-            memcpy(dst, src, row_bytes);
-            memcpy(dst + row_bytes, src, row_bytes);
-            dst += 2U * row_bytes;
-            src += row_bytes;
-        }
+    for (uint16_t row = 0; row < frame->height; row++) {
+        uint32_t row_bytes = (uint32_t)frame->width * 2U;
+        uint8_t *src       = sg_conv_buf + (uint32_t)row * row_bytes;
+        uint8_t *dst       = convert_fb->frame + (uint32_t)row * 2U * row_bytes;
+        memcpy(dst, src, row_bytes);
+        memcpy(dst + row_bytes, src, row_bytes);
     }
 
     tdl_disp_dev_flush(sg_tdl_disp_hdl, convert_fb);
@@ -146,14 +136,12 @@ static OPERATE_RET __display_init(void)
         TUYA_CALL_ERR_LOG(tdl_disp_fb_manage_add(sg_fb_manage, sg_display_info.fmt, width, height));
     }
 
-    /* Allocate the stretch scratch only when the panel is the same width as
-     * the camera and at least twice as tall; other panel geometries convert
-     * directly and must not carry this extra full-frame buffer. */
+    /* Only the 2x-tall panel needs the scratch frame. */
     if (sg_conv_buf == NULL && sg_display_info.width == EXAMPLE_CAMERA_WIDTH &&
         sg_display_info.height >= (uint16_t)(2U * EXAMPLE_CAMERA_HEIGHT)) {
         sg_conv_buf = (uint8_t *)tal_malloc((uint32_t)EXAMPLE_CAMERA_WIDTH * EXAMPLE_CAMERA_HEIGHT * 2U);
         if (sg_conv_buf == NULL) {
-            PR_WARN("no RGB565 scratch buffer; preview stays 1:1");
+            PR_WARN("no RGB565 scratch; preview stays 1:1");
         }
     }
 
@@ -202,26 +190,15 @@ void user_main(void)
 {
     OPERATE_RET rt = OPRT_OK;
 
-    /* Raw printf markers: the Jieli TDD path can stall before the log system
-     * flushes anything, and a silent UART then cannot be told apart from a
-     * thread that never started. */
-    printf("[CAM] user_main enter\n");
-
     /* basic init */
     tal_log_init(TAL_LOG_LEVEL_DEBUG, 4096, (TAL_LOG_OUTPUT_CB)tkl_log_output);
-    printf("[CAM] log ready\n");
 
     /*hardware register*/
     board_register_hardware();
-    printf("[CAM] board ready\n");
 
-    rt = __display_init();
-    printf("[CAM] display init rt=%d\n", rt);
-    TUYA_CALL_ERR_LOG(rt);
+    TUYA_CALL_ERR_LOG(__display_init());
 
-    rt = __camera_init();
-    printf("[CAM] camera init rt=%d\n", rt);
-    TUYA_CALL_ERR_LOG(rt);
+    TUYA_CALL_ERR_LOG(__camera_init());
 
     while (1) {
         tal_system_sleep(1000);
@@ -268,12 +245,9 @@ static void tuya_app_thread(void *arg)
 void tuya_app_main(void)
 {
     THREAD_CFG_T thrd_param = {0};
-    printf("[CAM] app_main entry\n");
-    thrd_param.stackDepth = 1024 * 8;
-    thrd_param.priority   = THREAD_PRIO_1;
-    thrd_param.thrdname   = "tuya_app_main";
-    if (tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param) != OPRT_OK) {
-        printf("[CAM] app task create failed\n");
-    }
+    thrd_param.stackDepth   = 1024 * 4;
+    thrd_param.priority     = THREAD_PRIO_1;
+    thrd_param.thrdname     = "tuya_app_main";
+    tal_thread_create_and_start(&ty_app_thread, NULL, NULL, tuya_app_thread, NULL, &thrd_param);
 }
 #endif

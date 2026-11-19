@@ -85,7 +85,7 @@ config JIELI_BOARD_HAS_DISPLAY
 # one path can be built at a time:
 #
 #   J1  24-pin DVP  -> camera0 (video0), PA0-PA10 + PH0-PH3
-#   J4  12-pin SPI  -> camera1 (video1), PA2/PA3/PA4 + PH0-PH3
+#   J4  12-pin SPI  -> camera1, PA2/PA3/PA4 + PH0-PH3 (TDD sensor over IIC1)
 #
 # PA2/PA3/PA4 (DVP D5/D4/D3) and PH0-PH3 (I2C/XCLK/RESET) are wired to both
 # connectors, so DVP and SPI cannot run together. The choice below is what
@@ -106,13 +106,25 @@ choice
         select ENABLE_DVP
 
     config JIELI_CAMERA_PATH_SPI
-        bool "12-pin SPI camera on J4 (video1)"
+        bool "12-pin SPI camera on J4 (spi2 + TDD sensor)"
         # Same XCLK/RESET pins as the DVP path, same UART1 conflict.
         depends on !JIELI_BOARD_UART1_ENABLE
         select ENABLE_CAMERA
         select ENABLE_DVP
 
 endchoice
+
+# The SPI sensor's control bus (PH0/PH1) is the software IIC: those pads carry
+# the sensor's 2-wire SPI output as well, and the hardware IIC1 controller does
+# not work on them (measured on AC791: the TDD's ID probe and register table go
+# through, but the SPI stream never produces a valid line). The platform only
+# asks "is this bus software?", so the reason stays on the board.
+config JIELI_BOARD_IIC1_SOFTWARE
+    bool
+    default y if JIELI_CAMERA_PATH_SPI
+    help
+        Register the SDK's iic1 device as the software (bit-banged) IIC instead
+        of the hardware controller.
 
 if JIELI_CAMERA_PATH_DVP || JIELI_CAMERA_PATH_SPI
     config JIELI_BOARD_CAMERA_WIDTH
@@ -171,22 +183,23 @@ config JIELI_BOARD_IIC0_SCL_PIN
     range 0 127
     # The DVP sensor's I2C is wired to PH0. The vendor sensor drivers open
     # iic0 for ISP_DEV_0, so the adapter's software-IIC node must move there
-    # when the DVP path is selected; the PA0/PA1 default would not probe.
-    default 112 if JIELI_CAMERA_PATH_DVP
+    # when the DVP path is selected; the PA0/PA1 default would not probe. The
+    # SPI path keeps iic0 on the same pads: a vendor probe that still runs as
+    # ISP_DEV_0 would otherwise NACK there.
+    default 112 if JIELI_CAMERA_PATH_DVP || JIELI_CAMERA_PATH_SPI
     default 0
 
 config JIELI_BOARD_IIC0_SDA_PIN
     int "IIC0 (software IIC) SDA pin (flat GPIO number)"
     range 0 127
-    default 113 if JIELI_CAMERA_PATH_DVP
+    default 113 if JIELI_CAMERA_PATH_DVP || JIELI_CAMERA_PATH_SPI
     default 1
 
 config JIELI_BOARD_IIC1_SCL_PIN
     int "IIC1 SCL pin (flat GPIO number)"
     range 0 127
-    # The SPI sensor's I2C is wired to PH0. Its vendor drivers open iic1 for
-    # a sensor whose isp_dev is not ISP_DEV_0 (GC0310/GC6133), so the hardware
-    # IIC node must move there for the SPI path.
+    # The SPI sensor's control bus is wired to PH0/PH1 and is driven by the TDD
+    # over IIC1 (see JIELI_BOARD_IIC1_SOFTWARE).
     default 112 if JIELI_CAMERA_PATH_SPI
     default 7
 
