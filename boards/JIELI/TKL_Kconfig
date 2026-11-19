@@ -94,8 +94,8 @@ config ENABLE_DVP
     help
         Compile tuyaos_adapter/src/driver/tkl_dvp.c, the bridge between the
         camera TDD and the vendor video pipeline. It is implemented for WL82
-        only; the board declares which camera path it drives (see the
-        JIELI_CAMERA_PATH_* choice in the board Kconfig). This is a
+        only; the board declares which camera module it carries (see the
+        JIELI_BOARD_CAMERA_* choice in the board Kconfig). This is a
         compile-time switch: it does not claim that the selected board has a
         camera connector or a sensor fitted.
 

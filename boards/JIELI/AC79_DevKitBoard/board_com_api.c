@@ -29,18 +29,17 @@
 #include "tdd_disp_ili9488.h"
 #endif
 
-/* The camera TDD owns the frame pool and the open/close state machine; the
- * sensor itself (probe, I2C, registers) is the vendor video pipeline's job,
- * so the sensor interface table below stays empty. The board Kconfig choice
- * selects which vendor device the TKL adapter drives (video0 for DVP, video1
- * plus SPI2 for the 12-pin path); both share PA2/PA3/PA4 and PH0-PH3 and
- * cannot be built together. */
+/* Exactly one camera module is fitted (the connectors share pins), and the
+ * board Kconfig names it. The TDD owns the frame pool and the open/close state
+ * machine; whether it also owns the sensor is the module's business: the SPI
+ * module brings its own sensor driver, while on the DVP module the vendor
+ * video0 driver probes and configures the sensor, so the interface table there
+ * stays empty. */
 #if defined(ENABLE_CAMERA) && (ENABLE_CAMERA == 1) &&                                                                  \
-    (defined(JIELI_CAMERA_PATH_DVP) || defined(JIELI_CAMERA_PATH_SPI)) &&                                              \
-    ((defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)) ||                                               \
-     (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
+    ((defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)) ||                                       \
+     (defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)))
 #include "tdd_camera_dvp.h"
-#if defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
+#if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
 #include "tdd_camera_gc0310_spi.h"
 #endif
 #define JIELI_CAMERA_DEV_NAME "camera"
@@ -69,7 +68,7 @@
 #define JIELI_8080_DISPLAY_HEIGHT 480
 #endif
 
-#if defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
+#if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
 /* tkl_dvp declares this weak and calls it after arming SPI2. Keeping the
  * board glue here lets the platform stay sensor-agnostic. */
 OPERATE_RET tkl_camera_sensor_restart(void)
@@ -150,33 +149,34 @@ OPERATE_RET board_register_hardware(void)
 #endif
 
 #if defined(ENABLE_CAMERA) && (ENABLE_CAMERA == 1) &&                                                                  \
-    ((defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)) ||                                               \
-     (defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)))
+    ((defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)) ||                                       \
+     (defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)))
     {
-#if defined(JIELI_CAMERA_PATH_SPI) && (JIELI_CAMERA_PATH_SPI == 1)
+#if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
         /* The TDD owns the sensor: IIC1 on PH0/PH1, reset on PH3. tkl_dvp only
          * opens spi2 and asks tdd_camera_gc0310_spi_restart() to re-run the
          * table once SPI2 is armed. */
         TDD_DVP_SR_USR_CFG_T camera_cfg = {
-            .pwr = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
-            .rst = {.pin = TUYA_GPIO_NUM_115, .active_level = TUYA_GPIO_LEVEL_LOW},
-            .i2c = {.port = TUYA_I2C_NUM_1, .clk = JIELI_BOARD_IIC1_SCL_PIN, .sda = JIELI_BOARD_IIC1_SDA_PIN},
-            .clk = 24000000,
+            .pwr = {.pin = BOARD_CAMERA_POWER_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
+            .rst = {.pin = BOARD_CAMERA_RST_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
+            .i2c = {.port = BOARD_CAMERA_I2C_PORT, .clk = BOARD_CAMERA_I2C_SCL, .sda = BOARD_CAMERA_I2C_SDA},
+            .clk = BOARD_CAMERA_CLK,
         };
 
         ret = tdd_camera_gc0310_spi_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg);
 #else
-        /* The vendor sensor drivers own I2C, reset and the register table,
-         * and the TKL adapter owns the capture device. Nothing in this
+        /* The vendor video0 driver owns probe, I2C, reset and the register
+         * table, and the TKL adapter owns the capture device. Nothing in this
          * structure opens an I2C port or toggles a GPIO: TUYA_I2C_NUM_MAX /
-         * TUYA_GPIO_NUM_MAX disable those TDD-side steps. */
+         * TUYA_GPIO_NUM_MAX disable those TDD-side steps. BOARD_CAMERA_* in
+         * board_com_api.h names the pins the TDD will take over. */
         TDD_DVP_SR_CFG_T camera_cfg = {
             .usr_cfg =
                 {
                     .pwr = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
                     .rst = {.pin = TUYA_GPIO_NUM_MAX, .active_level = TUYA_GPIO_LEVEL_LOW},
                     .i2c = {.port = TUYA_I2C_NUM_MAX},
-                    .clk = 24000000,
+                    .clk = BOARD_CAMERA_CLK,
                 },
             .max_fps    = JIELI_BOARD_CAMERA_FPS,
             .max_width  = JIELI_BOARD_CAMERA_WIDTH,
@@ -194,11 +194,11 @@ OPERATE_RET board_register_hardware(void)
         if (ret != OPRT_OK) {
             return ret;
         }
-        printf("camera path: %s\n",
-#if defined(JIELI_CAMERA_PATH_DVP) && (JIELI_CAMERA_PATH_DVP == 1)
-               "DVP (J1/video0)"
+        printf("camera module: %s\n",
+#if defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)
+               "GC2145 on J1 (DVP)"
 #else
-               "SPI (J4/spi2, TDD sensor)"
+               "GC0310 on J4 (SPI)"
 #endif
         );
     }
