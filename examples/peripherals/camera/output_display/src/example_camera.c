@@ -64,9 +64,7 @@ static OPERATE_RET __get_camera_raw_frame_cb(TDL_CAMERA_HANDLE_T hdl, TDL_CAMERA
     convert_fb = tdl_disp_get_free_fb(sg_fb_manage);
     TUYA_CHECK_NULL_RETURN(convert_fb, OPRT_COM_ERROR);
 
-    /* The converter does not scale: a panel twice as tall as the picture is
-     * filled by converting into the scratch frame and writing every row twice.
-     * Any other geometry converts straight into the panel framebuffer. */
+    /* The converter does not scale: a 2x-tall panel gets every row twice. */
     if (sg_conv_buf == NULL || convert_fb->frame == NULL || convert_fb->width != frame->width || \
         convert_fb->height < (uint16_t)(2U * frame->height)) {
         TUYA_CALL_ERR_LOG(tdl_disp_convert_yuv422_to_fb(frame->data, frame->width, frame->height, \

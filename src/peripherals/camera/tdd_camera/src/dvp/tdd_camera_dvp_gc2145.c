@@ -75,10 +75,12 @@ static TDD_DVP_SR_CFG_T sg_dvp_sensor = {
 	.max_width = 1616,
 	.max_height = 1232,
 	.fmt = TUYA_FRAME_FMT_YUV422,
-	/* tkl_dvp packs the ISP's planar output as Y U Y V, so say so: the
-	 * consumer-side converter defaults to UYVY and would read luma and chroma
-	 * from the wrong bytes (the purple/green preview). */
+	/* tkl_dvp packs the ISP output as Y U Y V; the converter defaults to UYVY. */
 	.yuv_order = TUYA_YUV422_YUYV,
+#if defined(TKL_DVP_HAS_PULL_API)
+	/* Both sync lines are active high; the H-V exchange is a line mapping. */
+	.sync_polarity = TUYA_DVP_SYNC_MODE_0,
+#endif
 };
 
 /* Last geometry requested, so a restart after the vendor has enabled the
@@ -117,7 +119,7 @@ static void __dvp_gc2145_update_reg(TUYA_I2C_NUM_E port, const uint8_t sensor_re
 }
 
 /**
- * @brief Log the sensor's chip id, so a silent I2C/wiring problem is visible
+ * @brief Log the sensor chip id, so a silent I2C fault is visible
  * @param port I2C port number
  * @param tag Short marker identifying the call site
  */
@@ -218,8 +220,7 @@ static OPERATE_RET __dvp_gc2145_set_ppi(DVP_I2C_CFG_T *i2c, TUYA_CAMERA_PPI_E pp
     }
 
     if((NULL == ppi_init_tab) && (ppi == TUYA_CAMERA_PPI_320X240)) {
-        /* There is no native QVGA table: run the sensor at VGA and let the TKL
-         * decimate, which is what the platform does for the SPI module too. */
+        /* No native QVGA table: run VGA and let the TKL decimate. */
         for(i=0; i<CNTSOF(cPPI_INIT_SEQ_LIST); i++) {
             if(TUYA_CAMERA_PPI_640X480 == cPPI_INIT_SEQ_LIST[i].ppi) {
                 ppi_init_tab = (CAMERA_PPI_INIT_TAB_T *)&cPPI_INIT_SEQ_LIST[i];
@@ -253,13 +254,7 @@ static OPERATE_RET __dvp_gc2145_set_ppi(DVP_I2C_CFG_T *i2c, TUYA_CAMERA_PPI_E pp
 }
 
 /**
- * @brief Re-run reset + register tables after the vendor has opened video0
- *
- * On this board the sensor clock comes from the vendor ISC (PH2 is an output
- * channel enabled by the video0 open), so the early table written from
- * tdd_camera_dvp.c lands on a sensor that has no clock yet. tkl_dvp calls this
- * (through the board's tkl_camera_sensor_restart hook) once video0 is up.
- *
+ * @brief Replay reset + tables once video0 has powered the sensor clock
  * @return OPRT_OK on success, OPRT_COM_ERROR if the module never registered
  */
 OPERATE_RET tdd_camera_dvp_gc2145_restart(void)

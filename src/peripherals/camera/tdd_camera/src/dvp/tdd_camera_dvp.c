@@ -20,9 +20,7 @@
 
 #include "tdd_camera_dvp.h"
 
-/* Two implementations live here. The pull model is used where the
- * platform's TKL exposes tkl_dvp_get_frame(); platforms that still ship
- * the callback API keep the original implementation below. */
+/* Pull model above; the callback implementation stays below for v1 TKLs. */
 #if defined(TKL_DVP_HAS_PULL_API)
 
 /***********************************************************
@@ -74,8 +72,7 @@ static void __tdd_dvp_event_cb(TUYA_CAMERA_EVENT_E event, void *arg)
     }
 }
 
-/* Pulls channel 1 (YUV) and posts each frame to the TDL pool. The TKL owns
- * its frame buffers; free_cb returns one after the copy. */
+/* Pulls channel 1 and posts each frame to the TDL pool. */
 static void __tdd_dvp_pull_thread(void *arg)
 {
     CAMERA_DVP_DEV_T *dev = (CAMERA_DVP_DEV_T *)arg;
@@ -153,8 +150,7 @@ static void __tdd_dvp_pull_stop(CAMERA_DVP_DEV_T *dev)
         tkl_system_sleep(5);
     }
     if (!dev->pull_exited) {
-        /* Still inside tkl_dvp_get_frame; keep the handle rather than delete a
-         * task that is about to touch the frame queue. */
+        /* Still inside tkl_dvp_get_frame: keep the handle. */
         PR_WARN("dvp pull thread did not exit in 500 ms");
         return;
     }
@@ -176,8 +172,7 @@ static OPERATE_RET __tdd_camera_dvp_init(CAMERA_DVP_DEV_T *dev, TDD_CAMERA_OPEN_
         return OPRT_INVALID_PARM;
     }
 
-    /* The v2 DVP interface exposes a YUV process channel plus optional RGB /
-     * H.264 stream channels. This platform implements channel 1 only. */
+    /* Channel 1 only. */
     if (cfg->out_fmt != TDL_CAMERA_FMT_YUV422) {
         PR_ERR("dvp delivers YUV422 only, got out_fmt %d", cfg->out_fmt);
         return OPRT_NOT_SUPPORTED;
@@ -233,8 +228,7 @@ static OPERATE_RET __tdd_camera_dvp_open(TDD_CAMERA_DEV_HANDLE_T device, TDD_CAM
     sg_dvp_dev = dvp_dev;
     p_usr_cfg  = &(dvp_dev->sensor.usr_cfg);
 
-    /* Power, I2C, reset and the sensor's registers are board state, not session
-     * state: bring them up once and let open/close be start/stop. */
+    /* Board state: bring up once, open/close is start/stop. */
     if (dvp_dev->is_inited) {
         rt = tkl_dvp_start();
         if (rt != OPRT_OK) {
@@ -288,8 +282,7 @@ static OPERATE_RET __tdd_camera_dvp_open(TDD_CAMERA_DEV_HANDLE_T device, TDD_CAM
     return OPRT_OK;
 
 __ERR_DEINIT:
-    /* tkl_dvp_init() already ran: release its buffers so a retry does not
-     * overwrite the static pointers and leak the previous set. */
+    /* tkl_dvp_init() already ran: release its buffers. */
     (void)tkl_dvp_deinit();
     return rt;
 }
@@ -339,8 +332,7 @@ OPERATE_RET tdl_camera_dvp_device_register(char *name, TDD_DVP_SR_CFG_T *sr_cfg,
     dev_info.max_fps    = sr_cfg->max_fps;
     dev_info.max_width  = sr_cfg->max_width;
     dev_info.max_height = sr_cfg->max_height;
-    /* The v2 DVP interface is implemented for the YUV process channel only:
-     * there is no RGB display or H.264 encode channel on this platform. */
+    /* YUV process channel only. */
     dev_info.supported_fmts = TDL_CAMERA_FMT_YUV422;
     dev_info.yuv_order      = sr_cfg->yuv_order;
 

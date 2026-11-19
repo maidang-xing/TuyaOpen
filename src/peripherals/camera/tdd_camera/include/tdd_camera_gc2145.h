@@ -42,12 +42,7 @@ extern "C" {
 OPERATE_RET tdd_camera_dvp_gc2145_register(char *name, TDD_DVP_SR_USR_CFG_T *cfg);
 
 /**
- * @brief Re-apply reset and the register tables after the vendor opened video0
- *
- * video0's open is what powers the sensor clock, so the tables the TDD wrote
- * before tkl_dvp_start() land on a clockless sensor. The board's
- * tkl_camera_sensor_restart() hook calls this once the device is open.
- *
+ * @brief Replay reset + tables after video0 powers the sensor clock
  * @return OPRT_OK on success, OPRT_COM_ERROR if the sensor was never registered
  */
 OPERATE_RET tdd_camera_dvp_gc2145_restart(void);

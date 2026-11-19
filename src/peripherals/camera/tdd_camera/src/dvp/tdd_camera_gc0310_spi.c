@@ -192,6 +192,10 @@ OPERATE_RET tdd_camera_gc0310_spi_register(char *name, TDD_DVP_SR_USR_CFG_T *cfg
         .max_height = 480,
         .fmt        = TUYA_FRAME_FMT_YUV422,
         .yuv_order  = TUYA_YUV422_YUYV,
+#if defined(TKL_DVP_HAS_PULL_API)
+        /* No sync lines on this module; tkl_dvp still validates the value. */
+        .sync_polarity = TUYA_DVP_SYNC_MODE_0,
+#endif
     };
 
     if (NULL == name || NULL == cfg) {

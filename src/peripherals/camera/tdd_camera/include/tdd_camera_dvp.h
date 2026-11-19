@@ -44,15 +44,10 @@ typedef struct {
     uint32_t              max_width;
     uint32_t              max_height;
     TUYA_FRAME_FMT_E      fmt;
-    /* Byte order of the YUV422 frames the transport delivers. The sensor and
-     * the platform decide this (GC0310 over SPI is packed YUYV); TDL hands it
-     * to consumers through TDL_CAMERA_DEV_INFO_T.yuv_order. */
+    /* Byte order the transport delivers; forwarded to TDL as yuv_order. */
     TUYA_YUV422_ORDER_E   yuv_order;
 #if defined(TKL_DVP_HAS_PULL_API)
-    /* HSYNC/VSYNC polarity the sensor drives; the v2 TKL DVP interface
-     * requires it in its init config and does not probe it. 0 = both high
-     * valid. The values are the shared TUYA_DVP_SYNC_MODE; the v2 spelling is
-     * its TUYA_DVP_SYNC_MODE_E alias, so the field is v2-only. */
+    /* HSYNC/VSYNC polarity the sensor drives; the v2 TKL requires it. */
     TUYA_DVP_SYNC_MODE_E  sync_polarity;
 #endif
 }TDD_DVP_SR_CFG_T;
