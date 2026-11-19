@@ -114,18 +114,6 @@ choice
 
 endchoice
 
-# The SPI sensor's control bus (PH0/PH1) is the software IIC: those pads carry
-# the sensor's 2-wire SPI output as well, and the hardware IIC1 controller does
-# not work on them (measured on AC791: the TDD's ID probe and register table go
-# through, but the SPI stream never produces a valid line). The platform only
-# asks "is this bus software?", so the reason stays on the board.
-config JIELI_BOARD_IIC1_SOFTWARE
-    bool
-    default y if JIELI_BOARD_CAMERA_GC0310
-    help
-        Register the SDK's iic1 device as the software (bit-banged) IIC instead
-        of the hardware controller.
-
 if JIELI_BOARD_CAMERA_GC2145 || JIELI_BOARD_CAMERA_GC0310
     config JIELI_BOARD_CAMERA_WIDTH
         int "Camera frame width"
@@ -198,8 +186,10 @@ config JIELI_BOARD_IIC0_SDA_PIN
 config JIELI_BOARD_IIC1_SCL_PIN
     int "IIC1 SCL pin (flat GPIO number)"
     range 0 127
-    # The SPI sensor's control bus is wired to PH0/PH1 and is driven by the TDD
-    # over IIC1 (see JIELI_BOARD_IIC1_SOFTWARE).
+    # The SPI sensor's control bus is wired to PH0/PH1. Those pads also carry
+    # the sensor's 2-wire SPI output, so the adapter bit-bangs them instead of
+    # handing them to the hardware controller; the pin choice alone makes that
+    # call, there is no separate switch to set.
     default 112 if JIELI_BOARD_CAMERA_GC0310
     default 7
 
