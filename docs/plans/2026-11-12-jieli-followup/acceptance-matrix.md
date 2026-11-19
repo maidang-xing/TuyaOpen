@@ -31,3 +31,9 @@
 - 触摸可用（10/11）。
 - 外围 PWM/UART1 RX 已验收（09）。
 - 文档已发布（08）。
+
+## 2026-11-19 增补：05 DVP 传感器收归 TDD
+
+- 应用 `13af27fe` + `f183c80d` / 平台 `24003fe3`（已提交，未推送）：DVP 与 SPI 现在同形——板级 `BOARD_CAMERA_*` 宏 + 一个 TDD 驱动拥有传感器，平台只留 ops 全空的时序描述符，厂商 `gc2145_dvp/gc2145.c` 不再参与 DVP 构建。
+- 层级证据：**构建** `dvp_lcd`、`spi_tdd` BUILD SUCCESS；**烧录+启动** 无模组镜像启动链 `camera module: GC2145 on J1 (DVP)` → `sensor info: 640x480 fps=20` → `SET_FMT ok, static overlay buf=…/614400` → `DVP capture started` → `camera init success`（`logs/boot-dvp-tdd-noj1.log`）。
+- **实机帧/画面/颜色未验**：J1 未接（日志 1 Hz `video_ioct: err = 11`）。05 的"DVP ✅"应读作此前的厂商传感器路径，TDD 路径需 J1 接上后重验；`acceptance-matrix` 第 05 行的 ✅ 暂按"结构对齐前"理解。
