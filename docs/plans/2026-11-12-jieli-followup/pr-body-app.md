@@ -85,6 +85,8 @@ CMake 同步收紧：拉模式分支排除 `tdd_camera_dvp.c`、`gc0308`、`gc21
 
 构建验证：JIELI `dvp_lcd`、`spi_tdd` → `tdd_camera_dvp_pull.c` + `tdd_camera_dvp_gc2145_v1.c` + `tdd_camera_gc0310_spi.c` + `tdd_camera_dvp_i2c.c`；T5AI → `tdd_camera_dvp.c` + `gc0308` + `gc2145` + `ov2640` + `i2c`；三者 0 error。
 
+实机（镜像 `1450ac9a`，`dvpsplit`）：`gc2145 id init/restart: rt=0 2145` → `DVP: TDD sensor restart ret=0` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`，USB 正常枚举，无 `fb_manage null` / `axi_rd_inv` / 断言；用户目视画面正常（`logs/serial-COM8-20261119-193634.log`）。
+
 ## 2026-11-19 预览几何：320×480 直出、1:1 居中裁剪（`77e3aab3` / `a3c89d5a`）
 
 - 面板 320×480、传感器 640×480：铺满必然要缩放或丢弃。此前是"320×240 转换 + 每行写两遍"，画面被纵向拉伸、且丢掉一半行。
