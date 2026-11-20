@@ -42,7 +42,7 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 
 ## 构建
 
-- `JIELI_AC79_DevKitBoard_spi_lcd`、`JIELI_AC79_DevKitBoard_dvp_lcd`、`JIELI_AC79_DevKitBoard_spi_tdd` 三个 profile 均 BUILD SUCCESS。
+- `JIELI_AC79_DevKitBoard_dvp_lcd`（GC2145）与 `JIELI_AC79_DevKitBoard_spi_lcd`（GC0310）两个 profile 均 BUILD SUCCESS。
 
 ## 2026-11-18 共享核心兼容性修复（`ab50873a`）
 
@@ -66,7 +66,11 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 
 CMake 按模组选择（`CONFIG_ENABLE_DVP_V1` + `JIELI_BOARD_CAMERA_*`）：只编当前插的那份驱动加 `tdd_camera_dvp_i2c.c`；回调分支排除两份杰理驱动。被排除的 T5 传感器按 master 的较小配置结构编译，同编会越界读 `yuv_order`。
 
-构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd` → `tdd_camera_dvp_gc2145_v1.c` + `tdd_camera_dvp_i2c.c`；JIELI `spi_tdd` → `tdd_camera_gc0310_spi.c` + `tdd_camera_dvp_i2c.c`；T5AI → `tdd_camera_dvp.c` + `gc0308` + `gc2145` + `ov2640` + `i2c`；三者 0 error。
+构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd` → `tdd_camera_dvp_gc2145_v1.c` + `tdd_camera_dvp_i2c.c`；JIELI `spi_lcd` → `tdd_camera_gc0310_spi.c` + `tdd_camera_dvp_i2c.c`；T5AI → `tdd_camera_dvp.c` + `gc0308` + `gc2145` + `ov2640` + `i2c`；三者 0 error。
+
+配置侧同步（`396b819d`）：板级摄像头选项 `select ENABLE_DVP_V1`，手写配置漏掉开关也不会误编回调核心；`JIELI_AC79_DevKitBoard_spi_tdd` 更名为 `JIELI_AC79_DevKitBoard_spi_lcd`，与 `dvp_lcd` 成对。
+
+
 
 实机（镜像 `162c4a7d`，`dvpmerged`）：`gc2145 id init/restart: rt=0 2145` → `DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`，USB 正常枚举，无 `fb_manage null` / `axi_rd_inv` / 断言；用户目视画面正常（`logs/serial-COM8-20261120-094402.log`）。
 
