@@ -15,10 +15,10 @@ file(GLOB_RECURSE camera_srcs "${MODULE_PATH}/tdl_camera/src/*.c")
 
 if (CONFIG_ENABLE_DVP STREQUAL "y")
     file(GLOB_RECURSE tdd_camera_dvp_srcs "${MODULE_PATH}/tdd_camera/src/dvp/*.c")
-    # Two DVP cores live in that directory and both implement the device
-    # registration; keep the one the platform's TKL can drive.
-    if (CONFIG_ENABLE_DVP_PULL STREQUAL "y")
-        # JIELI: each camera module is a self-contained TDD (transport + sensor).
+    # Two DVP driver sets live in that directory; keep the one the platform's
+    # TKL can drive.
+    if (CONFIG_ENABLE_DVP_V1 STREQUAL "y")
+        # JIELI DVP v1: each camera module is a self-contained TDD (transport + sensor).
         # Keep the fitted module and drop the sensors written for the shared core.
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp[.]c$")
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc0308[.]c$")
