@@ -1,9 +1,10 @@
 /**
  * @file tdd_camera_gc2145_v1.h
- * @brief GC2145 sensor driver header for the pull (generation-2) TKL
+ * @brief GC2145 sensor driver for the JIELI DVP module
  *
- * Same entry point as tdd_camera_gc2145.h; the pull variant also exposes the
- * restart call the JIELI board uses after video0 powers the sensor clock.
+ * The transport is the shared TDD core (tdd_camera_dvp.c); this driver only
+ * owns the sensor side and the restart hook the JIELI board calls once video0
+ * has powered the sensor clock.
  *
  * @copyright Copyright (c) 2021-2026 Tuya Inc. All Rights Reserved.
  *
@@ -13,7 +14,7 @@
 #define __TDD_CAMERA_GC2145_V1_H__
 
 #include "tuya_cloud_types.h"
-#include "tdd_camera_dvp_v1.h"
+#include "tdd_camera_dvp.h"
 
 #ifdef __cplusplus
 extern "C" {

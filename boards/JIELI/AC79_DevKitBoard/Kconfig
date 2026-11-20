@@ -104,9 +104,6 @@ choice
         depends on !JIELI_BOARD_UART1_ENABLE
         select ENABLE_CAMERA
         select ENABLE_DVP
-        # The JIELI TKL delivers frames by pull, so the v1 driver set is the
-        # only one that compiles against it.
-        select ENABLE_DVP_V1
 
     config JIELI_BOARD_CAMERA_GC0310
         bool "GC0310 on J4 (12-pin SPI)"
@@ -114,9 +111,6 @@ choice
         depends on !JIELI_BOARD_UART1_ENABLE
         select ENABLE_CAMERA
         select ENABLE_DVP
-        # The JIELI TKL delivers frames by pull, so the v1 driver set is the
-        # only one that compiles against it.
-        select ENABLE_DVP_V1
 
 endchoice
 

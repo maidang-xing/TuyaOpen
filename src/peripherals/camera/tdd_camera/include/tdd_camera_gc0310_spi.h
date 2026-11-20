@@ -9,7 +9,7 @@
 #define __TDD_CAMERA_GC0310_SPI_H__
 
 #include "tuya_cloud_types.h"
-#include "tdd_camera_dvp_v1.h"
+#include "tdd_camera_dvp.h"
 
 #ifdef __cplusplus
 extern "C" {

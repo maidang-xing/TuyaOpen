@@ -241,7 +241,7 @@ static OPERATE_RET __tdd_camera_dvp_close(TDD_CAMERA_DEV_HANDLE_T device)
 OPERATE_RET tdl_camera_dvp_device_register(char *name, TDD_DVP_SR_CFG_T *sr_cfg, TDD_DVP_SR_INTFS_T *sr_intfs)
 {
     CAMERA_DVP_DEV_T *dvp_dev = NULL;
-    TDD_CAMERA_DEV_INFO_T dev_info;
+    TDD_CAMERA_DEV_INFO_T dev_info = {0};
 
     if(NULL == name || NULL == sr_cfg) {
         return OPRT_INVALID_PARM;

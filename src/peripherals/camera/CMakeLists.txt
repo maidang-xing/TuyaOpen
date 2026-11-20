@@ -15,20 +15,12 @@ file(GLOB_RECURSE camera_srcs "${MODULE_PATH}/tdl_camera/src/*.c")
 
 if (CONFIG_ENABLE_DVP STREQUAL "y")
     file(GLOB_RECURSE tdd_camera_dvp_srcs "${MODULE_PATH}/tdd_camera/src/dvp/*.c")
-    # Two DVP driver sets live in that directory; keep the one the platform's
-    # TKL can drive.
-    if (CONFIG_ENABLE_DVP_V1 STREQUAL "y")
-        # JIELI DVP v1: each camera module is a self-contained TDD (transport + sensor).
-        # Keep the fitted module and drop the sensors written for the shared core.
-        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp[.]c$")
+    # One shared core (tdd_camera_dvp.c) plus one driver per camera module.
+    # Which modules a board carries is a board fact, so the platform picks.
+    if (CONFIG_BOARD_CHOICE_JIELI STREQUAL "y")
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc0308[.]c$")
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc2145[.]c$")
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_ov2640[.]c$")
-        if (CONFIG_JIELI_BOARD_CAMERA_GC2145 STREQUAL "y")
-            list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_gc0310_spi[.]c$")
-        elseif (CONFIG_JIELI_BOARD_CAMERA_GC0310 STREQUAL "y")
-            list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc2145_v1[.]c$")
-        endif()
     else()
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc2145_v1[.]c$")
         list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_gc0310_spi[.]c$")
