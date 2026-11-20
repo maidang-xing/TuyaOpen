@@ -15,14 +15,6 @@ file(GLOB_RECURSE camera_srcs "${MODULE_PATH}/tdl_camera/src/*.c")
 
 if (CONFIG_ENABLE_DVP STREQUAL "y")
     file(GLOB_RECURSE tdd_camera_dvp_srcs "${MODULE_PATH}/tdd_camera/src/dvp/*.c")
-    # One shared core (tdd_camera_dvp.c) plus one driver per camera module.
-    # Which modules a board carries is a board fact, so the platform picks.
-    if (CONFIG_BOARD_CHOICE_JIELI STREQUAL "y")
-        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_gc0308[.]c$")
-        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_dvp_ov2640[.]c$")
-    else()
-        list(FILTER tdd_camera_dvp_srcs EXCLUDE REGEX "tdd_camera_gc0310_spi[.]c$")
-    endif()
 endif()
 
 set(LIB_SRCS ${camera_srcs} ${tdd_camera_dvp_srcs})
