@@ -52,40 +52,23 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 - 构建验证：JIELI `spi_tdd`、`dvp_lcd` BUILD SUCCESS；**T5AI `TUYA_T5AI_BOARD` 摄像头板 BUILD SUCCESS**（守卫前该组合在 `TUYA_DVP_SYNC_MODE_E` 处失败）。
 - 实机回归（本头构建）：`spi_tdd` 干净构建烧录后连续 **175 s / 776 帧 / 4.43 fps / 480.0 行/帧 / `tag_err=0` / 零异常**，用户目视 SPI 画面正常（`serial-COM8-20261118-175026.log`）。
 
-## 2026-11-19 拉模式核心独立成文件（`08c90e15`）
+## 2026-11-20 DVP 分层：每个模组一个自包含 TDD（`c0f2b36c`）
 
-共享核心不再携带平台决策：
-
-| 文件 | 内容 |
-|---|---|
-| `tdd_camera/src/dvp/tdd_camera_dvp.c` | **与 master 逐字节一致**（回调实现，T5AI 用） |
-| `tdd_camera/src/dvp/tdd_camera_dvp_pull.c` | 新增：拉模式实现（`tkl_dvp_get_frame` + 帧池 + 事件） |
-| `tdd_camera/src/dvp/tdd_camera_dvp_gc2145.c` | **与 master 逐字节一致**（上游 GC2145 驱动，5 个 T5AI 板在注册它） |
-| `tdd_camera/src/dvp/tdd_camera_dvp_gc2145_v1.c` | 新增：杰理的 GC2145 驱动（`yuv_order`、restart 钩子、chip-id 回读、QVGA→VGA 回退） |
-| `tdd_camera/src/dvp/tdd_camera_gc0310_spi.c` | 新增：SPI 模组（GC0310）驱动 |
-
-两个核心都实现 `tdl_camera_dvp_device_register()`，因此构建层二选一：新增 `CONFIG_ENABLE_DVP_PULL`（默认 n），两个 JIELI profile 打开它。CMake 用 `list(FILTER ... EXCLUDE REGEX)` 只编一个，避免重复符号。
-
-构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd`、`spi_tdd` → `tdd_camera_dvp_pull.c` + `tdd_camera_dvp_gc2145_v1.c`；T5AI → `tdd_camera_dvp.c` + `tdd_camera_dvp_gc2145.c`；三者 0 error。
-
-## 2026-11-19 头文件也拆开（`d6511159`）
-
-上一节只拆了 `.c`，共享头文件仍带着杰理字段。本轮把头文件也恢复：
+杰理的两个摄像头模组各由一个文件承担全部职责，不再有独立的传输核心：
 
 | 文件 | 内容 |
 |---|---|
-| `tdd_camera_dvp.h` | **与 master 逐字节一致**（T5AI 及其传感器用） |
-| `tdd_camera_gc2145.h` | **与 master 逐字节一致** |
-| `tdd_camera_dvp_v1.h` | 新增：同 master 的结构与入口，多 `yuv_order` 和守卫内的 `sync_polarity` |
-| `tdd_camera_gc2145_v1.h` | 新增：GC2145 注册 + `tdd_camera_dvp_gc2145_restart()` |
+| `tdd_camera/src/dvp/tdd_camera_dvp_gc2145_v1.c` | 新增：GC2145 传感器（复位/表/PPI、chip-id 回读、QVGA→VGA 回退、restart 钩子）+ 传输（`tkl_dvp` 生命周期、拉流线程、TDL 注册） |
+| `tdd_camera/src/dvp/tdd_camera_gc0310_spi.c` | 新增：GC0310 SPI 传感器 + 同一份传输 |
+| `tdd_camera/include/tdd_camera_dvp_v1.h` | 新增：两份驱动与板级共享的类型（`TDD_DVP_SR_USR_CFG_T` 等），含 `yuv_order` 与守卫内的 `sync_polarity` |
+| `tdd_camera/include/tdd_camera_gc2145_v1.h` | 新增：GC2145 注册 + `tdd_camera_dvp_gc2145_restart()` |
+| `tdd_camera_dvp.c` / `tdd_camera_dvp_gc2145.c` / `tdd_camera_dvp.h` / `tdd_camera_gc2145.h` | **与 master 逐字节一致**（T5AI 及其传感器用） |
 
-杰理的核、两个传感器驱动、板级 `board_com_api.c` 只包含 `*_v1.h`。
+CMake 按模组选择（`CONFIG_ENABLE_DVP_PULL` + `JIELI_BOARD_CAMERA_*`）：只编当前插的那份驱动加 `tdd_camera_dvp_i2c.c`；回调分支排除两份杰理驱动。被排除的 T5 传感器按 master 的较小配置结构编译，同编会越界读 `yuv_order`。
 
-CMake 同步收紧：拉模式分支排除 `tdd_camera_dvp.c`、`gc0308`、`gc2145`、`ov2640`，回调分支排除 `pull`、`gc2145_v1`、`gc0310_spi`。必要性：被排除的传感器按 master 的较小配置结构编译，而拉模式核心会读 `yuv_order`，同编就是越界读。
+构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd` → `tdd_camera_dvp_gc2145_v1.c` + `tdd_camera_dvp_i2c.c`；JIELI `spi_tdd` → `tdd_camera_gc0310_spi.c` + `tdd_camera_dvp_i2c.c`；T5AI → `tdd_camera_dvp.c` + `gc0308` + `gc2145` + `ov2640` + `i2c`；三者 0 error。
 
-构建验证：JIELI `dvp_lcd`、`spi_tdd` → `tdd_camera_dvp_pull.c` + `tdd_camera_dvp_gc2145_v1.c` + `tdd_camera_gc0310_spi.c` + `tdd_camera_dvp_i2c.c`；T5AI → `tdd_camera_dvp.c` + `gc0308` + `gc2145` + `ov2640` + `i2c`；三者 0 error。
-
-实机（镜像 `1450ac9a`，`dvpsplit`）：`gc2145 id init/restart: rt=0 2145` → `DVP: TDD sensor restart ret=0` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`，USB 正常枚举，无 `fb_manage null` / `axi_rd_inv` / 断言；用户目视画面正常（`logs/serial-COM8-20261119-193634.log`）。
+实机（镜像 `162c4a7d`，`dvpmerged`）：`gc2145 id init/restart: rt=0 2145` → `DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`，USB 正常枚举，无 `fb_manage null` / `axi_rd_inv` / 断言；用户目视画面正常（`logs/serial-COM8-20261120-094402.log`）。
 
 ## 2026-11-19 预览几何：320×480 直出、1:1 居中裁剪（`77e3aab3` / `a3c89d5a`）
 
