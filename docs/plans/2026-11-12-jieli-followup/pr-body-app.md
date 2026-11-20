@@ -70,6 +70,12 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 - 收益：应用仓净减 **667 行**，两平台同一套 TDD；代价：v2 的生命周期 `event_cb` 随接口一起移除，`get_frame` 的超时/背压语义改为 TDD 缓冲不足时丢帧计数。
 - 配置侧同步（`396b819d`）：板级摄像头选项原本 `select ENABLE_DVP_V1` 以免手写配置漏项，该开关随本提交删除；`JIELI_AC79_DevKitBoard_spi_tdd` 更名为 `spi_lcd`，与 `dvp_lcd` 成对。
 
+### 板级整理（`1f95ec27`）
+
+- `board_com_api.c`：三处重复的「8080 后端 + 显示组件」守卫与注释合并为一处；两个摄像模组共用的 `TDD_DVP_SR_USR_CFG_T` 只写一份，模块名/描述由 Kconfig 宏给出；过期注释修正（两个模组都由 TDD 拥有传感器、DVP 是中心裁剪而非降采样）。
+- 摄像头日志改用 `PR_NOTICE`（与 L511G 等板级一致）；TKL 层维持 `printf`，不引入 TAL 依赖。
+- 板级 Kconfig 的摄像头默认模组改为 **GC2145（J1 DVP）**，即开发板出货配置。
+
 ### 杰理不再需要专有 GC2145 驱动（应用 `7a8f846d` / 平台 `331f2c76`）
 
 - 共享核心的 `__tdd_dvp_setup_callback()` 从空实现改成「重放 reset + init + set_ppi」，几何用 open 时记下的 ppi/fps；平台在 `video0.2` 打开后、SPI2 武装后调用 `setup_cb`，取代原先按传感器实现的 restart 钩子。

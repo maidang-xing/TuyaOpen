@@ -10,7 +10,7 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'dvphard', 'dvpharddiag', 'dvphead2', 'dvptddsensor', 'dvprestart', 'dvphvsync', 'dvpyuyv', 'dvptddfinal', 'dvp320x480', 'dvpcrop', 'dvpsplit', 'dvpmerged', 'dvppush', 'dvpgeneric', 'spigeneric', 'spiuyvy', 'spiuyvy2', 'dvptddalias', 'dvpiicport', 'spiyuv', 'spibase')]
+    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'dvphard', 'dvpharddiag', 'dvphead2', 'dvptddsensor', 'dvprestart', 'dvphvsync', 'dvpyuyv', 'dvptddfinal', 'dvp320x480', 'dvpcrop', 'dvpsplit', 'dvpmerged', 'dvppush', 'dvpgeneric', 'spigeneric', 'spiuyvy', 'spiuyvy2', 'spiboard', 'dvptddalias', 'dvpiicport', 'spiyuv', 'spibase')]
     [string]$Image,
 
     # isd_download needs the app's USB device to be enumerated when it opens
@@ -72,6 +72,12 @@ $images = @{
         Sha  = '969349d931bb38e719f166fa784d654ddb75882087cf926d8e9a328eae4ed1aa'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'SPI UYVY via in-place swap at 1:1 (fixes the NULL preview buffer crash)'
+    }
+    spiboard = @{
+        File = 'spi-board-ac5e6ec0.bin'
+        Sha  = 'ac5e6ec0980c2031f94d4c1106d3e8c045f2b518bdba9a60ef7629275b420260'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'board_com_api.c cleanup + PR_NOTICE log, SPI module'
     }
     dvp320x480 = @{
         File = 'dvp-320x480-02c7d9e7.bin'
