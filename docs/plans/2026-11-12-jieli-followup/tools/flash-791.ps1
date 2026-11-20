@@ -10,7 +10,7 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'dvphard', 'dvpharddiag', 'dvphead2', 'dvptddsensor', 'dvprestart', 'dvphvsync', 'dvpyuyv', 'dvptddfinal', 'dvp320x480', 'dvpcrop', 'dvpsplit', 'dvpmerged', 'dvppush', 'dvpgeneric', 'dvptddalias', 'dvpiicport', 'spiyuv', 'spibase')]
+    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'dvphard', 'dvpharddiag', 'dvphead2', 'dvptddsensor', 'dvprestart', 'dvphvsync', 'dvpyuyv', 'dvptddfinal', 'dvp320x480', 'dvpcrop', 'dvpsplit', 'dvpmerged', 'dvppush', 'dvpgeneric', 'spigeneric', 'spiuyvy', 'spiuyvy2', 'dvptddalias', 'dvpiicport', 'spiyuv', 'spibase')]
     [string]$Image,
 
     # isd_download needs the app's USB device to be enumerated when it opens
@@ -54,6 +54,24 @@ $images = @{
         Sha  = '92189ea1a76d0ae8a60244cbe73cf28d8c3b9492b01dcc5f72f45f441a84851f'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'JIELI uses the upstream GC2145 TDD; the setup_cb replay replaces the board restart hook'
+    }
+    spigeneric = @{
+        File = 'spi-generic-a1c8ac2a.bin'
+        Sha  = 'a1c8ac2af1bd0d0c8b3affaf7040a915a9377089def829a087d1f4b441b1d92a'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI module (GC0310) on the shared core plus setup_cb replay'
+    }
+    spiuyvy = @{
+        File = 'spi-uyvy-4fddbd08.bin'
+        Sha  = '4fddbd08363facad3fd85dca3fe4cff1902dc374194f8c5bc004df7f746c1902'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI preview packer emits UYVY like the DVP path (purple/green fix)'
+    }
+    spiuyvy2 = @{
+        File = 'spi-uyvy2-969349d9.bin'
+        Sha  = '969349d931bb38e719f166fa784d654ddb75882087cf926d8e9a328eae4ed1aa'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'SPI UYVY via in-place swap at 1:1 (fixes the NULL preview buffer crash)'
     }
     dvp320x480 = @{
         File = 'dvp-320x480-02c7d9e7.bin'
