@@ -65,7 +65,7 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 | `tdd_camera_dvp_gc2145.c` | **上游驱动直接用于杰理**（见下一小节） |
 | `tdd_camera_dvp.h` / `tdd_camera_gc2145.h` / 其余传感器 | **与 master 逐字节一致** |
 
-- `ENABLE_DVP_V1` 开关、`tdd_camera_dvp_v1.h`、每模组一份传输全部删除；CMake 只按 `CONFIG_BOARD_CHOICE_JIELI` 选传感器集合。
+- `ENABLE_DVP_V1` 开关、`tdd_camera_dvp_v1.h`、每模组一份传输全部删除；CMake 也不再做源码筛选（`7897e87a`）：目录下所有驱动都编，未用到的由链接器 `--gc-sections` 丢弃——实测开/关筛选的镜像只差 4 字节构建戳，与 `display/CMakeLists.txt` 同构。
 - 共享核心的 `dev_info` 补零初始化：原先 `yuv_order` 是未定义值，TDL 会拿到栈上的垃圾。
 - 收益：应用仓净减 **667 行**，两平台同一套 TDD；代价：v2 的生命周期 `event_cb` 随接口一起移除，`get_frame` 的超时/背压语义改为 TDD 缓冲不足时丢帧计数。
 - 配置侧同步（`396b819d`）：板级摄像头选项原本 `select ENABLE_DVP_V1` 以免手写配置漏项，该开关随本提交删除；`JIELI_AC79_DevKitBoard_spi_tdd` 更名为 `spi_lcd`，与 `dvp_lcd` 成对。
@@ -76,7 +76,7 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 - 删除 `tdd_camera_dvp_gc2145_v1.c` / `.h`、`tdd_camera_gc0310_spi_restart()`、板级 `tkl_camera_sensor_restart()`。QVGA→VGA 回退一并删除：INIT 表本身就是 VGA，320×240 由 TKL 1:1 裁剪得到。
 - 杰理编译集变为「共享核心 + 上游 `gc2145` + `gc0310_spi` + `i2c`」，DVP 层不再有任何平台专有代码。
 
-构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd`、`spi_lcd` → 共享核心 + `gc2145` + `gc0310_spi` + `tdd_camera_dvp_i2c.c`；T5AI → 共享核心 + `gc0308` / `gc2145` / `ov2640` + `i2c`；三者 0 error。
+构建验证：三个 profile（JIELI `dvp_lcd`、`spi_lcd`，T5AI）均 0 error，camera 目录下 6 个驱动全部编译；实机镜像与筛选版只差构建戳，说明未用的传感器驱动在链接期被完全丢弃。
 
 实机（镜像 `92189ea1`，`dvpgeneric`，上游驱动 + setup 重放）：复位/写表/`set_ppi` 各出现两次（open 一次、`setup_cb` 重放一次）→ `DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`；218 行日志零异常，**用户目视画面正常**（`logs/serial-COM8-20261120-112409.log`）。
 
