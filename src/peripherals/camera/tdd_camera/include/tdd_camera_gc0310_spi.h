@@ -24,15 +24,6 @@ extern "C" {
  */
 OPERATE_RET tdd_camera_gc0310_spi_register(char *name, TDD_DVP_SR_USR_CFG_T *cfg);
 
-/**
- * @brief Restart the sensor from a frame head.
- *
- * The SPI receiver calls this after it has armed SPI2 (through the weak
- * tkl_camera_sensor_restart hook), mirroring the vendor order: receiver ready,
- * then sensor reset + register table, so the first clock the receiver sees is
- * the frame head.
- */
-OPERATE_RET tdd_camera_gc0310_spi_restart(void);
 
 #ifdef __cplusplus
 }

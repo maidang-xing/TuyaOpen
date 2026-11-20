@@ -177,17 +177,6 @@ static OPERATE_RET __dvp_gc0310_spi_set_ppi(DVP_I2C_CFG_T *i2c, TUYA_CAMERA_PPI_
     return OPRT_OK;
 }
 
-OPERATE_RET tdd_camera_gc0310_spi_restart(void)
-{
-    if (sg_i2c_port >= TUYA_I2C_NUM_MAX) {
-        return OPRT_COM_ERROR;
-    }
-
-    __gc0310_pulse_reset();
-
-    return __gc0310_write_table();
-}
-
 OPERATE_RET tdd_camera_gc0310_spi_register(char *name, TDD_DVP_SR_USR_CFG_T *cfg)
 {
     TDD_DVP_SR_CFG_T sensor = {

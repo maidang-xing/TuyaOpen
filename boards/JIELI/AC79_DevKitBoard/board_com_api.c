@@ -43,7 +43,7 @@
 #include "tdd_camera_gc0310_spi.h"
 #endif
 #if defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)
-#include "tdd_camera_gc2145_v1.h"
+#include "tdd_camera_gc2145.h"
 #endif
 #define JIELI_CAMERA_DEV_NAME "camera"
 #endif
@@ -69,24 +69,6 @@
 #define JIELI_8080_DISPLAY_NAME   "display"
 #define JIELI_8080_DISPLAY_WIDTH  320
 #define JIELI_8080_DISPLAY_HEIGHT 480
-#endif
-
-#if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
-/* tkl_dvp declares this weak and calls it after arming SPI2. Keeping the
- * board glue here lets the platform stay sensor-agnostic. */
-OPERATE_RET tkl_camera_sensor_restart(void)
-{
-    return tdd_camera_gc0310_spi_restart();
-}
-#elif defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)
-/* Same hook on the DVP side: the vendor video0 open is what enables the
- * sensor's clock (PH2 is an ISC output channel), so the table written before
- * tkl_dvp_start() lands on a clockless sensor and has to be replayed once
- * video0 is up. */
-OPERATE_RET tkl_camera_sensor_restart(void)
-{
-    return tdd_camera_dvp_gc2145_restart();
-}
 #endif
 
 OPERATE_RET board_register_hardware(void)
@@ -166,8 +148,8 @@ OPERATE_RET board_register_hardware(void)
     {
 #if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
         /* The TDD owns the sensor: IIC1 on PH0/PH1, reset on PH3. tkl_dvp only
-         * opens spi2 and asks tdd_camera_gc0310_spi_restart() to re-run the
-         * table once SPI2 is armed. */
+         * opens spi2 and calls the TDD setup hook to re-run the table once
+         * SPI2 is armed. */
         TDD_DVP_SR_USR_CFG_T camera_cfg = {
             .pwr = {.pin = BOARD_CAMERA_POWER_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
             .rst = {.pin = BOARD_CAMERA_RST_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
