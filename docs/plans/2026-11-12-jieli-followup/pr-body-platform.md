@@ -22,6 +22,12 @@ AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/vi
 
 实机（镜像 `fa59e342`）：`gc2145 id init/restart: rt=0 2145` → `DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `DVP capture started` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`；213 行日志零异常，**用户目视画面与颜色正常**（`serial-COM8-20261120-104942.log`）。SPI 模组本轮仅构建验证，实机需断电换模组后复验。
 
+## 2026-11-20 setup_cb 取代板级 restart 钩子（`331f2c76`）
+
+- `video0.2` 打开（使能 XCLK）后、SPI2 武装后，TKL 改为调用 `TUYA_DVP_CFG_T.inter_cfg.setup_cb`；共享核心在该回调里重放 reset + init + set_ppi（几何取 open 时的 ppi/fps），startup 时序与原先一致。
+- 板级 `tkl_camera_sensor_restart()` 与其按传感器分叉的两个实现删除，平台不再需要知道传感器类型。
+- 实机（镜像 `92189ea1`）：`DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `first frame: 320x480` → `first frame delivered`，218 行零异常，画面正常。SPI 路径同一个 setup_cb，待换模组实机复验。
+
 ## 实机证据（AC791 DevKitBoard）
 
 | 路径 | 结果 |

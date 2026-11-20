@@ -61,8 +61,8 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 | 平台 `tkl_dvp.h` | 推接口：`tkl_dvp_init(TUYA_DVP_CFG_T *)` + deinit/start/stop，与 T5AI 同形 |
 | 平台 `tkl_dvp.c` | 删掉 `tkl_dvp_get_frame`、`TUYA_MEDIA_BUF_T` 环形池、信号量、`request_idr`；转换线程改为 `assign_cb` 取缓冲 → 1:1 中心裁剪并打包成 **UYVY** → `post_cb` 上交 |
 | `tdd_camera_dvp.c` | **与 master 逐字节一致**（共享核心，两个平台同一份） |
-| `tdd_camera_dvp_gc2145_v1.c` / `tdd_camera_gc0310_spi.c` | 只剩传感器（复位/表/PPI/restart），注册走 `tdl_camera_dvp_device_register()` |
-| `tdd_camera_gc2145_v1.h` | 传感器注册 + `tdd_camera_dvp_gc2145_restart()` |
+| `tdd_camera_gc0310_spi.c` | 杰理独有的 SPI 模组驱动，注册走 `tdl_camera_dvp_device_register()` |
+| `tdd_camera_dvp_gc2145.c` | **上游驱动直接用于杰理**（见下一小节） |
 | `tdd_camera_dvp.h` / `tdd_camera_gc2145.h` / 其余传感器 | **与 master 逐字节一致** |
 
 - `ENABLE_DVP_V1` 开关、`tdd_camera_dvp_v1.h`、每模组一份传输全部删除；CMake 只按 `CONFIG_BOARD_CHOICE_JIELI` 选传感器集合。
@@ -70,9 +70,17 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 - 收益：应用仓净减 **667 行**，两平台同一套 TDD；代价：v2 的生命周期 `event_cb` 随接口一起移除，`get_frame` 的超时/背压语义改为 TDD 缓冲不足时丢帧计数。
 - 配置侧同步（`396b819d`）：板级摄像头选项原本 `select ENABLE_DVP_V1` 以免手写配置漏项，该开关随本提交删除；`JIELI_AC79_DevKitBoard_spi_tdd` 更名为 `spi_lcd`，与 `dvp_lcd` 成对。
 
-构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd`、`spi_lcd` → 共享核心 + 两颗杰理传感器 + `tdd_camera_dvp_i2c.c`；T5AI → 共享核心 + `gc0308` / `gc2145` / `ov2640` + `i2c`；三者 0 error。
+### 杰理不再需要专有 GC2145 驱动（应用 `7a8f846d` / 平台 `331f2c76`）
 
-实机（镜像 `fa59e342`，`dvppush`）：`gc2145 id init/restart: rt=0 2145` → `DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `DVP capture started` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`；213 行日志零异常、无 `fb_manage null` / `axi_rd_inv` / 断言；**用户目视画面与颜色正常**（`logs/serial-COM8-20261120-104942.log`）。
+- 共享核心的 `__tdd_dvp_setup_callback()` 从空实现改成「重放 reset + init + set_ppi」，几何用 open 时记下的 ppi/fps；平台在 `video0.2` 打开后、SPI2 武装后调用 `setup_cb`，取代原先按传感器实现的 restart 钩子。
+- 删除 `tdd_camera_dvp_gc2145_v1.c` / `.h`、`tdd_camera_gc0310_spi_restart()`、板级 `tkl_camera_sensor_restart()`。QVGA→VGA 回退一并删除：INIT 表本身就是 VGA，320×240 由 TKL 1:1 裁剪得到。
+- 杰理编译集变为「共享核心 + 上游 `gc2145` + `gc0310_spi` + `i2c`」，DVP 层不再有任何平台专有代码。
+
+构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd`、`spi_lcd` → 共享核心 + `gc2145` + `gc0310_spi` + `tdd_camera_dvp_i2c.c`；T5AI → 共享核心 + `gc0308` / `gc2145` / `ov2640` + `i2c`；三者 0 error。
+
+实机（镜像 `92189ea1`，`dvpgeneric`，上游驱动 + setup 重放）：复位/写表/`set_ppi` 各出现两次（open 一次、`setup_cb` 重放一次）→ `DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`；218 行日志零异常，**用户目视画面正常**（`logs/serial-COM8-20261120-112409.log`）。
+
+此前一轮实机（镜像 `fa59e342`，`dvppush`）：`gc2145 id init/restart: rt=0 2145` → `DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `DVP capture started` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`；213 行日志零异常、无 `fb_manage null` / `axi_rd_inv` / 断言；**用户目视画面与颜色正常**（`logs/serial-COM8-20261120-104942.log`）。
 
 ## 2026-11-19 预览几何：320×480 直出、1:1 居中裁剪（`77e3aab3` / `a3c89d5a`）
 
