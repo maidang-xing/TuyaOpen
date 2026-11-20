@@ -10,7 +10,7 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'dvphard', 'dvpharddiag', 'dvphead2', 'dvptddsensor', 'dvprestart', 'dvphvsync', 'dvpyuyv', 'dvptddfinal', 'dvp320x480', 'dvpcrop', 'dvpsplit', 'dvpmerged', 'dvptddalias', 'dvpiicport', 'spiyuv', 'spibase')]
+    [ValidateSet('dvp', 'dvp640', 'dvphead', 'spi', 'spiprev', 'spiprev80', 'spidiag', 'spiresync', 'spivendor', 'spistream', 'spisimple', 'spimute', 'spitiming', 'spilut', 'spifast', 'spiwait', 'spiframe', 'spifinal', 'spiband', 'spistitch', 'spicarry', 'spidup', 'spitriple', 'panelbands', 'spifreeze', 'spite', 'spitimeout', 'spidisptime', 'spirobust', 'spiqvga', 'spiqvgadbg', 'spiqvgaout', 'spiqvgadec', 'spivga4fps', 'spivga4fpstidy', 'spivga4fpstidy2', 'spifalsehead', 'spipadstable', 'spi48m', 'spilineirq', 'spilineirqdma', 'spiupstream', 'spiupstream3fb', 'spitddsensor', 'talprobe', 'audiovad', 'audiokws', 'taltokens', 'touch', 'spitddd', 'dvptdd', 'dvp2', 'dvpdiag', 'dvpbisect', 'dvpfix', 'dvpclear', 'dvpstage', 'dvpprobe', 'dvpdemo', 'dvpdecouple', 'dvpnodisp', 'dvpstatic', 'dvpfinal', 'dvpfill', 'dvphard', 'dvpharddiag', 'dvphead2', 'dvptddsensor', 'dvprestart', 'dvphvsync', 'dvpyuyv', 'dvptddfinal', 'dvp320x480', 'dvpcrop', 'dvpsplit', 'dvpmerged', 'dvppush', 'dvptddalias', 'dvpiicport', 'spiyuv', 'spibase')]
     [string]$Image,
 
     # isd_download needs the app's USB device to be enumerated when it opens
@@ -42,6 +42,12 @@ $images = @{
         Sha  = '162c4a7dd8a3d8dbeb1020026e301cf1d4049d3e9332b672b460fa52dd2e8c0a'
         Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
         Note = 'DVP transport merged into the GC2145 TDD (no shared pull core)'
+    }
+    dvppush = @{
+        File = 'dvp-push-fa59e342.bin'
+        Sha  = 'fa59e34262045526f11a1b615cb749274bd8551187ec953aadc0c8dad5370b5d'
+        Dir  = 'D:/tuya_proj/TuyaOpen/.worktrees/05-camera/examples/peripherals/camera/output_display/.build/jieli-staging/build/cpu/wl82/tools'
+        Note = 'JIELI TKL switched to the shared push TDD core (assign_cb/post_cb)'
     }
     dvp320x480 = @{
         File = 'dvp-320x480-02c7d9e7.bin'

@@ -1,13 +1,26 @@
 ## 内容
 
-AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/video0）与 SPI（GC0310，J4/video1）在 TKL 层统一交付 packed YUYV，SPI 接收采用原厂的逐行中断 + DMA 行拷贝。
+AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/video0）与 SPI（GC0310，J4/video1）在 TKL 层统一交付 packed UYVY，SPI 接收采用原厂的逐行中断 + DMA 行拷贝。
 
 - 新增 WL82 DVP/SPI 摄像头 TKL 与 staging（`tkl_dvp.h` 契约、板级配置、feature map）
-- DVP 按标准 `tkl_dvp` v2 拉模式实现：ch1（YUV 处理通道）`GET` 拉取 + 帧池背压、生命周期事件、init/start/stop/deinit 状态机
-- DVP 平面 YUV422P 在 TKL 交错成 packed YUYV，并在 CPU 读取前 `flushinv_dcache`；overlay 缓冲使用 32 字节对齐静态 BSS 数组（厂商 storage class）
+- DVP 走与 T5AI 相同的推模型：`TUYA_DVP_CFG_T.inter_cfg` 的 `assign_cb` / `post_cb` 交付帧，TKL 不持帧池（2026-11-20 起；此前为 v2 拉模式，见下方历史小节）
+- DVP 平面 YUV422P 在 TKL 交错成 packed UYVY，并在 CPU 读取前 `flushinv_dcache`；overlay 缓冲使用 32 字节对齐静态 BSS 数组（厂商 storage class）
 - SPI 逐行 IRQ 接收（`SPI: line-IRQ mode, 8 line buffers`），每行一次中断重装 1288 B + ISR 内 `dma_copy_async`，字节滑移容忍、丢行补齐、标签失配重同步
 - SPI 帧缓冲在 CPU 读取前 `flushinv_dcache`（行中断与整包两条路径）
 - TDD 模式下由 TDD 负责 SPI 传感器上电/复位/寄存器表（`JIELI_CAMERA_TDD_SENSOR`）
+
+## 2026-11-20 接口统一：改回 T5 的推模型（`e475bdd4`）
+
+为了让两个平台跑同一份 TDD 核心，DVP 的交付方式从 v2 拉模式改成 T5AI 的推模型：
+
+- `tkl_dvp.h` 只剩 `tkl_dvp_init(TUYA_DVP_CFG_T *)` / `deinit` / `start` / `stop`；`tkl_dvp_get_frame`、`tkl_dvp_request_idr`、`TKL_DVP_HAS_PULL_API` 全部删除。
+- `tkl_dvp.c` 删掉 TKL 自己的 `TUYA_MEDIA_BUF_T` 环形池、就绪信号量与 free_cb；转换线程改为 `assign_cb` 向 TDD 取缓冲 → 1:1 中心裁剪 + UYVY 打包 → `post_cb` 上交。分配不到缓冲时计丢弃，不回收已交付的帧。
+- v2 的生命周期 `event_cb`（INITIALIZED/STARTED/STOPPED/DEINITIALIZED）随接口移除；`sync_polarity` 的校验和 1:1 裁剪保持不变。
+- 收益：应用仓 `1425132f` 净减 667 行，杰理侧不再有传输代码；两平台共用 `tdd_camera_dvp.c`。
+
+构建：JIELI `dvp_lcd`、`spi_lcd` 与 T5AI 三个 profile 均 0 error，逐项核对编译文件（杰理 = 共享核心 + 两颗传感器 + i2c；T5AI = 共享核心 + gc0308/gc2145/ov2640 + i2c）。
+
+实机（镜像 `fa59e342`）：`gc2145 id init/restart: rt=0 2145` → `DVP: TDD sensor restart ret=0` → `SET_FMT ok … 614400` → `DVP capture started` → `first frame: 320x480 fmt=1 len=307200` → `first frame delivered`；213 行日志零异常，**用户目视画面与颜色正常**（`serial-COM8-20261120-104942.log`）。SPI 模组本轮仅构建验证，实机需断电换模组后复验。
 
 ## 实机证据（AC791 DevKitBoard）
 
@@ -30,6 +43,13 @@ AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/vi
 - DVP 与 SPI 共用 PA2/PA3/PA4 与 PH0–PH3，且两模组同为 I2C 地址 0x42，**两路同时采集硬件不可行**；同时插会误探针并触发 `video.c:558` 断言复位。
 - SPI 链路 2 线 + 字节碎片，VGA 上限约 4–5 fps（厂商参考 5 fps）；传感器固定 VGA，320×240 由主机侧抽取。
 - `stop` join 超时、`cam_proc` 创建失败等错误分支未注入故障，为代码级验证。
+
+## 2026-11-19 帧尺寸：1:1 居中裁剪（`1a3b4809`）
+
+- `tkl_dvp` 原来按整数比例抽样（step_x/step_y），把 640×480 抽成 320×240 之类；面板是 320×480 时既会拉伸也会丢行。
+- 改为 `yuv422p_crop_to_packed_yuyv()`：取传感器中间 `out_w × out_h` 的区域，**像素 1:1 拷贝，不缩放**，超出部分不交付。
+- `tkl_dvp_init()` 的校验随之从"必须是整数比例"改成"只要不超过传感器尺寸"（宽度仍需偶数，色度对才对齐）。
+- 应用侧配套：`dvp_lcd` 预览请求 320×480（应用 PR #2 `77e3aab3`）。实机 `dvpcrop` `2ccac400` 目视画面正常、无拉伸。
 
 ## 2026-11-19 同步极性：编不出来就拒绝（`3a166adb`）
 
