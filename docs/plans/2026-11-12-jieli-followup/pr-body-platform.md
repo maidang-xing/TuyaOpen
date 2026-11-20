@@ -33,7 +33,7 @@ AC791（WL82）开发板两路摄像头的平台侧实现：DVP（GC2145，J1/vi
 - 传感器 SPI 输出是 YUYV，DVP 裁剪打包器改成 UYVY（TDL 默认）后，SPI 预览出现紫/绿。
 - 1:1 路径原地换序（`yuyv_to_uyvy_in_place()`，每 4 字节交换两组），不额外占 600 KB；缩放路径由 `spi_frame_to_preview()` 直接输出 UYVY。
 - 中间一版曾把 1:1 也路由进 `spi_frame_to_preview()`，但它的预览缓冲只在尺寸不等时分配，写空指针导致设备复位循环；本提交恢复 1:1 的直接交付。
-- 实机（镜像 `969349d9`，预设 `spiuyvy2`）：`gc0310 chip id: 0xa310` → `SPI capture started` 仅 1 次 → `SPI: TDD sensor restart ret=0` → `first frame: 640x480 fmt=1 len=614400`；41.8 s / **171 帧 / ≈4.43 fps / 481 行/帧 / `tag_err=0`**，零异常；**用户目视颜色正常**（`serial-COM8-20261120-122436.log`）。
+- 实机（镜像 `969349d9`，预设 `spiuyvy2`）：`gc0310 chip id: 0xa310` → `SPI capture started` 仅 1 次 → `SPI: TDD sensor restart ret=0` → `first frame: 640x480 fmt=1 len=614400`；**86.8 s / 371 帧 / ≈4.44 fps / 481 行/帧 / `tag_err=0`**，零异常；**用户目视颜色正常**（`serial-COM8-20261120-122436.log`）。
 
 ## 实机证据（AC791 DevKitBoard）
 
