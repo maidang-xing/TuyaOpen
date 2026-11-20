@@ -64,7 +64,7 @@ AC791（WL82）开发板两路摄像头的驱动与分层改造，全部走 Tuya
 | `tdd_camera/include/tdd_camera_gc2145_v1.h` | 新增：GC2145 注册 + `tdd_camera_dvp_gc2145_restart()` |
 | `tdd_camera_dvp.c` / `tdd_camera_dvp_gc2145.c` / `tdd_camera_dvp.h` / `tdd_camera_gc2145.h` | **与 master 逐字节一致**（T5AI 及其传感器用） |
 
-CMake 按模组选择（`CONFIG_ENABLE_DVP_PULL` + `JIELI_BOARD_CAMERA_*`）：只编当前插的那份驱动加 `tdd_camera_dvp_i2c.c`；回调分支排除两份杰理驱动。被排除的 T5 传感器按 master 的较小配置结构编译，同编会越界读 `yuv_order`。
+CMake 按模组选择（`CONFIG_ENABLE_DVP_V1` + `JIELI_BOARD_CAMERA_*`）：只编当前插的那份驱动加 `tdd_camera_dvp_i2c.c`；回调分支排除两份杰理驱动。被排除的 T5 传感器按 master 的较小配置结构编译，同编会越界读 `yuv_order`。
 
 构建验证（逐个核对实际编译的文件）：JIELI `dvp_lcd` → `tdd_camera_dvp_gc2145_v1.c` + `tdd_camera_dvp_i2c.c`；JIELI `spi_tdd` → `tdd_camera_gc0310_spi.c` + `tdd_camera_dvp_i2c.c`；T5AI → `tdd_camera_dvp.c` + `gc0308` + `gc2145` + `ov2640` + `i2c`；三者 0 error。
 
