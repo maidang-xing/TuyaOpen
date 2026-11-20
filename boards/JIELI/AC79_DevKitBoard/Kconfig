@@ -93,7 +93,8 @@ config JIELI_BOARD_HAS_DISPLAY
 # ---------------------------------------------------------------------------
 choice
     prompt "Camera module"
-    default JIELI_BOARD_CAMERA_NONE
+    # The 24-pin DVP module (J1) is the one the devkit ships with.
+    default JIELI_BOARD_CAMERA_GC2145
 
     config JIELI_BOARD_CAMERA_NONE
         bool "None"

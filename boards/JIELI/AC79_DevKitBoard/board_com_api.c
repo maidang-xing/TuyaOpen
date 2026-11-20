@@ -7,6 +7,7 @@
  */
 
 #include "board_com_api.h"
+#include "tal_api.h"
 
 #if defined(ENABLE_JIELI_ADKEY_BUTTON) && (ENABLE_JIELI_ADKEY_BUTTON == 1)
 #include "tdd_button_adc.h"
@@ -21,31 +22,36 @@
 #endif
 #endif
 
-/* The panel needs both the 8080 backend and the display component: the
- * former is a chip-level switch that defaults on for AC79, while the
- * latter follows ENABLE_LIBLVGL. Guard on both or the TDL header is
- * pulled in for a component the build did not compile. */
+/* The AC79 DevKit carries a 320x480 ILI9488 panel on the MCU8080 bus. It needs
+ * both the 8080 backend (a chip-level switch that defaults on for AC79) and the
+ * display component (follows ENABLE_LIBLVGL); guard on both or the TDL header
+ * is pulled in for a component the build did not compile. The TKL 8080 backend
+ * owns the DC/RST pins and the vendor `emi` device owns the bus timing, so
+ * only the geometry and pixel format are stated here. */
 #if defined(ENABLE_MCU8080) && (ENABLE_MCU8080 == 1) && defined(ENABLE_DISPLAY) && (ENABLE_DISPLAY == 1)
 #include "tdd_disp_ili9488.h"
+
+#define JIELI_8080_DISPLAY_NAME   "display"
+#define JIELI_8080_DISPLAY_WIDTH  320
+#define JIELI_8080_DISPLAY_HEIGHT 480
 #endif
 
 /* Exactly one camera module is fitted (the connectors share pins), and the
- * board Kconfig names it. The TDD owns the frame pool and the open/close state
- * machine; whether it also owns the sensor is the module's business: the SPI
- * module brings its own sensor driver, while on the DVP module the vendor
- * video0 driver probes and configures the sensor, so the interface table there
- * stays empty. */
-#if defined(ENABLE_CAMERA) && (ENABLE_CAMERA == 1) &&                                                                  \
-    ((defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)) ||                                       \
-     (defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)))
-#include "tdd_camera_dvp.h"
-#if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
-#include "tdd_camera_gc0310_spi.h"
-#endif
+ * board Kconfig names it. Both modules hand the sensor to the TDD: the board
+ * only supplies the I2C port, reset pin and clock below, and the platform
+ * replays the tables once the sensor clock is up. */
 #if defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)
+#include "tdd_camera_dvp.h"
 #include "tdd_camera_gc2145.h"
-#endif
+
 #define JIELI_CAMERA_DEV_NAME "camera"
+#define JIELI_CAMERA_ASC      "GC2145 on J1 (DVP)"
+#elif defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
+#include "tdd_camera_dvp.h"
+#include "tdd_camera_gc0310_spi.h"
+
+#define JIELI_CAMERA_DEV_NAME "camera"
+#define JIELI_CAMERA_ASC      "GC0310 on J4 (SPI)"
 #endif
 
 /***********************************************************
@@ -57,19 +63,6 @@
 /* SDK ADKEY V6..V7 are 823..1007; the press range is (V6, V7]. */
 #define JIELI_K1_PRESSED_MIN 824U
 #define JIELI_K1_PRESSED_MAX 1007U
-
-/* The AC79 DevKit carries a 320x480 ILI9488 panel on the MCU8080 bus. The TKL
- * 8080 backend owns the DC/RST pins and the vendor `emi` device owns the bus
- * timing, so only the geometry and pixel format are stated here. */
-/* The panel needs both the 8080 backend and the display component: the
- * former is a chip-level switch that defaults on for AC79, while the
- * latter follows ENABLE_LIBLVGL. Guard on both or the TDL header is
- * pulled in for a component the build did not compile. */
-#if defined(ENABLE_MCU8080) && (ENABLE_MCU8080 == 1) && defined(ENABLE_DISPLAY) && (ENABLE_DISPLAY == 1)
-#define JIELI_8080_DISPLAY_NAME   "display"
-#define JIELI_8080_DISPLAY_WIDTH  320
-#define JIELI_8080_DISPLAY_HEIGHT 480
-#endif
 
 OPERATE_RET board_register_hardware(void)
 {
@@ -105,11 +98,7 @@ OPERATE_RET board_register_hardware(void)
     }
 #endif
 
-/* The panel needs both the 8080 backend and the display component: the
- * former is a chip-level switch that defaults on for AC79, while the
- * latter follows ENABLE_LIBLVGL. Guard on both or the TDL header is
- * pulled in for a component the build did not compile. */
-#if defined(ENABLE_MCU8080) && (ENABLE_MCU8080 == 1) && defined(ENABLE_DISPLAY) && (ENABLE_DISPLAY == 1)
+#if defined(JIELI_8080_DISPLAY_NAME)
     {
         /* The backlight is a plain GPIO on this board, driven by the vendor
          * panel config; the TDL brightness control is left to that path rather
@@ -142,14 +131,8 @@ OPERATE_RET board_register_hardware(void)
     }
 #endif
 
-#if defined(ENABLE_CAMERA) && (ENABLE_CAMERA == 1) &&                                                                  \
-    ((defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)) ||                                       \
-     (defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)))
+#if defined(JIELI_CAMERA_DEV_NAME)
     {
-#if defined(JIELI_BOARD_CAMERA_GC0310) && (JIELI_BOARD_CAMERA_GC0310 == 1)
-        /* The TDD owns the sensor: IIC1 on PH0/PH1, reset on PH3. tkl_dvp only
-         * opens spi2 and calls the TDD setup hook to re-run the table once
-         * SPI2 is armed. */
         TDD_DVP_SR_USR_CFG_T camera_cfg = {
             .pwr = {.pin = BOARD_CAMERA_POWER_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
             .rst = {.pin = BOARD_CAMERA_RST_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
@@ -157,33 +140,19 @@ OPERATE_RET board_register_hardware(void)
             .clk = BOARD_CAMERA_CLK,
         };
 
-        ret = tdd_camera_gc0310_spi_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg);
-#else
-        /* The TDD owns the sensor here too: probe, I2C, reset and the register
-         * table all run before tkl_dvp_start(), and the platform's timing-only
-         * descriptor tells the vendor ISC what to latch. The sensor runs at
-         * the board geometry; tkl_dvp decimates to whatever the caller asks
-         * for, so BOARD_CAMERA_WIDTH/HEIGHT are the sensor size, not the
-         * preview size. */
-        TDD_DVP_SR_USR_CFG_T camera_cfg = {
-            .pwr = {.pin = BOARD_CAMERA_POWER_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
-            .rst = {.pin = BOARD_CAMERA_RST_PIN, .active_level = TUYA_GPIO_LEVEL_LOW},
-            .i2c = {.port = BOARD_CAMERA_I2C_PORT, .clk = BOARD_CAMERA_I2C_SCL, .sda = BOARD_CAMERA_I2C_SDA},
-            .clk = BOARD_CAMERA_CLK,
-        };
-
+#if defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)
+        /* DVP module: the sensor runs at the board geometry and tkl_dvp
+         * delivers a centre crop of it, so BOARD_CAMERA_WIDTH/HEIGHT are the
+         * sensor size, not the preview size. */
         ret = tdd_camera_dvp_gc2145_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg);
+#else
+        /* SPI module: the TDD owns the sensor and tkl_dvp only opens spi2. */
+        ret = tdd_camera_gc0310_spi_register((char *)JIELI_CAMERA_DEV_NAME, &camera_cfg);
 #endif
         if (ret != OPRT_OK) {
             return ret;
         }
-        printf("camera module: %s\n",
-#if defined(JIELI_BOARD_CAMERA_GC2145) && (JIELI_BOARD_CAMERA_GC2145 == 1)
-               "GC2145 on J1 (DVP)"
-#else
-               "GC0310 on J4 (SPI)"
-#endif
-        );
+        PR_NOTICE("camera module: %s", JIELI_CAMERA_ASC);
     }
 #endif
 
